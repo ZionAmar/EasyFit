@@ -1,3 +1,4 @@
+require('dotenv').config(); // טוען את קובץ .env
 const mysql = require('mysql2');
 
 const pool = mysql.createPool({

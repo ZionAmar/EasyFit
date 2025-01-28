@@ -5,7 +5,8 @@ const port = 3000;
 //Routes
 const home = require('./routes/home');
 app.use('/', home);
-
+const users = require('./routes/users');
+app.use('/users', users);
 
 
 
