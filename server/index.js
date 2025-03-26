@@ -15,7 +15,10 @@ app.get('/',(req,res)=>{
 });
 const users = require('./routes/users');
 app.use('/users', users);
-
+const meetings = require('./routes/meetings');
+app.use('/meetings', meetings);
+const rooms = require('./routes/rooms');
+app.use('/rooms', rooms);
 
 
 app.listen(port, () => {

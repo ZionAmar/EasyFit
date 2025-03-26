@@ -96,7 +96,7 @@ async function deleteUser(req, res, next) {
         next(err);
     }
 }
-
+//שליפת משתמש מסויים
 async function getUserById(req, res, next) {
     const { id } = req.params;
     try {

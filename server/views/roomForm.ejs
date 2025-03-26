@@ -1,0 +1,21 @@
+<%- include('top') %>
+
+<div class="container">
+    <form action="<%= room ? '/rooms/update/' + room.id : '/rooms' %>" method="POST">
+        <label>שם החדר:</label>
+        <input type="text" name="name" value="<%= room ? room.name : '' %>" required><br>
+
+        <label>קיבולת:</label>
+        <input type="number" name="capacity" value="<%= room ? room.capacity : '' %>" required><br>
+
+        <label>פנוי?</label>
+        <input type="checkbox" name="is_available" value="1" <%= room && room.is_available ? 'checked' : '' %>><br>
+
+        <label>יש ציוד?</label>
+        <input type="checkbox" name="has_equipment" value="1" <%= room && room.has_equipment ? 'checked' : '' %>><br>
+
+        <button type="submit"><%= room ? '💾 עדכן' : '➕ צור חדר' %></button>
+    </form>
+</div>
+
+<%- include('bottom') %>
