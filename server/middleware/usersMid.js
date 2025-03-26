@@ -3,27 +3,35 @@ const db = require('../database'); // ייבוא חיבור למסד הנתונ�
 // Middleware לשליפת כל המשתמשים
 async function getUsers(req, res, next) {
     try {
-        const [rows] = await db.query('SELECT * FROM users'); // שאילתת SELECT
-        req.users = rows; // שמירת המידע ב-req
+        const [rows] = await db.query('SELECT * FROM users');
+        req.users = rows;
         next();
     } catch (err) {
         req.error = { status: 500, message: 'Error fetching users' };
-        next(err); // העברת השגיאה הלאה
+        next(err);
     }
 }
 
 // Middleware ליצירת משתמש חדש
 async function createUser(req, res, next) {
-    const { name, email } = req.body;
+    const { full_name, email, phone, role } = req.body;
 
-    if (!name || !email) {
-        req.error = { status: 400, message: 'Missing name or email' };
+    if (!full_name || !email || !phone || !role) {
+        req.error = { status: 400, message: 'Missing required fields' };
         return next();
     }
 
     try {
-        const [result] = await db.query('INSERT INTO users (name, email) VALUES (?, ?)', [name, email]);
-        req.newUser = { id: result.insertId, name, email }; // משתמש חדש עם ID שנוצר
+        const isAdmin = role === "admin" ? 1 : 0;
+        const isTrainer = role === "trainer" ? 1 : 0;
+        const isMember = role === "client" ? 1 : 0;
+
+        const [result] = await db.query(
+            'INSERT INTO users (full_name, email, phone, is_admin, is_trainer, is_member) VALUES (?, ?, ?, ?, ?, ?)',
+            [full_name, email, phone, isAdmin, isTrainer, isMember]
+        );
+
+        req.newUser = { id: result.insertId, full_name, email, phone, role };
         next();
     } catch (err) {
         req.error = { status: 500, message: 'Error creating user' };
@@ -33,7 +41,8 @@ async function createUser(req, res, next) {
 
 // Middleware לעדכון משתמש קיים
 async function updateUser(req, res, next) {
-    const { id, name, email } = req.body;
+    const { id } = req.params;
+    const { full_name, email, phone, role } = req.body;
 
     if (!id) {
         req.error = { status: 400, message: 'Missing id' };
@@ -41,14 +50,21 @@ async function updateUser(req, res, next) {
     }
 
     try {
-        const [result] = await db.query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, id]);
+        const isAdmin = role === "admin" ? 1 : 0;
+        const isTrainer = role === "trainer" ? 1 : 0;
+        const isMember = role === "client" ? 1 : 0;
+
+        const [result] = await db.query(
+            'UPDATE users SET full_name = ?, email = ?, phone = ?, is_admin = ?, is_trainer = ?, is_member = ? WHERE id = ?',
+            [full_name, email, phone, isAdmin, isTrainer, isMember, id]
+        );
 
         if (result.affectedRows === 0) {
             req.error = { status: 404, message: 'User not found' };
             return next();
         }
 
-        req.updatedUser = { id, name, email }; // מידע המשתמש המעודכן
+        req.updatedUser = { id, full_name, email, phone, role };
         next();
     } catch (err) {
         req.error = { status: 500, message: 'Error updating user' };
@@ -58,7 +74,7 @@ async function updateUser(req, res, next) {
 
 // Middleware למחיקת משתמש
 async function deleteUser(req, res, next) {
-    const { id } = req.body;
+    const { id } = req.params;
 
     if (!id) {
         req.error = { status: 400, message: 'Missing id' };
@@ -81,4 +97,19 @@ async function deleteUser(req, res, next) {
     }
 }
 
-module.exports = { getUsers, createUser, updateUser, deleteUser };
+async function getUserById(req, res, next) {
+    const { id } = req.params;
+    try {
+        const [rows] = await db.query('SELECT * FROM users WHERE id = ?', [id]);
+        if (rows.length === 0) {
+            req.error = { status: 404, message: 'User not found' };
+            return next();
+        }
+        req.user = rows[0];
+        next();
+    } catch (err) {
+        req.error = { status: 500, message: 'Error fetching user' };
+        next(err);
+    }
+}
+module.exports = { getUsers, createUser, updateUser, deleteUser, getUserById };
