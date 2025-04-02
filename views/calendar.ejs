@@ -21,15 +21,15 @@
 
         <% for (let day = 1; day <= daysInMonth; day++) { %>
             <div class="day">
-                <div class="date"><%= day %>/<%= month %></div>
+                <div class="date"><%= day %></div>
 
                 <% const meetings = meetingsByDay[day] || []; %>
                 <% meetings.forEach(m => { %>
-                    <div class="meeting">
+                    <a href="/meetings/<%= m.id %>" class="meeting">
                         <%= m.name %><br>
                         <small><%= m.start_time %> - <%= m.end_time %></small>
-                    </div>
-                <% }) %>
+                    </a>
+                <% }) %>                
             </div>
         <% } %>
     </div>

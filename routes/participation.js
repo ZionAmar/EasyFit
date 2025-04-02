@@ -1,41 +1,43 @@
 const express = require('express');
 const router = express.Router();
-const { joinMeeting, cancelParticipation } = require('../middleware/participationMid');
+const { joinMeeting, joinWaiting, cancelParticipation, getUserMeetings } = require('../middleware/participationMid');
 
-// הצטרפות למפגש
 router.post('/join', joinMeeting, (req, res) => {
-    if (req.error) {
-        return res.status(req.error.status).render('error', {
-            title: 'שגיאה',
-            message: req.error.message
-        });
-    }
+  if (req.error) return res.status(req.error.status).json({ error: req.error.message });
 
-    const message = req.joinStatus === 'active'
-        ? 'הצטרפת בהצלחה למפגש.'
-        : 'המפגש מלא. הוספת לרשימת המתנה.';
-
-    res.render('registrationResult', {
-        title: 'הצטרפות למפגש',
-        header: 'תוצאה',
-        message
-    });
+  res.send('הצטרפת בהצלחה למפגש.');
 });
 
+router.post('/join-waiting', joinWaiting, (req, res) => {
+  if (req.error) return res.status(req.error.status).json({ error: req.error.message });
+
+  res.send('נוספת לרשימת המתנה בהצלחה.');
+});
+
+// הצגת כל המפגשים של משתמש מסוים עם הסטטוס
+router.get('/my-meetings/:user_id', getUserMeetings, (req, res) => {
+    if (req.error) {
+      return res.status(req.error.status).render('error', {
+        title: 'שגיאה',
+        message: req.error.message
+      });
+    }
+  
+    res.render('myMeetings', {
+      title: 'המפגשים שלי',
+      header: 'רשימת המפגשים שלך',
+      meetings: req.userMeetings,
+      userId: req.params.user_id
+    });
+  });
+  
 // ביטול הצטרפות
 router.post('/cancel', cancelParticipation, (req, res) => {
     if (req.error) {
-        return res.status(req.error.status).render('error', {
-            title: 'שגיאה',
-            message: req.error.message
-        });
+        return res.status(req.error.status).json({ error: req.error.message });
     }
 
-    res.render('registrationResult', {
-        title: 'ביטול השתתפות',
-        header: 'ההרשמה בוטלה',
-        message: 'ביטלת את ההשתתפות בהצלחה.'
-    });
+    res.send('ביטלת את ההשתתפות בהצלחה.');
 });
 
 module.exports = router;

@@ -29,6 +29,45 @@ async function getMeetingById(req, res, next) {
   }
 }
 
+// שליפת פרטי מפגש לפי ID
+async function getMeetingDetails(req, res, next) {
+    const { id } = req.params;
+
+    try {
+        const [rows] = await db.query(
+            `SELECT m.*, r.name AS room_name, r.capacity, u.full_name AS trainer_name
+             FROM meetings m
+             JOIN rooms r ON m.room_id = r.id
+             JOIN users u ON m.trainer_id = u.id
+             WHERE m.id = ?`,
+            [id]
+        );
+
+        if (rows.length === 0) {
+            req.error = { status: 404, message: 'המפגש לא נמצא' };
+            return next();
+        }
+
+        const meeting = rows[0];
+
+        const [countRows] = await db.query(
+            "SELECT COUNT(*) AS count FROM meeting_registrations WHERE meeting_id = ? AND status = 'active'",
+            [id]
+        );
+
+        const currentCount = countRows[0].count;
+
+        req.meeting = meeting;
+        req.currentCount = currentCount;
+        next();
+
+    } catch (err) {
+        console.error(err);
+        req.error = { status: 500, message: 'שגיאה בטעינת פרטי המפגש' };
+        next();
+    }
+}
+
 // יצירת מפגש חדש
 async function createMeeting(req, res, next) {
   const {
@@ -200,4 +239,5 @@ module.exports = {
   createMeeting,
   updateMeeting,
   deleteMeeting,
+  getMeetingDetails,
 };

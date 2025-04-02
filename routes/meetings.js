@@ -3,6 +3,7 @@ const router = express.Router();
 const { getMeetings, getMeetingById, createMeeting, updateMeeting, deleteMeeting } = require('../middleware/meetingsMid');
 const { getUsers } = require('../middleware/usersMid');
 const { getRooms } = require('../middleware/roomsMid');
+const { getMeetingDetails } = require('../middleware/meetingsMid');
 
 // הצגת כל המפגשים
 router.get('/', getMeetings, getUsers, getRooms, (req, res) => {
@@ -24,6 +25,23 @@ router.get('/', getMeetings, getUsers, getRooms, (req, res) => {
         title: "ניהול מפגשים",
         header: "רשימת מפגשים",
         meetings
+    });
+});
+
+// הצגת פרטי מפגש
+router.get('/:id', getMeetingDetails, (req, res) => {
+    if (req.error) {
+        return res.status(req.error.status).render('error', {
+            title: 'שגיאה',
+            message: req.error.message
+        });
+    }
+
+    res.render('meetingDetails', {
+        title: 'פרטי מפגש',
+        header: req.meeting.name,
+        meeting: req.meeting,
+        currentCount: req.currentCount
     });
 });
 

@@ -1,0 +1,50 @@
+<%- include('top') %>
+
+<div class="container">
+  <h2><%= header %></h2>
+
+  <% if (meetings.length === 0) { %>
+    <p>לא נמצאו מפגשים שאתה רשום אליהם.</p>
+  <% } else { %>
+    <table border="1">
+      <thead>
+        <tr>
+          <th>שם</th>
+          <th>תאריך</th>
+          <th>שעה</th>
+          <th>מדריך</th>
+          <th>חדר</th>
+          <th>סטטוס</th>
+          <th>פעולות</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% meetings.forEach(m => { %>
+          <tr>
+            <td><a href="/meetings/<%= m.id %>"><%= m.name %></a></td>
+            <td><%= m.date %></td>
+            <td><%= m.start_time %> - <%= m.end_time %></td>
+            <td><%= m.trainer_name %></td>
+            <td><%= m.room_name %></td>
+            <td>
+              <%= m.status === 'active' ? 'מאושר' :
+                  m.status === 'waiting' ? 'ברשימת המתנה' :
+                  m.status === 'cancelled' ? 'בוטל' : m.status %>
+            </td>
+            <td>
+              <% if (m.status !== 'cancelled') { %>
+                <form action="/participation/cancel" method="POST" onsubmit="return confirm('לבטל את ההשתתפות?');">
+                  <input type="hidden" name="meeting_id" value="<%= m.id %>">
+                  <input type="hidden" name="user_id" value="<%= userId %>">
+                  <button type="submit">בטל</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('bottom') %>
