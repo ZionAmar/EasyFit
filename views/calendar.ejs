@@ -1,0 +1,38 @@
+<%- include('top') %>
+
+<div class="container">
+    <h2><%= header %></h2>
+
+    <div class="nav">
+        <% const prevMonth = month === 1 ? 12 : month - 1; %>
+        <% const nextMonth = month === 12 ? 1 : month + 1; %>
+        <% const prevYear = month === 1 ? year - 1 : year; %>
+        <% const nextYear = month === 12 ? year + 1 : year; %>
+
+        <a href="/calendar?year=<%= prevYear %>&month=<%= prevMonth %>">← חודש קודם</a>
+        |
+        <a href="/calendar?year=<%= nextYear %>&month=<%= nextMonth %>">חודש הבא →</a>
+    </div>
+
+    <div class="calendar">
+        <% for (let i = 0; i < startDay; i++) { %>
+            <div class="day empty"></div>
+        <% } %>
+
+        <% for (let day = 1; day <= daysInMonth; day++) { %>
+            <div class="day">
+                <div class="date"><%= day %>/<%= month %></div>
+
+                <% const meetings = meetingsByDay[day] || []; %>
+                <% meetings.forEach(m => { %>
+                    <div class="meeting">
+                        <%= m.name %><br>
+                        <small><%= m.start_time %> - <%= m.end_time %></small>
+                    </div>
+                <% }) %>
+            </div>
+        <% } %>
+    </div>
+</div>
+
+<%- include('bottom') %>
