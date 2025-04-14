@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { joinMeeting, joinWaiting, cancelParticipation, getUserMeetings } = require('../middleware/participationMid');
+const { confirmSpot, declineSpot } = require('../middleware/confirmationMid');
 
 router.post('/join', joinMeeting, (req, res) => {
   if (req.error) return res.status(req.error.status).json({ error: req.error.message });
@@ -38,6 +39,31 @@ router.post('/cancel', cancelParticipation, (req, res) => {
     }
 
     res.send('ביטלת את ההשתתפות בהצלחה.');
+});
+
+
+// אישור השתתפות דרך לינק
+router.get('/confirm/:registrationId', confirmSpot, (req, res) => {
+  if (req.error) {
+    return res.status(req.error.status).render('error', {
+      title: 'שגיאה',
+      message: req.error.message
+    });
+  }
+
+  res.send('אישרת את ההשתתפות שלך בהצלחה');
+});
+
+// ביטול השתתפות דרך לינק
+router.get('/decline/:registrationId', declineSpot, (req, res) => {
+  if (req.error) {
+    return res.status(req.error.status).render('error', {
+      title: 'שגיאה',
+      message: req.error.message
+    });
+  }
+
+  res.send('ביטלת את ההשתתפות שלך');
 });
 
 module.exports = router;

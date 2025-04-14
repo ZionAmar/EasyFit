@@ -11,7 +11,7 @@
 
     <form id="join-form">
         <input type="hidden" name="meeting_id" value="<%= meeting.id %>">
-        <input type="hidden" name="user_id" value="4"> <!-- בעתיד: מתוך session -->
+        <input type="hidden" name="user_id" value="1"> <!-- בעתיד: מתוך session -->
         <button type="submit">הצטרף למפגש</button>
     </form>
 </div>
@@ -20,7 +20,7 @@
 document.getElementById("join-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const formData = new FormData(e.target);
-  const params = new URLSearchParams(formData); // פתרון!
+  const params = new URLSearchParams(formData);
 
   try {
     const res = await fetch("/participation/join", {

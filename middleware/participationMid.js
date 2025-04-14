@@ -1,4 +1,5 @@
 const db = require("../database");
+const { sendSmsWithConfirmLink } = require("../utils/twilioSms");
 
 async function joinMeeting(req, res, next) {
   const { meeting_id, user_id, allow_waiting } = req.body;
@@ -10,7 +11,7 @@ async function joinMeeting(req, res, next) {
 
   try {
     const [existing] = await db.query(
-      "SELECT * FROM meeting_registrations WHERE meeting_id = ? AND user_id = ?",
+      "SELECT * FROM meeting_registrations WHERE meeting_id = ? AND user_id = ? AND status != 'cancelled'",
       [meeting_id, user_id]
     );
     if (existing.length > 0) {
@@ -40,10 +41,10 @@ async function joinMeeting(req, res, next) {
 
     if (currentCount >= maxAllowed) {
       // אין מקום – בודקים אם המשתמש אישר להיכנס לרשימת המתנה
-      if (!allow_waiting || allow_waiting === 'false') {
+      if (!allow_waiting || allow_waiting === "false") {
         req.error = {
           status: 409,
-          message: "המפגש מלא. ניתן להיכנס לרשימת המתנה."
+          message: "המפגש מלא. ניתן להיכנס לרשימת המתנה.",
         };
         return next();
       }
@@ -90,7 +91,7 @@ async function joinWaiting(req, res, next) {
       [meeting_id, user_id]
     );
 
-    req.joinStatus = 'waiting';
+    req.joinStatus = "waiting";
     next();
   } catch (err) {
     console.error(err);
@@ -108,7 +109,8 @@ async function getUserMeetings(req, res, next) {
   }
 
   try {
-    const [rows] = await db.query(`
+    const [rows] = await db.query(
+      `
       SELECT 
         m.id, m.name, m.date, m.start_time, m.end_time,
         r.name AS room_name,
@@ -120,7 +122,9 @@ async function getUserMeetings(req, res, next) {
       JOIN users u ON m.trainer_id = u.id
       WHERE mr.user_id = ?
       ORDER BY m.date, m.start_time
-    `, [user_id]);
+    `,
+      [user_id]
+    );
 
     req.userMeetings = rows;
     next();
@@ -158,9 +162,20 @@ async function cancelParticipation(req, res, next) {
     if (waitingList.length > 0) {
       const nextUser = waitingList[0];
       await db.query(
-        "UPDATE meeting_registrations SET status = 'active' WHERE id = ?",
+        "UPDATE meeting_registrations SET status = 'pending' WHERE id = ?",
         [nextUser.id]
       );
+
+      // שליחת הודעה 
+      const [userData] = await db.query(
+        "SELECT phone FROM users WHERE id = ?",
+        [nextUser.user_id]
+      );
+      const phone = userData[0]?.phone;
+
+      if (phone) {
+        await sendSmsWithConfirmLink(phone, meeting_id, nextUser.id);
+      }
     }
 
     next();
@@ -171,4 +186,9 @@ async function cancelParticipation(req, res, next) {
   }
 }
 
-module.exports = { joinMeeting, joinWaiting, cancelParticipation, getUserMeetings };
+module.exports = {
+  joinMeeting,
+  joinWaiting,
+  cancelParticipation,
+  getUserMeetings,
+};
