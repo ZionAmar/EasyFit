@@ -4,6 +4,7 @@ const { getMeetings, getMeetingById, createMeeting, updateMeeting, deleteMeeting
 const { getUsers } = require('../middleware/usersMid');
 const { getRooms } = require('../middleware/roomsMid');
 const { getMeetingDetails } = require('../middleware/meetingsMid');
+const jwt = require('jsonwebtoken');
 
 // הצגת כל המפגשים
 router.get('/', getMeetings, getUsers, getRooms, (req, res) => {
@@ -29,7 +30,10 @@ router.get('/', getMeetings, getUsers, getRooms, (req, res) => {
 });
 
 // הצגת פרטי מפגש
-router.get('/:id', getMeetingDetails, (req, res) => {
+router.get('/:id', [getMeetingDetails], (req, res) => {
+    const token = req.cookies.jwt;
+    const decoded = jwt.verify(token, process.env.jwtSecret); // זה בטוח כי כבר בדקת isLogged
+  
     if (req.error) {
         return res.status(req.error.status).render('error', {
             title: 'שגיאה',
@@ -41,7 +45,8 @@ router.get('/:id', getMeetingDetails, (req, res) => {
         title: 'פרטי מפגש',
         header: req.meeting.name,
         meeting: req.meeting,
-        currentCount: req.currentCount
+        currentCount: req.currentCount,
+        userId: decoded.id 
     });
 });
 

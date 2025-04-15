@@ -11,7 +11,7 @@
 
     <form id="join-form">
         <input type="hidden" name="meeting_id" value="<%= meeting.id %>">
-        <input type="hidden" name="user_id" value="1"> <!-- בעתיד: מתוך session -->
+        <input type="hidden" name="user_id" value="<%= userId %>">
         <button type="submit">הצטרף למפגש</button>
     </form>
 </div>

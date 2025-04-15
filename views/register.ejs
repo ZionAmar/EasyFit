@@ -1,0 +1,29 @@
+<%-include("top.ejs")%>
+<main class="reg_container">
+    <h2>הרשמה לאפליקציה</h2>
+    <% if (typeof error !== 'undefined' && error) { %>
+        <div class="error-message"><%= error %></div>
+    <% } %>
+    <form class="reg_form" action="/register/Add" method="post">
+        <div class="form-group">
+            <input type="text" id="realName" name="name" required placeholder="שם מלא:"/>
+        </div>
+        <div class="form-group">
+            <input type="email" id="email" name="email" required placeholder="מייל:"/>
+        </div>
+        <div class="form-group">
+            <input type="phone" id="phone" name="phone" required placeholder="טלפון:"/>
+        </div>
+        <div class="form-group">
+            <input type="text" id="userName" name="userName" required placeholder="שם משתמש:"/>
+        </div>
+        <div class="form-group">
+            <input type="password" id="password" name="pass" required placeholder="סיסמה:" />
+        </div>
+        <div class="form-group">
+            <button type="submit">הרשם</button>
+        </div>
+    </form>
+    <a href="/login" class="login-link">כבר יש לך חשבון? התחבר כאן</a>
+</main>
+<%-include("bottom.ejs")%>
