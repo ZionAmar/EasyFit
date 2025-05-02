@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { getMonthlyMeetings } = require('../middleware/calendarMid');
+const { isLogged } = require('../middleware/loginMid'); // ✅ הוספת המידלוור
 
 // אם לא נשלח שנה/חודש, נעשה הפניה אוטומטית לחודש הנוכחי
-router.get('/', (req, res, next) => {
+router.get('/', isLogged, (req, res, next) => {
     if (!req.query.year || !req.query.month) {
         const now = new Date();
         const year = now.getFullYear();

@@ -17,19 +17,19 @@ app.use(cookieParser());
 app.get("/",[middle.isLogged], (req, res) => {
   res.render("main", { title: "EasyFit - דף הבית", header: "דף הבית" });
 });
-const users = require("./routes/users");
+const users = require("./routers/users");
 app.use("/users",[middle.isLogged], users);
-const meetings = require("./routes/meetings");
+const meetings = require("./routers/meetings");
 app.use("/meetings",[middle.isLogged], meetings);
-const rooms = require("./routes/rooms");
+const rooms = require("./routers/rooms");
 app.use("/rooms",[middle.isLogged], rooms);
-const participation = require("./routes/participation");
+const participation = require("./routers/participation");
 app.use("/participation",[middle.isLogged], participation);
-const calendar = require("./routes/calendar");
+const calendar = require("./routers/calendar");
 app.use("/calendar",[middle.isLogged], calendar);
-const register = require('./routes/register');
+const register = require('./routers/register');
 app.use('/register',register);
-const login = require('./routes/login');
+const login = require('./routers/login');
 app.use('/login',login);
 
 

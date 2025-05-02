@@ -9,17 +9,45 @@ async function getMonthlyMeetings(req, res, next) {
 
   try {
     const firstDay = dayjs(`${year}-${month}-01`);
-    const startDay = firstDay.day(); // 0 = Sunday
+    const startDay = firstDay.day();
     const daysInMonth = firstDay.daysInMonth();
 
     const startOfMonth = firstDay.startOf("month").format("YYYY-MM-DD");
     const endOfMonth = firstDay.endOf("month").format("YYYY-MM-DD");
 
-    const [meetings] = await db.query(
-      `SELECT * FROM meetings WHERE date BETWEEN ? AND ?`,
-      [startOfMonth, endOfMonth]
-    );
+    let meetings = [];
 
+    if (req.user.role === "admin") {
+      // admin רואה את כל המפגשים
+      const [rows] = await db.query(
+        `SELECT * FROM meetings WHERE date BETWEEN ? AND ?`,
+        [startOfMonth, endOfMonth]
+      );
+      meetings = rows;
+    }
+
+    else if (req.user.role === "trainer") {
+      // מדריך רואה רק את המפגשים שהוא מעביר
+      const [rows] = await db.query(
+        `SELECT * FROM meetings WHERE date BETWEEN ? AND ? AND trainer_id = ?`,
+        [startOfMonth, endOfMonth, req.user.id]
+      );
+      meetings = rows;
+    }
+
+    else if (req.user.role === "member") {
+      // חניך רואה רק מפגשים שהוא רשום אליהם בטבלה נפרדת
+      const [rows] = await db.query(
+        `SELECT m.* 
+         FROM meetings m
+         JOIN meeting_registrations p ON m.id = p.meeting_id
+         WHERE m.date BETWEEN ? AND ? AND p.user_id = ?`,
+        [startOfMonth, endOfMonth, req.user.id]
+      );
+      meetings = rows;
+    }
+
+    // סידור לפי ימים
     const meetingsByDay = {};
     meetings.forEach((meeting) => {
       const day = dayjs(meeting.date).date();

@@ -48,9 +48,19 @@ async function CheckUser(req, res) {
       "SELECT * FROM users WHERE userName = ? AND password_hash = ?",
       [userName, encPass]
     );
+
     if (rows.length > 0) {
+      const user = rows[0];
+
+      // יצירת role לפי העדיפות
+      let role = "guest";
+      if (user.is_admin) role = "admin";
+      else if (user.is_trainer) role = "trainer";
+      else if (user.is_member) role = "member";
+
+      user.role = role;
       res.loggedEn = true;
-      req.user = rows[0];
+      req.user = user;
     }
   } catch (err) {
     res.status(500).json({ message: "שגיאה בבסיס הנתונים" });
@@ -60,7 +70,11 @@ async function CheckUser(req, res) {
 function SetLoginToken(req, res) {
   const maxAge = 3 * 60 * 60;
   const token = jwt.sign(
-    { id: req.user.id, name: req.user.name },
+    {
+      id: req.user.id,
+      name: req.user.full_name,
+      role: req.user.role
+    },
     jwtSecret,
     { expiresIn: maxAge }
   );
@@ -77,14 +91,37 @@ function isLogged(req, res, next) {
   const token = req.cookies.jwt;
   if (!token) return res.redirect("/login");
 
-  jwt.verify(token, jwtSecret, (err) => {
+  jwt.verify(token, jwtSecret, (err, decoded) => {
     if (err) return res.redirect("/login");
+    req.user = decoded; // מוסיפים את המשתמש ל־req
     next();
   });
+}
+
+// פונקציית הרשאות לפי role
+function requireRole(...allowedRoles) {
+  return (req, res, next) => {
+    const token = req.cookies.jwt;
+    if (!token) return res.status(401).send("לא מחובר");
+
+    try {
+      const decoded = jwt.verify(token, process.env.jwtSecret);
+      req.user = decoded;
+
+      if (!allowedRoles.includes(decoded.role)) {
+        return res.status(403).send("אין הרשאה מתאימה");
+      }
+
+      next();
+    } catch {
+      return res.status(403).send("טוקן לא תקין");
+    }
+  };
 }
 
 module.exports = {
   EncWithSalt,
   check_login,
   isLogged,
+  requireRole
 };

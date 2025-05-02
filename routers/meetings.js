@@ -5,9 +5,10 @@ const { getUsers } = require('../middleware/usersMid');
 const { getRooms } = require('../middleware/roomsMid');
 const { getMeetingDetails } = require('../middleware/meetingsMid');
 const jwt = require('jsonwebtoken');
+const { requireRole } = require('../middleware/loginMid');
 
 // הצגת כל המפגשים
-router.get('/', getMeetings, getUsers, getRooms, (req, res) => {
+router.get('/', requireRole('admin', 'trainer'), getMeetings, getUsers, getRooms, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -51,7 +52,7 @@ router.get('/:id', [getMeetingDetails], (req, res) => {
 });
 
 // עמוד הוספת מפגש
-router.get('/add', getUsers, getRooms, (req, res) => {
+router.get('/add', requireRole('admin', 'trainer'), getUsers, getRooms, (req, res) => {
     const trainers = req.users.filter(user => user.is_trainer);
     res.render('meetingForm', {
         title: "הוספת מפגש חדש",
@@ -63,7 +64,7 @@ router.get('/add', getUsers, getRooms, (req, res) => {
 });
 
 // עמוד עריכת מפגש
-router.get('/edit/:id', getMeetingById, getUsers, getRooms, (req, res) => {
+router.get('/edit/:id', requireRole('admin', 'trainer'), getMeetingById, getUsers, getRooms, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -79,7 +80,7 @@ router.get('/edit/:id', getMeetingById, getUsers, getRooms, (req, res) => {
 });
 
 // יצירת מפגש חדש
-router.post('/', createMeeting, (req, res) => {
+router.post('/', requireRole('admin', 'trainer'), createMeeting, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -87,7 +88,7 @@ router.post('/', createMeeting, (req, res) => {
 });
 
 // עדכון מפגש
-router.post('/update/:id', updateMeeting, (req, res) => {
+router.post('/update/:id', requireRole('admin', 'trainer'), updateMeeting, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -95,7 +96,7 @@ router.post('/update/:id', updateMeeting, (req, res) => {
 });
 
 // מחיקת מפגש
-router.post('/delete/:id', deleteMeeting, (req, res) => {
+router.post('/delete/:id', requireRole('admin'), deleteMeeting, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }

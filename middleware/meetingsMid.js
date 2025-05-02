@@ -3,7 +3,15 @@ const db = require("../database");
 // שליפת כל המפגשים
 async function getMeetings(req, res, next) {
   try {
-    const [rows] = await db.query("SELECT * FROM meetings");
+    let rows;
+    if (req.user.role === 'trainer') {
+      const [filtered] = await db.query("SELECT * FROM meetings WHERE trainer_id = ?", [req.user.id]);
+      rows = filtered;
+    } else {
+      const [all] = await db.query("SELECT * FROM meetings");
+      rows = all;
+    }
+
     req.meetings = rows;
     next();
   } catch (err) {
@@ -50,6 +58,12 @@ async function getMeetingDetails(req, res, next) {
 
         const meeting = rows[0];
 
+        // 🔒 הגנה – מדריך רואה רק מפגש שהוא מעביר
+        if (req.user.role === 'trainer' && meeting.trainer_id !== req.user.id) {
+          req.error = { status: 403, message: "אין לך הרשאה לצפות בפרטי מפגש זה" };
+          return next();
+        }
+        
         const [countRows] = await db.query(
             "SELECT COUNT(*) AS count FROM meeting_registrations WHERE meeting_id = ? AND status = 'active'",
             [id]
