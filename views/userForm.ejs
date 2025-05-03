@@ -1,15 +1,15 @@
 <%- include('top') %>
 
 <div class="container">
-    <form action="<%= user ? `/users/update/${user.id}` : '/users' %>" method="POST">
-        <input type="text" name="full_name" placeholder="שם מלא" value="<%= user ? user.full_name : '' %>" required>
-        <input type="email" name="email" placeholder="אימייל" value="<%= user ? user.email : '' %>" required>
-        <input type="text" name="phone" placeholder="טלפון" value="<%= user ? user.phone : '' %>" required>
+    <form action="<%= editUser  ? `/users/update/${editUser .id}` : '/users' %>" method="POST">
+        <input type="text" name="full_name" placeholder="שם מלא" value="<%= editUser  ? editUser.full_name : '' %>" required>
+        <input type="email" name="email" placeholder="אימייל" value="<%= editUser  ? editUser.email : '' %>" required>
+        <input type="text" name="phone" placeholder="טלפון" value="<%= editUser ? editUser.phone : '' %>" required>
         
         <select name="role">
-            <option value="client" <%= user && user.is_member ? "selected" : "" %>>לקוח</option>
-            <option value="trainer" <%= user && user.is_trainer ? "selected" : "" %>>מאמן</option>
-            <option value="admin" <%= user && user.is_admin ? "selected" : "" %>>מנהל</option>
+            <option value="client" <%= editUser  && editUser.is_member ? "selected" : "" %>>לקוח</option>
+            <option value="trainer" <%= editUser  && editUser.is_trainer ? "selected" : "" %>>מאמן</option>
+            <option value="admin" <%= editUser  && editUser.is_admin ? "selected" : "" %>>מנהל</option>
         </select>
 
         <button type="submit"><%= user ? "🔄 עדכן משתמש" : "➕ הוסף משתמש" %></button>

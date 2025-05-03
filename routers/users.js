@@ -19,7 +19,7 @@ router.get('/add', (req, res) => {
     res.render('userForm', { 
         title: "הוספת משתמש חדש", 
         header: "הוספת משתמש", 
-        user: null // אין מידע, זה טופס חדש
+        editUser: null // אין מידע, זה טופס חדש
     });
 });
 
@@ -31,7 +31,7 @@ router.get('/edit/:id', getUserById, (req, res) => {
     res.render('userForm', { 
         title: "עריכת משתמש", 
         header: "עריכת משתמש", 
-        user: req.user
+        editUser: req.user
     });
 });
 

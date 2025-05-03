@@ -94,6 +94,7 @@ function isLogged(req, res, next) {
   jwt.verify(token, jwtSecret, (err, decoded) => {
     if (err) return res.redirect("/login");
     req.user = decoded; // מוסיפים את המשתמש ל־req
+    res.locals.user = decoded; 
     next();
   });
 }

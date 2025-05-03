@@ -1,6 +1,16 @@
 const db = require("../database");
 const dayjs = require("dayjs");
 
+function redirectToCurrentMonth(req, res, next) {
+  if (!req.query.year || !req.query.month) {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      return res.redirect(`/calendar?year=${year}&month=${month}`);
+  }
+  next();
+}
+
 async function getMonthlyMeetings(req, res, next) {
   const year = parseInt(req.query.year) || dayjs().year();
   const month = parseInt(req.query.month) || dayjs().month() + 1;
@@ -67,4 +77,4 @@ async function getMonthlyMeetings(req, res, next) {
   }
 }
 
-module.exports = { getMonthlyMeetings };
+module.exports = { getMonthlyMeetings,redirectToCurrentMonth };

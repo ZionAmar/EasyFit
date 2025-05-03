@@ -31,6 +31,10 @@ const register = require('./routers/register');
 app.use('/register',register);
 const login = require('./routers/login');
 app.use('/login',login);
+app.get('/logout', (req, res) => {
+  res.clearCookie('jwt'); // מוחק את העוגייה
+  res.redirect('/login'); // מפנה למסך התחברות
+});
 
 
 
