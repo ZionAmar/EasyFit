@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 const { requireRole } = require('../middleware/loginMid');
 
 // הצגת כל המפגשים
-router.get('/', requireRole('admin', 'trainer'), getMeetings, getUsers, getRooms, (req, res) => {
+router.get('/', getMeetings, getUsers, getRooms, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -31,10 +31,8 @@ router.get('/', requireRole('admin', 'trainer'), getMeetings, getUsers, getRooms
 });
 
 // הצגת פרטי מפגש
-router.get('/:id', [getMeetingDetails], (req, res) => {
-    const token = req.cookies.jwt;
-    const decoded = jwt.verify(token, process.env.jwtSecret); // זה בטוח כי כבר בדקת isLogged
-  
+router.get('/:id', getMeetingDetails, (req, res) => {
+
     if (req.error) {
         return res.status(req.error.status).render('error', {
             title: 'שגיאה',
@@ -47,12 +45,11 @@ router.get('/:id', [getMeetingDetails], (req, res) => {
         header: req.meeting.name,
         meeting: req.meeting,
         currentCount: req.currentCount,
-        userId: decoded.id 
     });
 });
 
 // עמוד הוספת מפגש
-router.get('/add', requireRole('admin', 'trainer'), getUsers, getRooms, (req, res) => {
+router.get('/add', requireRole("admin", "trainer"), getUsers, getRooms, (req, res) => {
     const trainers = req.users.filter(user => user.is_trainer);
     res.render('meetingForm', {
         title: "הוספת מפגש חדש",
@@ -64,7 +61,7 @@ router.get('/add', requireRole('admin', 'trainer'), getUsers, getRooms, (req, re
 });
 
 // עמוד עריכת מפגש
-router.get('/edit/:id', requireRole('admin', 'trainer'), getMeetingById, getUsers, getRooms, (req, res) => {
+router.get('/edit/:id', requireRole("admin", "trainer"), getMeetingById, getUsers, getRooms, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -80,7 +77,7 @@ router.get('/edit/:id', requireRole('admin', 'trainer'), getMeetingById, getUser
 });
 
 // יצירת מפגש חדש
-router.post('/', requireRole('admin', 'trainer'), createMeeting, (req, res) => {
+router.post('/', requireRole("admin", "trainer"), createMeeting, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -88,7 +85,7 @@ router.post('/', requireRole('admin', 'trainer'), createMeeting, (req, res) => {
 });
 
 // עדכון מפגש
-router.post('/update/:id', requireRole('admin', 'trainer'), updateMeeting, (req, res) => {
+router.post('/update/:id', requireRole("admin", "trainer"), updateMeeting, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -96,7 +93,7 @@ router.post('/update/:id', requireRole('admin', 'trainer'), updateMeeting, (req,
 });
 
 // מחיקת מפגש
-router.post('/delete/:id', requireRole('admin'), deleteMeeting, (req, res) => {
+router.post('/delete/:id', requireRole("admin"), deleteMeeting, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }

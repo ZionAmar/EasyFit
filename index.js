@@ -11,8 +11,24 @@ app.set("view engine", "ejs");
 app.set("views", __dirname + "/views");
 app.use(express.static(path.join(__dirname, './')));
 const cookieParser = require('cookie-parser');
+const session = require("express-session");
 app.use(cookieParser());
+// הגדרת session
+app.use(session({
+  secret: process.env.jwtSecret,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
 
+// middleware שמכניס את המשתמש לתוך res.locals
+app.use((req, res, next) => {
+  if (req.session && req.session.user) {
+    req.user = req.session.user;
+    res.locals.user = req.session.user;
+  }
+  next();
+});
 //Routes
 app.get("/",[middle.isLogged], (req, res) => {
   res.render("main", { title: "EasyFit - דף הבית", header: "דף הבית" });

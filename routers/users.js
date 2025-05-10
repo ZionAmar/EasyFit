@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { getUsers, createUser, updateUser, deleteUser, getUserById } = require('../middleware/usersMid');
+const { requireRole } = require('../middleware/loginMid');
 
 // עמוד הצגת כל המשתמשים
 router.get('/', getUsers, (req, res) => {
@@ -15,7 +16,7 @@ router.get('/', getUsers, (req, res) => {
 });
 
 // עמוד הוספת משתמש
-router.get('/add', (req, res) => {
+router.get('/add', requireRole("admin"),(req, res) => {
     res.render('userForm', { 
         title: "הוספת משתמש חדש", 
         header: "הוספת משתמש", 
@@ -24,7 +25,7 @@ router.get('/add', (req, res) => {
 });
 
 // עמוד עריכת משתמש
-router.get('/edit/:id', getUserById, (req, res) => {
+router.get('/edit/:id', getUserById, requireRole("admin"),(req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -36,7 +37,7 @@ router.get('/edit/:id', getUserById, (req, res) => {
 });
 
 // יצירת משתמש חדש
-router.post('/', createUser, (req, res) => {
+router.post('/', createUser, requireRole("admin"),(req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -44,7 +45,7 @@ router.post('/', createUser, (req, res) => {
 });
 
 // עדכון משתמש קיים
-router.post('/update/:id', updateUser, (req, res) => {
+router.post('/update/:id', requireRole("admin"),updateUser, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
@@ -52,7 +53,7 @@ router.post('/update/:id', updateUser, (req, res) => {
 });
 
 // מחיקת משתמש
-router.post('/delete/:id', deleteUser, (req, res) => {
+router.post('/delete/:id', requireRole("admin"), deleteUser, (req, res) => {
     if (req.error) {
         return res.status(req.error.status).render('error', { title: "שגיאה", message: req.error.message });
     }
