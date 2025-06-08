@@ -1,0 +1,78 @@
+<%- include('top') %>
+
+<div class="container">
+    <h2><%= meeting.name %></h2>
+    <p><strong>מדריך:</strong> <%= meeting.trainer_name %></p>
+    <p><strong>חדר:</strong> <%= meeting.room_name %> (קיבולת: <%= meeting.capacity %>)</p>
+    <p><strong>תאריך:</strong> <%= meeting.date %></p>
+    <p><strong>כמות משתתפים אפשרית:</strong> <%= meeting.participant_count %></p>
+    <p><strong>שעה:</strong> <%= meeting.start_time %> - <%= meeting.end_time %></p>
+    <p><strong>משתתפים נוכחיים:</strong> <%= currentCount %></p>
+
+    <% if (user && user.role === 'member') { %>
+      <!-- רק לחניך מוצג כפתור ההרשמה -->
+      <form id="join-form">
+          <input type="hidden" name="meeting_id" value="<%= meeting.id %>">
+          <input type="hidden" name="user_id" value="<%= user.id %>">
+          <button type="submit">הצטרף למפגש</button>
+      </form>
+    <% } %>
+
+    <% if (user && user.role === 'admin') { %>
+      <!-- רק לאדמין מוצגים כפתורי עריכה ומחיקה -->
+      <div style="margin-top: 20px;">
+        <a href="/meetings/edit/<%= meeting.id %>"><button>✏ ערוך</button></a>
+        <form action="/meetings/delete/<%= meeting.id %>" method="POST" style="display:inline;">
+          <button type="submit" onclick="return confirm('למחוק את המפגש <%= meeting.name %>?');">🗑 מחק</button>
+        </form>
+      </div>
+    <% } %>
+</div>
+
+<% if (user && user.role === 'member') { %>
+<script>
+document.getElementById("join-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const params = new URLSearchParams(formData);
+
+  try {
+    const res = await fetch("/participation/join", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
+      body: params
+    });
+
+    const text = await res.text();
+
+    if (res.ok) {
+      alert(text);
+    } else {
+      const json = JSON.parse(text);
+      if (json.error.includes("רשימת המתנה")) {
+        if (confirm(json.error)) {
+          const res2 = await fetch("/participation/join-waiting", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: params
+          });
+          const msg = await res2.text();
+          alert(msg);
+        }
+      } else {
+        alert(json.error);
+      }
+    }
+  } catch (err) {
+    alert("שגיאה בביצוע הפעולה.");
+    console.error(err);
+  }
+});
+</script>
+<% } %>
+
+<%- include('bottom') %>
