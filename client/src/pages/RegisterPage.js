@@ -1,8 +1,8 @@
-// --- src/pages/RegisterPage.js ---
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-function RegisterPage({ setCurrentPage }) {
+function RegisterPage() {
   const [formData, setFormData] = useState({
     full_name: '',
     userName: '',
@@ -12,18 +12,19 @@ function RegisterPage({ setCurrentPage }) {
   });
   const [error, setError] = useState('');
   const { register } = useAuth();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
       await register(formData);
       alert('ההרשמה בוצעה בהצלחה! אנא התחבר.');
-      setCurrentPage('login');
+      navigate('/login');
     } catch (err) {
       setError(err.message || 'שגיאה בהרשמה');
     }
@@ -46,4 +47,3 @@ function RegisterPage({ setCurrentPage }) {
 }
 
 export default RegisterPage;
-

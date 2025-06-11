@@ -14,7 +14,7 @@ router.use("/users", authMidd.isLoggedIn, require("./users_R"));
 // router.use("/participation", loginMid.isLogged, require("./participation"));
 // router.use("/calendar", loginMid.isLogged, require("./calendar"));
 router.use("/auth", require("./auth_R"));
-router.use("/", (req,res)=>{res.json({message:"server is working"})});
+// router.use("/", (req,res)=>{res.json({message:"server is working"})});
 
 // ראוטים פתוחים
 // router.use("/register", require("./register"));

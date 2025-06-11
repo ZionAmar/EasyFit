@@ -1,114 +1,356 @@
-:root {
-  --primary-color: #3498db;
-  --dark-color: #2c3e50;
-  --light-color: #ecf0f1;
-  --danger-color: #e74c3c;
-  --background-color: #f4f7f6;
-}
+/* --- Urban Zen Pilates Theme --- */
+/* A modern, calming, and sophisticated theme for EasyFit */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0;
-  background-color: var(--background-color);
+/* אפשר לשלב את זה עם העיצוב שלך */
+.fc .fc-toolbar-title {
+  font-size: 1.5rem;
   color: var(--dark-color);
 }
 
-.container {
-  max-width: 960px;
-  margin: 2rem auto;
-  padding: 0 1.5rem;
+.fc .fc-daygrid-event {
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 5px;
+  padding: 2px 6px;
+  font-size: 0.9rem;
 }
 
+/* בתוך navbar.css או בקובץ הראשי */
 .navbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: white;
   padding: 1rem 2rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  position: relative;
 }
 
-.navbar-brand {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--primary-color);
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.hamburger {
+  display: none;
+  font-size: 1.8rem;
   cursor: pointer;
 }
 
-.nav-links span, .nav-links button {
-  margin-left: 1.5rem;
-  cursor: pointer;
-  font-size: 1rem;
+/* למסכים קטנים */
+@media (max-width: 768px) {
+  .hamburger {
+    display: block;
+  }
+
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    display: none;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 100;
+  }
+
+  .nav-links.open {
+    display: flex;
+  }
+
+  .nav-links span, .nav-links button {
+    margin: 0.5rem 0;
+  }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+  position: relative;
+  text-align: right;
+}
+
+.day-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.hour-block {
+  padding: 1rem;
+  background: var(--light-color);
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-close {
+  position: absolute;
+  top: 10px;
+  left: 10px;
   background: none;
   border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #444;
+}
+
+/* --- 1. Global Variables & Base Styles --- */
+:root {
+  --primary-color: #7C9A92; /* Muted Sage Green */
+  --secondary-color: #A18276; /* Soft Terracotta */
+  --dark-color: #3D405B;      /* Deep Charcoal Blue */
+  --light-color: #F4F3EE;     /* Warm Off-White */
+  --danger-color: #D98C8C;     /* Muted Rose for errors */
+  --glass-bg: rgba(255, 255, 255, 0.45); /* Frosted glass background */
+  --glass-border: rgba(255, 255, 255, 0.25);
+  --font-family: 'Poppins', sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  margin: 0;
   color: var(--dark-color);
+  background: linear-gradient(135deg, #E0E3E1 0%, #F4F3EE 100%);
+  background-attachment: fixed;
+  overflow-x: hidden;
 }
-.nav-links span:hover {
-  color: var(--primary-color);
+
+/* Smooth transitions for all elements */
+* {
+  transition: all 0.3s ease-in-out;
 }
-.nav-button {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-}
-.nav-button:hover {
-    opacity: 0.9;
+
+
+/* --- 2. Layout & Containers --- */
+.container {
+  max-width: 1100px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
 }
 
 .page-center {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 200px); /* Adjust based on navbar/footer height */
   text-align: center;
-  margin-top: 5rem;
 }
 
+.page-center h1 {
+    font-size: 3rem;
+    font-weight: 300;
+    letter-spacing: 1px;
+}
+
+
+/* --- 3. Navigation Bar --- */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2.5rem;
+  background-color: transparent; /* Makes the navbar float */
+}
+
+.navbar-brand {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: pointer;
+  letter-spacing: 1px;
+}
+
+.nav-links span, .nav-links button {
+  margin-left: 2rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 400;
+  background: none;
+  border: none;
+  color: var(--dark-color);
+  padding: 5px 0;
+  position: relative;
+}
+
+/* Underline effect on hover */
+.nav-links span::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: var(--primary-color);
+    transition: width 0.3s;
+}
+
+.nav-links span:hover::after {
+    width: 100%;
+}
+
+.nav-button {
+    background-color: var(--primary-color);
+    color: white !important;
+    padding: 0.6rem 1.5rem;
+    border-radius: 50px; /* Pill shape */
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+.nav-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+
+/* --- 4. Forms (The "Glassmorphism" Effect) --- */
 .form-container {
-  max-width: 400px;
+  max-width: 420px;
   margin: 3rem auto;
-  padding: 2rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  padding: 2.5rem;
+  background: var(--glass-bg);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(61, 64, 91, 0.2);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
 }
 
 .form-container h2 {
   text-align: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
   color: var(--dark-color);
+  font-weight: 600;
+  font-size: 1.8rem;
 }
 
 .form-container input {
+  font-family: var(--font-family);
   display: block;
   width: 100%;
-  padding: 0.8rem;
-  margin-bottom: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box; /* Important */
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  background: rgba(244, 243, 238, 0.7); /* Semi-transparent light bg */
+  border: none;
+  border-bottom: 2px solid transparent; /* Prepare for focus effect */
+  border-radius: 8px;
+  box-sizing: border-box;
+  color: var(--dark-color);
+}
+.form-container input::placeholder {
+    color: #999;
+}
+.form-container input:focus {
+    outline: none;
+    background: white;
+    box-shadow: 0 0 0 2px var(--primary-color);
 }
 
 .form-container button {
   width: 100%;
-  padding: 0.8rem;
-  background-color: var(--primary-color);
+  padding: 1rem;
+  background-image: linear-gradient(to right, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 .form-container button:hover {
-  opacity: 0.9;
+  transform: translateY(-3px);
+  box-shadow: 0 7px 20px rgba(0,0,0,0.2);
 }
 
+
+/* --- 5. Status Messages --- */
 .error {
   color: var(--danger-color);
+  background-color: rgba(217, 140, 140, 0.1);
+  padding: 0.8rem;
+  border-radius: 8px;
   text-align: center;
   margin-bottom: 1rem;
+  font-weight: 600;
 }
 
 .loading {
     text-align: center;
     font-size: 1.5rem;
+    font-weight: 300;
+    color: var(--primary-color);
     margin-top: 5rem;
 }
+
+.fc-header-toolbar {
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:first-child {
+  justify-content: flex-start; /* כפתור "מעבר לתאריך" בצד ימין */
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:nth-child(2) {
+  justify-content: center; /* התאריך באמצע */
+}
+
+.fc-header-toolbar .fc-toolbar-chunk:last-child {
+  justify-content: flex-end; /* היום + חיצים בצד שמאל */
+}
+
+/* למסכים קטנים */
+@media (max-width: 400px) {
+  .fc-header-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .fc-header-toolbar .fc-toolbar-chunk {
+    justify-content: center !important;
+  }
+}
+
+.fc .fc-button.fc-goToDateButton-button {
+  font-size: 0.9rem;
+  padding: 0.4rem 0.8rem;
+  height: 100%;
+  white-space: nowrap;
+}
+

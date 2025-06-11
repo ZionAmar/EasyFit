@@ -1,19 +1,20 @@
-// --- src/pages/LoginPage.js ---
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
-function LoginPage({ setCurrentPage }) {
+function LoginPage() {
   const [userName, setUserName] = useState('');
   const [pass, setPass] = useState('');
   const [error, setError] = useState('');
   const { login } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
       await login(userName, pass);
-      setCurrentPage('dashboard');
+      navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'שגיאה בכניסה');
     }

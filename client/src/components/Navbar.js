@@ -1,30 +1,41 @@
-// src/components/Navbar.js
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-function Navbar({ setCurrentPage }) {
-  const { user, logout } = useAuth();
+function Navbar() {
+  const { user, logout, isLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const isDashboard = location.pathname === '/dashboard';
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logout();
-    setCurrentPage('home');
+    navigate('/');
   };
+
+  if (isLoading) return null;
 
   return (
     <nav className="navbar">
-      <span className="navbar-brand" onClick={() => setCurrentPage('home')}>EasyFit</span>
-      <div className="nav-links">
+      <span className="navbar-brand" onClick={() => navigate('/')}>EasyFit</span>
+      <div className={`nav-links ${menuOpen ? 'open' : ''}`}>
         {user ? (
           <>
-            <span onClick={() => setCurrentPage('dashboard')}>דאשבורד</span>
-            <button onClick={handleLogout} className="nav-button">התנתק</button>
+            {!isDashboard && (
+              <span onClick={() => navigate('/dashboard')}>דשבורד</span>
+            )}
+            <span onClick={handleLogout}>התנתק</span>
           </>
         ) : (
           <>
-            <span onClick={() => setCurrentPage('login')}>כניסה</span>
-            <span onClick={() => setCurrentPage('register')}>הרשמה</span>
+            <span onClick={() => navigate('/login')}>כניסה</span>
+            <span onClick={() => navigate('/register')}>הרשמה</span>
           </>
         )}
+      </div>
+      <div className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
+        ☰
       </div>
     </nav>
   );
