@@ -14,22 +14,43 @@ function DashboardPage() {
   const [currentTitle, setCurrentTitle] = useState('');
   const [showDateInput, setShowDateInput] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
-  const calendarRef = useRef();
+  const calendarRef = useRef(null);
   const dateInputRef = useRef(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetch(`/api/appointments?user_id=${user?.id}`)
-      .then(res => res.json())
-      .then(data => {
-        const formatted = data.map(item => ({
-          id: item.id,
-          title: item.title || 'אימון',
-          start: item.start_time,
-          end: item.end_time,
-        }));
-        setEvents(formatted);
-      });
+    if (user?.id) {
+      fetch(`/api/meetings`)
+        .then(res => {
+          if (!res.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return res.json();
+        })
+        .then(data => {
+          const formatted = data
+            .filter(item => item.date)
+            .map(item => {
+              // התיקון האחרון והחשוב ביותר:
+              // יצירת אובייקט Date במקום מחרוזת טקסט.
+              // זה פותר באופן סופי בעיות אזור זמן.
+              const eventDate = item.date.split('T')[0];
+              const startString = `${eventDate}T${item.start_time}`;
+              const endString = `${eventDate}T${item.end_time}`;
+
+              return {
+                id: item.id,
+                title: item.name || 'אימון',
+                start: new Date(startString),
+                end: new Date(endString),
+              };
+            });
+          setEvents(formatted);
+        })
+        .catch(error => {
+          console.error("There was a problem fetching the meetings:", error);
+        });
+    }
   }, [user]);
 
   useEffect(() => {
@@ -45,14 +66,11 @@ function DashboardPage() {
     if (calendarApi) {
       setCurrentTitle(calendarApi.view.title);
     }
-  }, [events]);
+  }, [events, isMobile]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (
-        dateInputRef.current &&
-        !dateInputRef.current.contains(event.target)
-      ) {
+      if (dateInputRef.current && !dateInputRef.current.contains(event.target)) {
         setShowDateInput(false);
       }
     };
@@ -167,15 +185,24 @@ function DashboardPage() {
       </div>
 
       <FullCalendar
+        key={isMobile ? 'mobile' : 'desktop'}
         ref={calendarRef}
         plugins={[dayGridPlugin, interactionPlugin]}
         initialView="dayGridMonth"
         locale={heLocale}
         events={events}
+        // הוספנו את timeZone כדי לפתור בעיות אזור זמן
+        timeZone='local'
         selectable={true}
         dateClick={handleDateClick}
         height="auto"
         headerToolbar={false}
+        datesSet={(arg) => {
+          if (calendarRef.current) {
+            const calendarApi = calendarRef.current.getApi();
+            setCurrentTitle(calendarApi.view.title);
+          }
+        }}
       />
     </div>
   );

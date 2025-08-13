@@ -1,6 +1,3 @@
-// >> קובץ: server.js
-// >> תיקון: הוספת הקידומת /api לכל הראוטים של השרת.
-
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const dotenv = require("dotenv");
