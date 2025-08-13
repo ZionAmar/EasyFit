@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+// >>> הוספה: ייבוא רכיב מחלף התפקידים
+import RoleSwitcher from './RoleSwitcher'; 
 
 function Navbar() {
   const { user, logout, isLoading } = useAuth();
@@ -25,6 +27,10 @@ function Navbar() {
             {!isDashboard && (
               <span onClick={() => navigate('/dashboard')}>דשבורד</span>
             )}
+            
+            {/* >>> הוספה: שילוב רכיב מחלף התפקידים כאן */}
+            <RoleSwitcher />
+
             <span onClick={handleLogout}>התנתק</span>
           </>
         ) : (

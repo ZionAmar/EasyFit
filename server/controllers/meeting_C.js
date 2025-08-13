@@ -2,9 +2,11 @@ const meetingService = require('../services/meeting_S');
 
 const getMeetings = async (req, res, next) => {
     try {
-        const { date } = req.query; // קבלת התאריך מפרמטר ב-URL
-        // העברת המשתמש והתאריך לשכבת השירות
-        const meetings = await meetingService.getMeetingsForUser(req.user, date);
+        // קוראים גם את role מה-URL
+        const { date, role } = req.query; 
+        
+        // מעבירים את ה-role החדש לשירות
+        const meetings = await meetingService.getMeetingsForUser(req.user, date, role);
         res.json(meetings);
     } catch (err) {
         next(err);

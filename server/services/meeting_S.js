@@ -1,24 +1,30 @@
 const meetingModel = require('../models/meeting_M');
 
-// ה-date הוא עכשיו פרמטר אופציונלי
-const getMeetingsForUser = async (user, date) => {
-    // הלוגיקה לא תזרוק יותר שגיאה, אלא תעביר את התאריך (או null) למודל
-    if (user.roles.includes('admin')) {
-        const [meetings] = await meetingModel.getAll(date);
-        return meetings;
-    }
+// הפונקציה מקבלת עכשיו פרמטר 'requestedRole'
+const getMeetingsForUser = async (user, date, requestedRole) => {
     
-    if (user.roles.includes('trainer')) {
-        const [meetings] = await meetingModel.getByTrainerId(user.id, date);
-        return meetings;
+    // אם לא נשלח תפקיד ספציפי, נשתמש בברירת המחדל הישנה (התפקיד הבכיר ביותר)
+    const roleToUse = requestedRole || (user.roles.includes('admin') ? 'admin' : user.roles.includes('trainer') ? 'trainer' : 'member');
+
+    // אבטחה: ודא שלמשתמש אכן יש את ההרשאה שהוא מבקש
+    if (!user.roles.includes(roleToUse)) {
+        return []; // מחזירים מערך ריק אם למשתמש אין הרשאה כזו
     }
 
-    if (user.roles.includes('member')) {
-        const [meetings] = await meetingModel.getByMemberId(user.id, date);
-        return meetings;
+    // הלוגיקה החדשה והברורה באמצעות switch
+    switch (roleToUse) {
+        case 'admin':
+            const [adminMeetings] = await meetingModel.getAll(date);
+            return adminMeetings;
+        case 'trainer':
+            const [trainerMeetings] = await meetingModel.getByTrainerId(user.id, date);
+            return trainerMeetings;
+        case 'member':
+            const [memberMeetings] = await meetingModel.getByMemberId(user.id, date);
+            return memberMeetings;
+        default:
+            return [];
     }
-
-    return [];
 };
 
 module.exports = {

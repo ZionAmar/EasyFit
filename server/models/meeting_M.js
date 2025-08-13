@@ -9,9 +9,7 @@ const getAll = (date) => {
         params.push(date);
     }
 
-    // הוסף את השורה הזו כדי לראות את השאילתה והפרמטרים
-    console.log("Executing SQL Query:", query, "with params:", params);
-
+    console.log("Executing SQL Query for Admin:", query, "with params:", params);
     return db.query(query, params);
 };
 
@@ -24,17 +22,18 @@ const getByTrainerId = (trainerId, date) => {
         params.push(date);
     }
     
-    // הוסף גם כאן את אותה בדיקה
-    console.log("Executing SQL Query:", query, "with params:", params);
-
+    console.log("Executing SQL Query for Trainer:", query, "with params:", params);
     return db.query(query, params);
 };
 
 const getByMemberId = (memberId, date) => {
+    // >>> שינוי מרכזי כאן <<<
+    // השאילתה עכשיו מחזירה גם את הסטטוס מהרישום, ולא מסננת רק רישומים פעילים
     let query = `
-        SELECT m.* FROM meetings AS m
+        SELECT m.*, mr.status 
+        FROM meetings AS m
         JOIN meeting_registrations AS mr ON m.id = mr.meeting_id
-        WHERE mr.user_id = ? AND mr.status = 'active'
+        WHERE mr.user_id = ?
     `;
     const params = [memberId];
 
@@ -43,9 +42,7 @@ const getByMemberId = (memberId, date) => {
         params.push(date);
     }
 
-    // וגם כאן
-    console.log("Executing SQL Query:", query, "with params:", params);
-
+    console.log("Executing SQL Query for Member:", query, "with params:", params);
     return db.query(query, params);
 };
 
