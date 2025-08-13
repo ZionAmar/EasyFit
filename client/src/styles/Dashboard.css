@@ -1,0 +1,118 @@
+/* --- Dashboard Layout & Components --- */
+
+.dashboard-container {
+  padding: 1rem;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--dark-color);
+}
+
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem; /* <<< אפשר להגדיל את זה ל-2rem אם רוצים יותר רווח */
+  margin-bottom: 2rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem; /* <<< גם כאן, אפשר להגדיל ל-2rem */
+  align-items: flex-start;
+}
+
+.card {
+  background: var(--glass-bg);
+  border-radius: 16px;
+  padding: 2rem; /* <<< הגדלנו את הריווח הפנימי */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.card h3 {
+  margin-top: 0;
+  border-bottom: 1px solid var(--primary-color);
+  padding-bottom: 0.75rem; /* <<< הגדלנו קצת את הריווח */
+  margin-bottom: 1.5rem; /* <<< הגדלנו את הריווח */
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* >>>>>>>>>> הוספה חשובה: מרווח בין הכרטיסיות בפאנל הצדדי <<<<<<<<<< */
+.side-panel .card:not(:last-child) {
+  margin-bottom: 1.5rem;
+}
+
+/* --- Specific Component Styles --- */
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 1.5rem; /* <<< הגדלנו את הריווח הפנימי */
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--dark-color);
+  line-height: 1.2;
+}
+
+.stat-title {
+  font-size: 0.9rem;
+  font-weight: 400;
+  color: #666;
+  margin-top: 0.5rem; /* <<< הוספנו מרווח קטן */
+}
+
+.session-card h4 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+.session-card p {
+    margin: 0.5rem 0;
+}
+.session-card button {
+    margin-top: 1rem;
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.simple-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.simple-list li {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.75rem 0; /* <<< הגדלנו את הריווח */
+    border-bottom: 1px solid var(--glass-border);
+}
+.simple-list li:last-child {
+    border-bottom: none;
+}
+
+/* Responsive: On smaller screens, the grid becomes a single column */
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
