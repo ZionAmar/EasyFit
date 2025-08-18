@@ -2,10 +2,7 @@ const meetingService = require('../services/meeting_S');
 
 const getMeetings = async (req, res, next) => {
     try {
-        // קוראים גם את role מה-URL
         const { date, role } = req.query; 
-        
-        // מעבירים את ה-role החדש לשירות
         const meetings = await meetingService.getMeetingsForUser(req.user, date, role);
         res.json(meetings);
     } catch (err) {
@@ -13,6 +10,29 @@ const getMeetings = async (req, res, next) => {
     }
 };
 
+const getPublicSchedule = async (req, res, next) => {
+    try {
+        const { date } = req.query; // קורא את התאריך מה-URL
+        const meetings = await meetingService.getPublicSchedule(date);
+        res.json(meetings);
+    } catch (err) {
+        next(err);
+    }
+};
+
+const createMeeting = async (req, res, next) => {
+    try {
+        // המאמן שיוצר את השיעור הוא המשתמש המחובר
+        const meetingData = { ...req.body, trainer_id: req.user.id };
+        const newMeeting = await meetingService.createMeeting(meetingData);
+        res.status(201).json(newMeeting);
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
-    getMeetings
+    getMeetings,
+    getPublicSchedule,
+    createMeeting
 };

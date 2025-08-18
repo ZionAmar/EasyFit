@@ -43,6 +43,20 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
+.quick-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.secondary-button {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+}
+.secondary-button:hover {
+  background-color: rgba(124, 154, 146, 0.1); /* צבע רקע עדין במעבר עכבר */
+}
+
 .card h3 {
   margin-top: 0;
   border-bottom: 1px solid var(--primary-color);
@@ -103,7 +117,6 @@
 .simple-list li {
     display: flex;
     justify-content: space-between;
-    padding: 0.75rem 0; /* <<< הגדלנו את הריווח */
     border-bottom: 1px solid var(--glass-border);
 }
 .simple-list li:last-child {

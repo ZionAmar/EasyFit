@@ -467,3 +467,42 @@ button:hover {
   }
 }
 
+.day-view-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.time-slot {
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+.time-slot.available {
+  background-color: #e8f5e9; /* ירוק בהיר */
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.time-slot.available:hover {
+  transform: scale(1.05);
+  background-color: #c8e6c9;
+}
+
+.time-slot.taken {
+  background-color: #f5f5f5; /* אפור בהיר */
+  color: #999;
+  cursor: not-allowed;
+}
+
+.time-slot .time-label {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 0.5rem;
+}

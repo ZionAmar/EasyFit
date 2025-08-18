@@ -1,20 +1,21 @@
 import React from 'react';
 
 // רכיב זה מקבל רשימה של שיעורים ומציג אותם
-function WaitingListStatus({ list }) {
+function WaitingListStatus({ list = [] }) {
   if (list.length === 0) {
     return <p>אתה לא רשום לאף רשימת המתנה.</p>;
   }
 
   return (
-    <div className="waiting-list">
+    <ul className="simple-list">
       {list.map(session => (
-        <div key={session.id} className="waiting-list-item">
+        <li key={session.id}>
           <span>{session.name}</span>
-          <span>({new Date(session.date).toLocaleDateString('he-IL')})</span>
-        </div>
+          {/* אנו משתמשים בשדה 'start' החדש והאמין */}
+          <span className="list-date">({new Date(session.start).toLocaleDateString('he-IL')})</span>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
