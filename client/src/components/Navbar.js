@@ -1,50 +1,84 @@
-import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
-// >>> הוספה: ייבוא רכיב מחלף התפקידים
-import RoleSwitcher from './RoleSwitcher'; 
+import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../context/AuthContext'; // ודא שהנתיב נכון
+import { useNavigate } from 'react-router-dom';
+import RoleSwitcher from './RoleSwitcher'; // ייבוא של הרכיב החדש
+import '../styles/Navbar.css'; // ייבוא של קובץ העיצוב
 
 function Navbar() {
-  const { user, logout, isLoading } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const isDashboard = location.pathname === '/dashboard';
-  const [menuOpen, setMenuOpen] = useState(false);
+    const { user, logout, isLoading } = useAuth();
+    const navigate = useNavigate();
+    const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/');
-  };
+    // Refs כדי לזהות לחיצות מחוץ לתפריט
+    const menuRef = useRef(null);
+    const hamburgerRef = useRef(null);
 
-  if (isLoading) return null;
+    const handleLogout = async () => {
+        setMenuOpen(false); // סגירת התפריט בפעולה
+        await logout();
+        navigate('/');
+    };
 
-  return (
-    <nav className="navbar">
-      <span className="navbar-brand" onClick={() => navigate('/')}>EasyFit</span>
-      <div className={`nav-links ${menuOpen ? 'open' : ''}`}>
-        {user ? (
-          <>
-            {!isDashboard && (
-              <span onClick={() => navigate('/dashboard')}>דשבורד</span>
-            )}
-            
-            {/* >>> הוספה: שילוב רכיב מחלף התפקידים כאן */}
-            <RoleSwitcher />
+    const handleNav = (path) => {
+        setMenuOpen(false); // סגירת התפריט בפעולה
+        navigate(path);
+    }
 
-            <span onClick={handleLogout}>התנתק</span>
-          </>
-        ) : (
-          <>
-            <span onClick={() => navigate('/login')}>כניסה</span>
-            <span onClick={() => navigate('/register')}>הרשמה</span>
-          </>
-        )}
-      </div>
-      <div className="hamburger" onClick={() => setMenuOpen(!menuOpen)}>
-        ☰
-      </div>
-    </nav>
-  );
+    // Hook שסוגר את התפריט בלחיצה בחוץ
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            // אם התפריט פתוח והלחיצה היא לא בתוך התפריט או על כפתור ההמבורגר
+            if (menuOpen && menuRef.current && !menuRef.current.contains(event.target) && hamburgerRef.current && !hamburgerRef.current.contains(event.target)) {
+                setMenuOpen(false);
+            }
+        };
+
+        // הוספת מאזין לאירוע
+        document.addEventListener('mousedown', handleClickOutside);
+
+        // ניקוי המאזין כשהרכיב יורד מהמסך
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [menuOpen]); // מריצים את האפקט מחדש רק אם menuOpen משתנה
+
+    if (isLoading) return null;
+
+    return (
+        <nav className="navbar">
+            {/* --- מבנה תצוגת מחשב --- */}
+            <div className="navbar-desktop-left">
+                {user ? <span onClick={handleLogout}>התנתק</span> : <span onClick={() => handleNav('/login')}>כניסה</span>}
+            </div>
+            <div className="navbar-desktop-center">
+                <span className="navbar-brand" onClick={() => handleNav('/dashboard')}>EasyFit</span>
+            </div>
+            <div className="navbar-desktop-right">
+                {user ? <RoleSwitcher /> : <span onClick={() => handleNav('/register')}>הרשמה</span>}
+            </div>
+
+            {/* --- מבנה תצוגת מובייל --- */}
+            <div className="navbar-mobile-brand">
+                 <span className="navbar-brand" onClick={() => handleNav('/dashboard')}>EasyFit</span>
+            </div>
+            <div className="hamburger" ref={hamburgerRef} onClick={() => setMenuOpen(!menuOpen)}>
+                ☰
+            </div>
+            <div className={`nav-links-mobile ${menuOpen ? 'open' : ''}`} ref={menuRef}>
+                {user ? (
+                    <>
+                        <RoleSwitcher />
+                        <span onClick={handleLogout}>התנתק</span>
+                    </>
+                ) : (
+                    <>
+                        <span onClick={() => handleNav('/login')}>כניסה</span>
+                        <span onClick={() => handleNav('/register')}>הרשמה</span>
+                    </>
+                )}
+            </div>
+        </nav>
+    );
 }
 
 export default Navbar;

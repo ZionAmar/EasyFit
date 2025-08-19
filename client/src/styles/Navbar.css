@@ -1,0 +1,121 @@
+/* --- 3. Navigation Bar (Updated) --- */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 2rem;
+    position: relative;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+}
+
+.navbar-brand {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: var(--primary-color); /* ודא שמשתנה זה מוגדר בקובץ ה-CSS הראשי שלך */
+    cursor: pointer;
+    letter-spacing: 1px;
+}
+
+/* --- Desktop Layout (from 769px and up) --- */
+.navbar-desktop-left, .navbar-desktop-center, .navbar-desktop-right {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+.navbar-desktop-left {
+    justify-content: flex-start;
+}
+.navbar-desktop-center {
+    justify-content: center;
+}
+.navbar-desktop-right {
+    justify-content: flex-end;
+}
+
+.navbar-desktop-left span {
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--dark-color);
+    padding: 5px 0;
+    position: relative;
+    background: none;
+    border: none;
+}
+.navbar-desktop-left span::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: var(--primary-color);
+    transition: width 0.3s;
+}
+.navbar-desktop-left span:hover::after {
+    width: 100%;
+}
+
+/* הסתרת אלמנטים של מובייל בדסקטופ */
+.navbar-mobile-brand, .hamburger, .nav-links-mobile {
+    display: none;
+}
+
+
+/* --- Mobile Layout (up to 768px) --- */
+@media (max-width: 768px) {
+    /* הסתרת אלמנטים של דסקטופ */
+    .navbar-desktop-left, .navbar-desktop-center, .navbar-desktop-right {
+        display: none;
+    }
+
+    /* הצגת אלמנטים של מובייל */
+    .navbar-mobile-brand, .hamburger {
+        display: block;
+    }
+    
+    .hamburger {
+        /* order: -1;  <--  השורה הזאת הוסרה כדי לתקן את המיקום */
+        font-size: 1.8rem;
+        cursor: pointer;
+        z-index: 101; /* מעל שכבת התפריט */
+    }
+
+    .nav-links-mobile {
+        position: fixed;
+        top: 0;
+        left: 0; /* פתיחה מצד שמאל */
+        height: 100vh;
+        width: 250px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 5rem 2rem;
+        box-shadow: 2px 0 15px rgba(0,0,0,0.1);
+        z-index: 100;
+        transform: translateX(-100%); /* מתחיל מחוץ למסך בצד שמאל */
+        transition: transform 0.3s ease-in-out;
+        display: flex;
+    }
+
+    .nav-links-mobile.open {
+        transform: translateX(0); /* מחליק פנימה */
+    }
+
+    /* עיצוב הפריטים בתוך תפריט המובייל */
+    .nav-links-mobile > * {
+        margin: 1rem 0;
+        width: 100%;
+        font-size: 1.1rem;
+    }
+     .nav-links-mobile span {
+        cursor: pointer;
+     }
+}

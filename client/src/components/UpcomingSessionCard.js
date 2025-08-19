@@ -16,7 +16,9 @@ function UpcomingSessionCard({ session }) {
     <div className="session-card">
       <h4>{session.name}</h4>
       
-      {/* >>> התיקון כאן: משתמשים בשדה 'start' ו-'end' <<< */}
+      {/* >>> הוספנו את שם המאמן והחדר <<< */}
+      <p><strong>מאמן/ה:</strong> {session.trainerName}</p>
+      <p><strong>חדר:</strong> {session.roomName}</p>
       <p><strong>תאריך:</strong> {session.start.toLocaleDateString('he-IL')}</p>
       <p>
         <strong>שעה:</strong> 

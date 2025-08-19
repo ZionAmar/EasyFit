@@ -1,89 +1,264 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import UpcomingSessionCard from '../components/UpcomingSessionCard';
-import PastSessionsList from '../components/PastSessionsList';
-import StatCard from '../components/StatCard';
-import WaitingListDisplay from '../components/WaitingListDisplay'; // <<< שימוש ברכיב המאוחד
-import '../styles/Dashboard.css';
+import { useAuth } from '../context/AuthContext'; // ודא שהנתיב נכון
+import '../styles/ProfessionalDashboard.css'; // ייבוא העיצוב החדש
 
-function TraineeDashboard() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  const [myMeetings, setMyMeetings] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    fetch(`/api/meetings?role=member`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-            const processedMeetings = data.map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }));
-            setMyMeetings(processedMeetings);
-        } else {
-            setMyMeetings([]);
-        }
-        setIsLoading(false);
-      })
-      .catch(err => {
-        console.error("Error fetching meetings:", err);
-        setIsLoading(false);
-      });
-  }, [user]);
-
-  const now = new Date();
-  const upcomingSessions = myMeetings.filter(m => m.start >= now && (m.status === 'active' || m.status === 'confirmed')).sort((a, b) => a.start - b.start);
-  const nextSession = upcomingSessions.length > 0 ? upcomingSessions[0] : null;
-  const waitingList = myMeetings.filter(m => m.status === 'waiting' || m.status === 'pending');
-  const pastSessions = myMeetings.filter(m => m.start < now && (m.status === 'active' || m.status === 'confirmed')).sort((a, b) => b.start - a.start);
-  const sessionsThisMonth = pastSessions.filter(m => m.start.getMonth() === now.getMonth() && m.start.getFullYear() === now.getFullYear()).length;
-
-  if (isLoading) {
-    return <div className="loading">טוען את המידע שלך...</div>;
-  }
-
-  return (
-    <div className="dashboard-container">
-      <div className="dashboard-header">
-        <h1>שלום, {user.full_name}!</h1>
-        <button className="cta-button" onClick={() => navigate('/schedule')}>מצא והזמן שיעור חדש</button>
-      </div>
-      
-      <div className="stats-container">
-        <StatCard title="אימונים שהושלמו החודש" value={sessionsThisMonth} />
-        <StatCard title="שיעורים עתידיים" value={upcomingSessions.length} />
-        <StatCard title="ברשימות המתנה" value={waitingList.length} />
-      </div>
-
-      <div className="dashboard-grid">
-        <div className="main-panel">
-          <div className="card">
-            <h3>השיעור הבא שלך:</h3>
-            {nextSession ? ( <UpcomingSessionCard session={nextSession} /> ) : (
-              <div className="placeholder-card">
-                  <h4>אין לך שיעורים קרובים</h4>
-                  <p>זה הזמן המושלם לקבוע את האימון הבא שלך ולהתקדם לעבר המטרות שלך.</p>
-              </div>
-            )}
-          </div>
-        </div>
-        <div className="side-panel">
-          <div className="card">
-            <h3>היסטוריית שיעורים</h3>
-            <PastSessionsList sessions={pastSessions.slice(0, 5)} />
-          </div>
-          <div className="card">
-            <h3>רשימות המתנה</h3>
-            <WaitingListDisplay 
-              list={waitingList} 
-              emptyMessage="אתה לא רשום לאף רשימת המתנה." 
-            />
-          </div>
-        </div>
-      </div>
+// --- רכיבי עזר קטנים ---
+const StatPill = ({ label, value, icon }) => (
+    <div className="stat-pill">
+        <span className="stat-icon">{icon}</span>
+        <span className="stat-value">{value}</span>
+        <span className="stat-label">{label}</span>
     </div>
-  );
+);
+
+const ListItem = ({ title, subtitle, status, statusType }) => (
+    <div className="list-item">
+        <div className="item-details">
+            <span className="item-title">{title}</span>
+            <span className="item-subtitle">{subtitle}</span>
+        </div>
+        {status && <span className={`status-badge ${statusType}`}>{status}</span>}
+    </div>
+);
+
+// --- רכיב Modal לפרטי שיעור ---
+const SessionDetailsModal = ({ session, isOpen, onClose }) => {
+    useEffect(() => {
+        const handleEsc = (event) => {
+            if (event.keyCode === 27) onClose();
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [onClose]);
+
+    if (!isOpen || !session) return null;
+
+    const formatFullDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <button className="modal-close-button" onClick={onClose}>&times;</button>
+                <h2>פרטי השיעור</h2>
+                <h3>{session.name}</h3>
+                <div className="modal-details-grid">
+                    <p><strong>מאמן/ת:</strong> {session.trainerName}</p>
+                    <p><strong>תאריך ושעה:</strong> {formatFullDate(session.start)}</p>
+                    <p><strong>חדר:</strong> {session.roomName}</p>
+                    <p><strong>משתתפים רשומים:</strong> {session.participant_count} / {session.capacity}</p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+// --- רכיב הדשבורד הראשי ---
+function ProfessionalDashboard() {
+    const { user } = useAuth();
+    const navigate = useNavigate();
+    
+    const [myMeetings, setMyMeetings] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedSession, setSelectedSession] = useState(null);
+
+    useEffect(() => {
+        const fetchMeetings = async () => {
+            try {
+                const response = await fetch('/api/meetings?role=member'); 
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+
+                if (Array.isArray(data)) {
+                    const processedMeetings = data.map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }));
+                    setMyMeetings(processedMeetings);
+                } else {
+                    setMyMeetings([]);
+                }
+            } catch (err) {
+                console.error("Error fetching meetings:", err);
+                setError("לא הצלחנו לטעון את המידע. נסה לרענן את העמוד.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchMeetings();
+    }, [user]);
+
+    const openSessionDetails = (session) => {
+        setSelectedSession(session);
+        setIsModalOpen(true);
+    };
+    const closeSessionDetails = () => setIsModalOpen(false);
+
+    const generateGoogleCalendarLink = (session) => {
+        const formatDateForGoogle = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, '');
+        const startTime = formatDateForGoogle(session.start);
+        const endTime = formatDateForGoogle(session.end);
+        const details = `שיעור ${session.name} עם ${session.trainerName}.`;
+        
+        const url = new URL('https://www.google.com/calendar/render');
+        url.searchParams.append('action', 'TEMPLATE');
+        url.searchParams.append('text', session.name);
+        url.searchParams.append('dates', `${startTime}/${endTime}`);
+        url.searchParams.append('details', details);
+        url.searchParams.append('location', `סטודיו EasyFit - ${session.roomName}`);
+        
+        return url.toString();
+    };
+    
+    const handleAddToCalendar = (session) => {
+        const link = generateGoogleCalendarLink(session);
+        window.open(link, '_blank', 'noopener,noreferrer');
+    };
+
+    const handleConfirmArrival = (sessionId) => {
+        console.log(`Confirming arrival for session ID: ${sessionId}`);
+        alert('הגעתך אושרה. אימון נעים!');
+    };
+
+    const now = new Date();
+    
+    const upcomingSessions = myMeetings
+        .filter(m => m.end > now && (m.status === 'active' || m.status === 'confirmed'))
+        .sort((a, b) => a.start - b.start);
+
+    const nextSession = upcomingSessions.length > 0 ? upcomingSessions[0] : null;
+
+    const waitingList = myMeetings
+        .filter(m => m.status === 'waiting' || m.status === 'pending')
+        .sort((a, b) => a.start - b.start);
+
+    const pastSessions = myMeetings
+        .filter(m => m.end < now && (m.status === 'active' || m.status === 'confirmed'))
+        .sort((a, b) => b.start - a.start);
+
+    const completedThisMonth = pastSessions
+        .filter(m => m.start.getMonth() === now.getMonth() && m.start.getFullYear() === now.getFullYear())
+        .length;
+        
+    const totalCompletedSessions = pastSessions.length;
+
+    // --- התיקון כאן: הגדרת חלון הזמן לאישור הגעה ---
+    const fiveMinutesBefore = nextSession ? new Date(nextSession.start.getTime() - 5 * 60 * 1000) : null;
+    const isSessionActiveNow = nextSession && now >= fiveMinutesBefore && now <= nextSession.end;
+
+    if (isLoading) return <div className="loading">טוען את מרכז הבקרה שלך...</div>;
+    if (error) return <div className="error-state">{error}</div>;
+
+    const formatFullDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
+    const formatDateOnly = (date) => new Intl.DateTimeFormat('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+
+    return (
+        <>
+            <div className="pro-dashboard">
+                <header className="dashboard-header-pro">
+                    <div className="header-text">
+                        <h1>שלום, {user?.full_name || "ציון"}!</h1>
+                        <p>מוכנ/ה לכבוש את המטרות שלך היום? הנה תמונת המצב שלך.</p>
+                    </div>
+                    <button className="cta-button-pro" onClick={() => navigate('/schedule')}>
+                        <span className="plus-icon">+</span>
+                        הזמן שיעור חדש
+                    </button>
+                </header>
+
+                <div className="dashboard-grid-pro">
+                    <main className="main-panel-pro">
+                        <section className="card-pro next-session-card">
+                            <div className="card-header">
+                                <span className="card-icon">📅</span>
+                                <h2>{isSessionActiveNow ? 'השיעור הנוכחי שלך' : 'השיעור הבא שלך'}</h2>
+                            </div>
+                            {nextSession ? (
+                                <>
+                                    <p className="session-title">{nextSession.name}</p>
+                                    <p className="session-trainer">עם {nextSession.trainerName}</p>
+                                    <p className="session-time">{formatFullDate(nextSession.start)}</p>
+                                    <div className="session-actions">
+                                        {isSessionActiveNow ? (
+                                            <button className="btn-primary confirm-arrival" onClick={() => handleConfirmArrival(nextSession.id)}>
+                                                אישור הגעה
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <button className="btn-primary" onClick={() => openSessionDetails(nextSession)}>פרטים</button>
+                                                <button className="btn-secondary" onClick={() => handleAddToCalendar(nextSession)}>הוסף ליומן</button>
+                                            </>
+                                        )}
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="placeholder-card">
+                                    <h4>אין לך שיעורים קרובים.</h4>
+                                    <p>זה הזמן המושלם לקבוע את האימון הבא שלך.</p>
+                                </div>
+                            )}
+                        </section>
+                        
+                        <section className="card-pro progress-card">
+                             <div className="card-header">
+                                <span className="card-icon">🚀</span>
+                                <h2>ההתקדמות שלך</h2>
+                            </div>
+                            <div className="stats-pills-container">
+                                <StatPill label="אימונים החודש" value={completedThisMonth} icon="💪" />
+                                <StatPill label="שיעורים עתידיים" value={upcomingSessions.length} icon="🗓️" />
+                                <StatPill label="סה״כ אימונים" value={totalCompletedSessions} icon="🏆" />
+                            </div>
+                        </section>
+                    </main>
+
+                    <aside className="side-panel-pro">
+                        <section className="card-pro list-card">
+                            <div className="card-header">
+                                <span className="card-icon">⏳</span>
+                                <h2>רשימות המתנה ({waitingList.length})</h2>
+                            </div>
+                            {waitingList.length > 0 ? (
+                                waitingList.map(item => 
+                                    <ListItem 
+                                        key={item.id}
+                                        title={item.name}
+                                        subtitle={`עם ${item.trainerName}`}
+                                        status={formatDateOnly(item.start)}
+                                        statusType="waiting"
+                                    />
+                                )
+                            ) : <p className="empty-state">אתה לא רשום לאף רשימת המתנה.</p>}
+                        </section>
+
+                        <section className="card-pro list-card">
+                            <div className="card-header">
+                                <span className="card-icon">📚</span>
+                                <h2>היסטוריית שיעורים</h2>
+                            </div>
+                             {pastSessions.slice(0, 3).map(item => 
+                                <ListItem 
+                                    key={item.id}
+                                    title={item.name}
+                                    subtitle={formatDateOnly(item.start)}
+                                />
+                             )}
+                             {pastSessions.length === 0 && <p className="empty-state">אין עדיין היסטוריית שיעורים.</p>}
+                            <span className="see-all-link" onClick={() => navigate('/history')}>
+                                הצג את כל ההיסטוריה →
+                            </span>
+                        </section>
+                    </aside>
+                </div>
+            </div>
+            
+            <SessionDetailsModal 
+                isOpen={isModalOpen} 
+                onClose={closeSessionDetails} 
+                session={selectedSession} 
+            />
+        </>
+    );
 }
 
-export default TraineeDashboard;
+export default ProfessionalDashboard;

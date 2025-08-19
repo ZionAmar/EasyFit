@@ -1,12 +1,14 @@
 const db = require('../config/db_config');
 
 const getByTrainerId = (trainerId, date) => {
+    // >>> הוספנו JOIN ל-rooms ו-r.name as roomName <<<
     let query = `
         SELECT 
             m.id, m.name, m.trainer_id, m.room_id, m.participant_count,
             CONCAT(m.date, 'T', m.start_time) as start,
             CONCAT(m.date, 'T', m.end_time) as end,
             u.full_name as trainerName,
+            r.name as roomName,
             r.capacity 
         FROM meetings m
         JOIN users u ON m.trainer_id = u.id
@@ -22,16 +24,19 @@ const getByTrainerId = (trainerId, date) => {
 };
 
 const getByMemberId = (memberId, date) => {
+    // >>> הוספנו JOIN ל-rooms ו-r.name as roomName <<<
     let query = `
         SELECT 
             m.id, m.name, m.trainer_id, m.room_id, m.participant_count,
             CONCAT(m.date, 'T', m.start_time) as start,
             CONCAT(m.date, 'T', m.end_time) as end,
             mr.status,
-            u.full_name as trainerName
+            u.full_name as trainerName,
+            r.name as roomName
         FROM meetings AS m
         JOIN meeting_registrations AS mr ON m.id = mr.meeting_id
         JOIN users u ON m.trainer_id = u.id
+        JOIN rooms r ON m.room_id = r.id
         WHERE mr.user_id = ?
     `;
     const params = [memberId];
@@ -43,14 +48,17 @@ const getByMemberId = (memberId, date) => {
 };
 
 const getPublicSchedule = (date) => {
+    // >>> הוספנו JOIN ל-rooms ו-r.name as roomName <<<
     let query = `
         SELECT 
             m.id, m.name, m.trainer_id, m.room_id, m.participant_count,
             CONCAT(m.date, 'T', m.start_time) as start,
             CONCAT(m.date, 'T', m.end_time) as end,
-            u.full_name as trainerName 
+            u.full_name as trainerName,
+            r.name as roomName
         FROM meetings m
         JOIN users u ON m.trainer_id = u.id 
+        JOIN rooms r ON m.room_id = r.id
         WHERE m.date >= CURDATE()
     `;
     const params = [];

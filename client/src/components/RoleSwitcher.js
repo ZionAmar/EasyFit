@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAuth } from '../context/AuthContext'; // ודא שהנתיב נכון
+import { useAuth } from '../context/AuthContext'; // ודא שהנתיב לקונטקסט נכון
 
 function RoleSwitcher() {
   // מהקונטקסט אנחנו שולפים את המשתמש, התפקיד הפעיל, והפונקציה שמחליפה תפקיד
@@ -31,15 +31,15 @@ function RoleSwitcher() {
   };
 
   return (
-    <div className="role-switcher" style={{ marginLeft: '20px' }}>
-      <label htmlFor="role-select" style={{ marginRight: '8px' }}>
-        <strong>הצג בתור:</strong>
+    <div className="role-switcher" style={{ display: 'flex', alignItems: 'center' }}>
+      <label htmlFor="role-select" style={{ marginRight: '8px', marginLeft: '8px', whiteSpace: 'nowrap' }}>
+        <strong>מחובר בתור:</strong>
       </label>
-      <select 
-        id="role-select" 
-        value={activeRole} 
+      <select
+        id="role-select"
+        value={activeRole}
         onChange={handleRoleChange}
-        style={{ padding: '5px', borderRadius: '5px', border: '1px solid #ccc' }}
+        style={{ padding: '5px', borderRadius: '5px', border: '1px solid #ccc', background: 'transparent' }}
       >
         {user.roles.map(role => (
           <option key={role} value={role}>

@@ -7,10 +7,12 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import HomePage from './pages/HomePage';
 import DayViewPage from './pages/DayViewPage';
-import SchedulePage from './pages/SchedulePage'; // >>> 1. ייבוא הדף החדש
+import SchedulePage from './pages/SchedulePage';
 import NewAppointmentPage from './pages/NewAppointmentPage';
+import HistoryPage from './pages/HistoryPage'; // <<< 1. ייבוא הדף החדש
 import './App.css';
 import 'react-datepicker/dist/react-datepicker.css';
+import TrainerHistoryPage from './pages/TrainerHistoryPage';
 
 // רכיב "שומר סף" שבודק אם המשתמש מחובר
 function ProtectedRoute({ children }) {
@@ -18,7 +20,7 @@ function ProtectedRoute({ children }) {
 
   // אם עדיין בודקים אם המשתמש מחובר, נציג הודעת טעינה
   if (isLoading) {
-    return <div>טוען...</div>;
+    return <div className="loading">טוען...</div>;
   }
   
   // אם יש משתמש, נציג את הדף. אם לא, נעביר לדף ההתחברות.
@@ -44,10 +46,16 @@ function App() {
               </ProtectedRoute>
             } />
             
-            {/* >>> 2. רישום הנתיב החדש של לוח השנה <<< */}
             <Route path="/schedule" element={
               <ProtectedRoute>
                 <SchedulePage />
+              </ProtectedRoute>
+            } />
+
+            {/* >>> 2. רישום הנתיב החדש של דף ההיסטוריה <<< */}
+            <Route path="/history" element={
+              <ProtectedRoute>
+                <HistoryPage />
               </ProtectedRoute>
             } />
             
@@ -61,6 +69,12 @@ function App() {
               <ProtectedRoute>
                 <NewAppointmentPage />
               </ProtectedRoute>
+            } />
+
+            <Route path="/trainer-history" element={
+                <ProtectedRoute>
+                    <TrainerHistoryPage />
+                </ProtectedRoute>
             } />
 
             {/* נתיב ברירת מחדל אם שום דבר לא תאם */}

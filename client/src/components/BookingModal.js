@@ -10,7 +10,6 @@ function BookingModal({ event, onClose }) {
         setError('');
         setIsSubmitting(true);
         try {
-            // >>> התיקון כאן: שימוש בכתובת ה-API החדשה <<<
             const response = await fetch('/api/participants', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -36,21 +35,21 @@ function BookingModal({ event, onClose }) {
         <div className="modal-overlay">
             <div className="modal-content">
                 <button className="modal-close" onClick={onClose}>×</button>
-                <h2>הרשמה לשיעור</h2>
+                <h2>פרטי השיעור</h2>
                 <h3>{event.title.split('(')[0]}</h3>
                 <p><strong>מאמן/ה:</strong> {event.trainerName}</p>
+                <p><strong>חדר:</strong> {event.roomName}</p>
                 <p><strong>תאריך:</strong> {event.start.toLocaleDateString('he-IL')}</p>
                 <p><strong>שעה:</strong> {event.start.toTimeString().slice(0, 5)}</p>
                 
                 {error && <p className="error">{error}</p>}
 
-                {user && activeRole === 'member' && !event.isMyEvent && (
+                {user && activeRole === 'member' && !event.isMyEvent ? (
                     <button className="cta-button" onClick={handleRegister} disabled={isSubmitting}>
-                        {isSubmitting ? 'רושם...' : 'כן, רשום אותי!'}
+                        {isSubmitting ? 'רושם...' : 'כן, הרשם אותי!'}
                     </button>
-                )}
-                {event.isMyEvent && (
-                    <p><strong>אתה כבר רשום לשיעור זה.</strong></p>
+                ) : (
+                    <p><strong>{event.isMyEvent ? 'אתה כבר רשום לשיעור זה.' : 'יש להתחבר כמתאמן כדי להירשם.'}</strong></p>
                 )}
             </div>
         </div>

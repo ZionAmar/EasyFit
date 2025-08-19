@@ -18,38 +18,32 @@ function SchedulePage() {
     const loadEvents = async () => {
       try {
         if (activeRole === 'trainer') {
-          // לוגיקה למאמן: הצג את כל השיעורים שלו (עבר ועתיד)
           const res = await fetch(`/api/meetings?role=trainer`);
           const trainerMeetings = await res.json();
           const formattedEvents = (trainerMeetings || []).map(item => ({
             ...item,
-            title: `${item.name} (שלי)`,
+            title: `${item.name}`,
             backgroundColor: 'var(--secondary-color)',
             borderColor: 'var(--secondary-color)',
+            extendedProps: { trainerName: item.trainerName, roomName: item.roomName }
           }));
           setEvents(formattedEvents);
-
-        } else { // לוגיקה למתאמן, מנהל או אורח
-          // שלב 1: שלוף את שתי רשימות השיעורים במקביל
+        } else {
           const [publicRes, myMeetingsRes] = await Promise.all([
-            fetch('/api/meetings/public'), // כל השיעורים העתידיים
-            user ? fetch('/api/meetings?role=member') : Promise.resolve(null) // כל השיעורים שלי (עבר ועתיד)
+            fetch('/api/meetings/public'),
+            user ? fetch('/api/meetings?role=member') : Promise.resolve(null)
           ]);
 
           const publicMeetings = await publicRes.json();
           const myMeetings = myMeetingsRes && myMeetingsRes.ok ? await myMeetingsRes.json() : [];
           
-          // שלב 2: צור רשימה אחת מאוחדת ללא כפילויות
           const allMeetingsMap = new Map();
-          // הוסף את כל השיעורים הציבוריים (עתידיים) למפה
           (publicMeetings || []).forEach(meeting => allMeetingsMap.set(meeting.id, meeting));
-          // הוסף את כל השיעורים שלי (עבר ועתיד)
           (myMeetings || []).forEach(meeting => allMeetingsMap.set(meeting.id, meeting));
           
           const allMeetings = Array.from(allMeetingsMap.values());
           const myMeetingIds = new Set(myMeetings.map(m => m.id));
 
-          // שלב 3: עצב את הרשימה המאוחדת לתצוגה
           const formattedEvents = allMeetings.map(item => {
             const isMyEvent = myMeetingIds.has(item.id);
             return {
@@ -57,7 +51,7 @@ function SchedulePage() {
               title: `${item.name} (${item.trainerName})`,
               backgroundColor: isMyEvent ? 'var(--secondary-color)' : 'var(--primary-color)',
               borderColor: isMyEvent ? 'var(--secondary-color)' : 'var(--primary-color)',
-              extendedProps: { isMyEvent, trainerName: item.trainerName }
+              extendedProps: { isMyEvent, trainerName: item.trainerName, roomName: item.roomName }
             }
           });
           setEvents(formattedEvents);
@@ -67,7 +61,7 @@ function SchedulePage() {
       }
     };
 
-    if (user === null || activeRole) { // ודא שהמידע על המשתמש נטען לפני הרצת הלוגיקה
+    if (user === null || activeRole) {
         loadEvents();
     }
   }, [user, activeRole]);
@@ -78,7 +72,8 @@ function SchedulePage() {
         title: clickInfo.event.title,
         start: clickInfo.event.start,
         isMyEvent: clickInfo.event.extendedProps.isMyEvent,
-        trainerName: clickInfo.event.extendedProps.trainerName
+        trainerName: clickInfo.event.extendedProps.trainerName,
+        roomName: clickInfo.event.extendedProps.roomName
     });
   };
 
