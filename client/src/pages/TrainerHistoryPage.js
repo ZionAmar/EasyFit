@@ -1,10 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import '../styles/HistoryPage.css'; // שימוש חוזר באותו עיצוב, אין צורך בקובץ CSS חדש
+import '../styles/HistoryPage.css';
+
+// --- רכיב עזר חדש: מודאל פרטי שיעור ---
+const SessionDetailsModal = ({ session, onClose }) => {
+    if (!session) return null;
+
+    const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(date));
+    const formatDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(date));
+    
+    const handleContentClick = (e) => e.stopPropagation();
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={handleContentClick}>
+                <button className="modal-close-btn" onClick={onClose}>&times;</button>
+                <h2>פרטי השיעור</h2>
+                <h3>{session.name}</h3>
+                <div className="modal-details">
+                    <p><strong>תאריך:</strong> {formatDate(session.start)}</p>
+                    <p><strong>שעה:</strong> {formatTime(session.start)} - {formatTime(session.end)}</p>
+                    <p><strong>מיקום:</strong> חדר {session.roomName}</p>
+                    <p><strong>משתתפים:</strong> {session.participant_count || 0} </p>
+                    <p><strong>סטטוס:</strong> הושלם</p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // --- רכיב עזר: כרטיסיית שיעור בהיסטוריה ---
-const HistoryCard = ({ session }) => {
+const HistoryCard = ({ session, onShowDetails }) => { // מקבל פונקציה להצגת פרטים
     const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
 
     return (
@@ -23,8 +50,10 @@ const HistoryCard = ({ session }) => {
                     <span>{session.participant_count || 0} משתתפים</span>
                 </div>
             </div>
-            <div className="card-status">
-                הושלם
+            <div className="card-actions">
+                <button className="details-btn-secondary" onClick={() => onShowDetails(session)}>
+                    פרטים
+                </button>
             </div>
         </div>
     );
@@ -39,6 +68,10 @@ function TrainerHistoryPage() {
     const [months, setMonths] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState('all');
     const [isLoading, setIsLoading] = useState(true);
+    
+    // State חדש לניהול המודאל
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedSession, setSelectedSession] = useState(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -85,6 +118,17 @@ function TrainerHistoryPage() {
         return date.toLocaleString('he-IL', { month: 'long', year: 'numeric' });
     };
 
+    // פונקציות חדשות לפתיחה וסגירה של המודאל
+    const handleShowDetails = (session) => {
+        setSelectedSession(session);
+        setIsModalOpen(true);
+    };
+
+    const handleCloseModal = () => {
+        setSelectedSession(null);
+        setIsModalOpen(false);
+    };
+
     if (isLoading) {
         return <div className="loading">טוען את היסטוריית השיעורים...</div>;
     }
@@ -111,13 +155,24 @@ function TrainerHistoryPage() {
 
             <main className="history-list">
                 {filteredSessions.length > 0 ? (
-                    filteredSessions.map(session => <HistoryCard key={session.id} session={session} />)
+                    filteredSessions.map(session => (
+                        <HistoryCard 
+                            key={session.id} 
+                            session={session} 
+                            onShowDetails={handleShowDetails} // העברת הפונקציה לקומפוננטה
+                        />
+                    ))
                 ) : (
                     <div className="empty-state-history">
                         <h3>לא נמצאו שיעורים שהושלמו.</h3>
                     </div>
                 )}
             </main>
+
+            {/* רינדור מותנה של המודאל */}
+            {isModalOpen && selectedSession && (
+                <SessionDetailsModal session={selectedSession} onClose={handleCloseModal} />
+            )}
         </div>
     );
 }

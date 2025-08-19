@@ -14,12 +14,17 @@ async function add(req, res, next) {
 
 async function updateStatus(req, res, next) {
     try {
-        const { participantId } = req.params;
+        const { participantId } = req.params; // This is the registrationId
         const { status } = req.body;
-
-        await participantModel.updateStatus(participantId, status);
-        res.status(200).json({ message: `Status updated to ${status}` });
+        
+        const result = await participantService.updateStatus(participantId, status, req.user);
+        
+        res.status(200).json(result);
     } catch (err) {
+        if (err.message === 'Unauthorized') {
+           return res.status(403).json({ message: 'You are not authorized to perform this action.' });
+        }
+        // שלח שגיאות אחרות לטיפול כללי
         next(err);
     }
 }

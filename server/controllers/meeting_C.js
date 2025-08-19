@@ -30,8 +30,23 @@ const createMeeting = async (req, res, next) => {
     }
 };
 
+const markTrainerArrival = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const result = await meetingService.markTrainerArrival(id, req.user);
+        res.status(200).json(result);
+    } catch (err) {
+        if (err.message === 'Unauthorized') {
+            res.status(403).json({ error: 'You are not authorized to perform this action' });
+        } else {
+            next(err);
+        }
+    }
+};
+
 module.exports = {
     getMeetings,
     getPublicSchedule,
-    createMeeting
+    createMeeting,
+    markTrainerArrival
 };

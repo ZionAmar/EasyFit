@@ -62,9 +62,6 @@
 .participant-row.checked-in {
     opacity: 0.6;
 }
-.participant-row.checked-in span {
-    text-decoration: line-through;
-}
 
 .participant-row.waiting {
     opacity: 0.8;
@@ -125,4 +122,39 @@
     font-size: 0.9rem;
     color: #777;
     font-weight: 500;
+}
+
+/* --- עיצוב משופר לשורת משתתף שביצע צ'ק-אין --- */
+
+/* הוספת רקע ירקרק עדין ופס הדגשה בצד */
+.participant-row.checked-in {
+    background-color: #f0fff4; /* רקע ירוק בהיר מאוד */
+    border-right: 4px solid #48bb78; /* פס ירוק בצד ימין */
+    color: #2f855a; /* צבע טקסט מעט כהה יותר */
+    font-weight: 500;
+}
+
+/* מיקום שם המשתתף והאייקון ביחד */
+.participant-details {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* רווח בין האייקון לשם */
+}
+
+/* עיצוב אייקון ה-V */
+.checkmark-icon {
+    color: #48bb78; /* צבע ירוק */
+    font-weight: bold;
+    font-size: 1.2rem;
+    line-height: 1; /* מונע הגדלת גובה השורה */
+}
+
+/* עיצוב כללי לשורה כדי שהכל יסתדר יפה */
+.participant-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-bottom: 1px solid #edf2f7;
+    transition: all 0.2s ease-in-out;
 }

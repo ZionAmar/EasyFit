@@ -1,7 +1,6 @@
 const db = require('../config/db_config');
 
 const getByTrainerId = (trainerId, date) => {
-    // >>> הוספנו JOIN ל-rooms ו-r.name as roomName <<<
     let query = `
         SELECT 
             m.id, m.name, m.trainer_id, m.room_id, m.participant_count,
@@ -9,7 +8,8 @@ const getByTrainerId = (trainerId, date) => {
             CONCAT(m.date, 'T', m.end_time) as end,
             u.full_name as trainerName,
             r.name as roomName,
-            r.capacity 
+            r.capacity,
+            m.trainer_arrival_time --  <-- הוסף את השורה הזו
         FROM meetings m
         JOIN users u ON m.trainer_id = u.id
         JOIN rooms r ON m.room_id = r.id
@@ -106,7 +106,17 @@ const create = ({ name, trainer_id, date, start_time, end_time, room_id }) => {
 };
 
 const getActiveParticipants = (meetingId) => {
-    const query = `SELECT u.id, u.full_name, mr.status, mr.id as registrationId FROM users u JOIN meeting_registrations mr ON u.id = mr.user_id WHERE mr.meeting_id = ? AND mr.status IN ('active', 'checked_in')`;
+    const query = `
+        SELECT 
+            u.id, 
+            u.full_name, 
+            mr.status,
+            mr.id as registrationId,
+            mr.check_in_time --  <-- הוסף את השורה הזו
+        FROM users u 
+        JOIN meeting_registrations mr ON u.id = mr.user_id 
+        WHERE mr.meeting_id = ? AND mr.status IN ('active', 'checked_in')
+    `;
     return db.query(query, [meetingId]);
 };
 
@@ -128,6 +138,14 @@ const syncParticipantCount = async (meetingId) => {
     return activeCount;
 };
 
+const markTrainerArrival = (meetingId) => {
+    const query = `
+        UPDATE meetings 
+        SET trainer_arrival_time = NOW() 
+        WHERE id = ? AND trainer_arrival_time IS NULL
+    `;
+    return db.query(query, [meetingId]);
+};
 
 module.exports = {
     getByTrainerId,
@@ -139,5 +157,6 @@ module.exports = {
     findOverlappingMeeting,
     create,
     getById, 
-    syncParticipantCount
+    syncParticipantCount,
+    markTrainerArrival 
 };

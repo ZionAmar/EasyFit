@@ -56,8 +56,29 @@ const createMeeting = async (meetingData) => {
     return { id: result.insertId, ...meetingData };
 };
 
+const markTrainerArrival = async (meetingId, user) => {
+    const [[meeting]] = await meetingModel.getById(meetingId);
+
+    if (!meeting) {
+        throw new Error('Meeting not found');
+    }
+
+    // וודא שהמשתמש הוא המאמן של השיעור או מנהל
+    if (meeting.trainer_id !== user.id && !user.roles.includes('admin')) {
+        throw new Error('Unauthorized'); // 403 Forbidden
+    }
+
+    const [result] = await meetingModel.markTrainerArrival(meetingId);
+    if (result.affectedRows === 0) {
+        // ייתכן שכבר סומן הגעה
+        return { message: 'Arrival already marked or meeting not found.' };
+    }
+    return { message: 'Trainer arrival marked successfully' };
+};
+
 module.exports = {
     getMeetingsForUser,
     getPublicSchedule,
-    createMeeting
+    createMeeting,
+    markTrainerArrival
 };
