@@ -1,21 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const STUDIO_OPEN_TIME = '06:00';
+const STUDIO_CLOSE_TIME = '22:00';
+
 function NewAppointmentPage() {
     const [name, setName] = useState('');
     const [date, setDate] = useState('');
     const [startTime, setStartTime] = useState('');
     const [endTime, setEndTime] = useState('');
     const [roomId, setRoomId] = useState('');
-    const [rooms, setRooms] = useState([]); // לשמירת רשימת החדרים
+    const [rooms, setRooms] = useState([]);
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
-    // שלב 1: שליפת רשימת החדרים מהשרת
     useEffect(() => {
-        fetch('/api/rooms') // נצטרך ליצור את נקודת הקצה הזו
+        fetch('/api/rooms')
             .then(res => res.json())
-            .then(setRooms)
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setRooms(data);
+                }
+            })
             .catch(() => setError('לא ניתן לטעון את רשימת החדרים'));
     }, []);
 
@@ -39,7 +45,7 @@ function NewAppointmentPage() {
                 throw new Error(errData.message || 'שגיאה ביצירת השיעור');
             }
             alert('השיעור נוצר בהצלחה!');
-            navigate('/dashboard'); // חזרה לדאשבורד
+            navigate('/dashboard');
         } catch (err) {
             setError(err.message);
         }
@@ -51,8 +57,26 @@ function NewAppointmentPage() {
             <form onSubmit={handleSubmit}>
                 <input type="text" placeholder="שם השיעור" value={name} onChange={e => setName(e.target.value)} required />
                 <input type="date" value={date} onChange={e => setDate(e.target.value)} required />
-                <input type="time" placeholder="שעת התחלה" value={startTime} onChange={e => setStartTime(e.target.value)} required />
-                <input type="time" placeholder="שעת סיום" value={endTime} onChange={e => setEndTime(e.target.value)} required />
+                
+                <input 
+                    type="time" 
+                    placeholder="שעת התחלה" 
+                    value={startTime} 
+                    onChange={e => setStartTime(e.target.value)} 
+                    min={STUDIO_OPEN_TIME}
+                    max={STUDIO_CLOSE_TIME}
+                    required 
+                />
+                <input 
+                    type="time" 
+                    placeholder="שעת סיום" 
+                    value={endTime} 
+                    onChange={e => setEndTime(e.target.value)} 
+                    min={STUDIO_OPEN_TIME}
+                    max={STUDIO_CLOSE_TIME}
+                    required 
+                />
+
                 <select value={roomId} onChange={e => setRoomId(e.target.value)} required>
                     <option value="">בחר חדר</option>
                     {rooms.map(room => (

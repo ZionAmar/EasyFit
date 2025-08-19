@@ -9,8 +9,14 @@ function PastSessionsList({ sessions }) {
     <ul className="simple-list">
       {sessions.map(session => (
         <li key={session.id}>
-          <span>{session.name}</span>
-          <span className="list-date">{new Date(session.date).toLocaleDateString('he-IL')}</span>
+          <div>
+            <span>{session.name}</span>
+            {/* >>> התיקון כאן <<< */}
+            <span style={{fontSize: '0.8rem', color: '#666', display: 'block'}}>
+              עם {session.trainerName}
+            </span>
+          </div>
+          <span className="list-date">{new Date(session.start).toLocaleDateString('he-IL')}</span>
         </li>
       ))}
     </ul>

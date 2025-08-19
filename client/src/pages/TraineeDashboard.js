@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import UpcomingSessionCard from '../components/UpcomingSessionCard';
-import WaitingListStatus from '../components/WaitingListStatus';
 import PastSessionsList from '../components/PastSessionsList';
 import StatCard from '../components/StatCard';
-import '../styles/Dashboard.css'; // ייבוא קובץ העיצוב החדש
+import WaitingListDisplay from '../components/WaitingListDisplay'; // <<< שימוש ברכיב המאוחד
+import '../styles/Dashboard.css';
 
 function TraineeDashboard() {
   const { user } = useAuth();
@@ -18,8 +18,12 @@ function TraineeDashboard() {
     fetch(`/api/meetings?role=member`)
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) setMyMeetings(data);
-        else setMyMeetings([]);
+        if (Array.isArray(data)) {
+            const processedMeetings = data.map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }));
+            setMyMeetings(processedMeetings);
+        } else {
+            setMyMeetings([]);
+        }
         setIsLoading(false);
       })
       .catch(err => {
@@ -29,11 +33,11 @@ function TraineeDashboard() {
   }, [user]);
 
   const now = new Date();
-  const upcomingSessions = myMeetings.filter(m => new Date(m.date) >= now && (m.status === 'active' || m.status === 'confirmed')).sort((a, b) => new Date(a.date) - new Date(b.date));
+  const upcomingSessions = myMeetings.filter(m => m.start >= now && (m.status === 'active' || m.status === 'confirmed')).sort((a, b) => a.start - b.start);
   const nextSession = upcomingSessions.length > 0 ? upcomingSessions[0] : null;
   const waitingList = myMeetings.filter(m => m.status === 'waiting' || m.status === 'pending');
-  const pastSessions = myMeetings.filter(m => new Date(m.date) < now && (m.status === 'active' || m.status === 'confirmed')).sort((a, b) => new Date(b.date) - new Date(a.date));
-  const sessionsThisMonth = pastSessions.filter(m => new Date(m.date).getMonth() === now.getMonth() && new Date(m.date).getFullYear() === now.getFullYear()).length;
+  const pastSessions = myMeetings.filter(m => m.start < now && (m.status === 'active' || m.status === 'confirmed')).sort((a, b) => b.start - a.start);
+  const sessionsThisMonth = pastSessions.filter(m => m.start.getMonth() === now.getMonth() && m.start.getFullYear() === now.getFullYear()).length;
 
   if (isLoading) {
     return <div className="loading">טוען את המידע שלך...</div>;
@@ -43,9 +47,7 @@ function TraineeDashboard() {
     <div className="dashboard-container">
       <div className="dashboard-header">
         <h1>שלום, {user.full_name}!</h1>
-        <button className="cta-button" onClick={() => navigate('/schedule')}>
-            מצא והזמן שיעור חדש
-        </button>
+        <button className="cta-button" onClick={() => navigate('/schedule')}>מצא והזמן שיעור חדש</button>
       </div>
       
       <div className="stats-container">
@@ -58,17 +60,14 @@ function TraineeDashboard() {
         <div className="main-panel">
           <div className="card">
             <h3>השיעור הבא שלך:</h3>
-            {nextSession ? (
-              <UpcomingSessionCard session={nextSession} />
-            ) : (
+            {nextSession ? ( <UpcomingSessionCard session={nextSession} /> ) : (
               <div className="placeholder-card">
                   <h4>אין לך שיעורים קרובים</h4>
-                  <p>זה הזמן המושלם לקבוע את האימון הבא שלך ולהתקדם לעבר המטרות.</p>
+                  <p>זה הזמן המושלם לקבוע את האימון הבא שלך ולהתקדם לעבר המטרות שלך.</p>
               </div>
             )}
           </div>
         </div>
-
         <div className="side-panel">
           <div className="card">
             <h3>היסטוריית שיעורים</h3>
@@ -76,7 +75,10 @@ function TraineeDashboard() {
           </div>
           <div className="card">
             <h3>רשימות המתנה</h3>
-            <WaitingListStatus list={waitingList} />
+            <WaitingListDisplay 
+              list={waitingList} 
+              emptyMessage="אתה לא רשום לאף רשימת המתנה." 
+            />
           </div>
         </div>
       </div>

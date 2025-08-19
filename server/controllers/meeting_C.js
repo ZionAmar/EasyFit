@@ -12,7 +12,7 @@ const getMeetings = async (req, res, next) => {
 
 const getPublicSchedule = async (req, res, next) => {
     try {
-        const { date } = req.query; // קורא את התאריך מה-URL
+        const { date } = req.query;
         const meetings = await meetingService.getPublicSchedule(date);
         res.json(meetings);
     } catch (err) {
@@ -22,7 +22,6 @@ const getPublicSchedule = async (req, res, next) => {
 
 const createMeeting = async (req, res, next) => {
     try {
-        // המאמן שיוצר את השיעור הוא המשתמש המחובר
         const meetingData = { ...req.body, trainer_id: req.user.id };
         const newMeeting = await meetingService.createMeeting(meetingData);
         res.status(201).json(newMeeting);
