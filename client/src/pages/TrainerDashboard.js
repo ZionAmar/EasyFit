@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // ודא שהנתיב נכון
-import '../styles/ProfessionalTrainerDashboard.css'; // ודא שהנתיב נכון
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import '../styles/ProfessionalTrainerDashboard.css';
 
 const ParticipantRow = ({ participant, onCheckIn, isCheckInActive }) => (
     <div className={`participant-row ${participant.check_in_time ? 'checked-in' : ''}`}>
         <div className="participant-details">
-            {/* --- תוספת: אייקון V יופיע כאן --- */}
             {participant.check_in_time && <span className="checkmark-icon">✓</span>}
             <span>{participant.full_name}</span>
         </div>
         <button 
-            onClick={() => onCheckIn(participant.registrationId, participant.status)}
+            onClick={() => onCheckIn(participant.registrationId)}
             disabled={!!participant.check_in_time || !isCheckInActive}
             className="check-in-btn"
         >
@@ -20,7 +20,6 @@ const ParticipantRow = ({ participant, onCheckIn, isCheckInActive }) => (
     </div>
 );
 
-// --- רכיב עזר: פריט בלו"ז היומי ---
 const AgendaItem = ({ session }) => (
     <div className="agenda-item">
         <span className="agenda-time">{new Date(session.start).toTimeString().slice(0, 5)}</span>
@@ -29,14 +28,10 @@ const AgendaItem = ({ session }) => (
     </div>
 );
 
-// --- רכיב עזר: מודאל פרטי שיעור ---
 const SessionDetailsModal = ({ session, onClose }) => {
     if (!session) return null;
-
     const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(date));
     const formatDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(date));
-    
-    // מונע סגירה של המודאל בלחיצה על התוכן שלו
     const handleContentClick = (e) => e.stopPropagation();
 
     return (
@@ -56,10 +51,8 @@ const SessionDetailsModal = ({ session, onClose }) => {
     );
 };
 
-
-// --- רכיב הדשבורד הראשי ---
 function ProfessionalTrainerDashboard() {
-    const { user } = useAuth();
+    const { user, activeStudio } = useAuth();
     const navigate = useNavigate();
     
     const [mySchedule, setMySchedule] = useState([]);
@@ -68,10 +61,8 @@ function ProfessionalTrainerDashboard() {
 
     const fetchSchedule = async () => {
         try {
-            const response = await fetch('/api/meetings?role=trainer'); 
-            if (!response.ok) throw new Error('Failed to fetch schedule');
-            const data = await response.json();
-
+            const data = await api.get('/api/meetings'); 
+            console.log("RAW DATA FROM SERVER:", data); // <<< הוסף את השורה הזאת
             if (Array.isArray(data)) {
                 const processed = data.map(m => ({
                     ...m,
@@ -82,42 +73,27 @@ function ProfessionalTrainerDashboard() {
             }
         } catch (error) {
             console.error("Error fetching trainer schedule:", error);
+            setMySchedule([]);
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        if (user) {
+        if (user && activeStudio) {
             fetchSchedule();
+        } else {
+            setIsLoading(false);
+            setMySchedule([]);
         }
-    }, [user]);
+    }, [user, activeStudio]);
 
-    const handleCheckIn = async (registrationId, currentStatus) => {
+    const handleCheckIn = async (registrationId) => {
         try {
-            const response = await fetch(`/api/participants/${registrationId}/status`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                // שינוי: אנחנו כבר לא צריכים לשלוח את הסטטוס בגוף הבקשה
-                body: JSON.stringify({}) 
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update check-in status');
-            }
-
-            // עדכון המצב המקומי עם הזמן הנוכחי
-            setMySchedule(currentSchedule =>
-                currentSchedule.map(session => ({
-                    ...session,
-                    participants: session.participants.map(p =>
-                        p.registrationId === registrationId
-                            ? { ...p, check_in_time: new Date().toISOString() } // <-- עדכון השדה הנכון
-                            : p
-                    )
-                }))
-            );
-
+            //  ### שינוי 1: שולחים את הסטטוס הנכון לשרת ###
+            await api.patch(`/api/participants/${registrationId}/status`, { status: 'checked_in' });
+            //  ### שינוי 2: טוענים מחדש את המידע מהשרת במקום לעדכן מקומית ###
+            await fetchSchedule(); 
         } catch (error) {
             console.error('Check-in failed:', error);
             alert('שגיאה בעדכון סטטוס המתאמן.');
@@ -126,27 +102,9 @@ function ProfessionalTrainerDashboard() {
     
     const handleTrainerArrival = async (sessionId) => {
         try {
-            const response = await fetch(`/api/meetings/${sessionId}/arrive`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' }
-            });
-
-            if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.error || 'Failed to confirm arrival');
-            }
-
-            // עדכון המצב המקומי כדי שהשינוי ייראה מיידית
-            setMySchedule(currentSchedule =>
-                currentSchedule.map(session =>
-                    session.id === sessionId
-                        ? { ...session, trainer_arrival_time: new Date().toISOString() } // הוספת הזמן הנוכחי
-                        : session
-                )
-            );
-
+            await api.patch(`/api/meetings/${sessionId}/arrive`, {});
             alert('הגעתך אושרה. שיהיה שיעור מוצלח!');
-
+            await fetchSchedule();
         } catch (error) {
             console.error('Error confirming arrival:', error);
             alert(`שגיאה באישור הגעה: ${error.message}`);
@@ -157,14 +115,14 @@ function ProfessionalTrainerDashboard() {
         const formatDateForGoogle = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, '');
         const startTime = formatDateForGoogle(session.start);
         const endTime = formatDateForGoogle(session.end);
-        const details = `שיעור ${session.name} בסטודיו EasyFit.`;
+        const details = `שיעור ${session.name} בסטודיו ${activeStudio?.studio_name || 'EasyFit'}.`;
         
         const url = new URL('https://www.google.com/calendar/render');
         url.searchParams.append('action', 'TEMPLATE');
         url.searchParams.append('text', `אימון: ${session.name}`);
         url.searchParams.append('dates', `${startTime}/${endTime}`);
         url.searchParams.append('details', details);
-        url.searchParams.append('location', `סטודיו EasyFit - ${session.roomName}`);
+        url.searchParams.append('location', `${activeStudio?.studio_name || 'EasyFit'} - ${session.roomName}`);
         
         return url.toString();
     };
@@ -182,7 +140,6 @@ function ProfessionalTrainerDashboard() {
 
     const tenMinutesBefore = nextSession ? new Date(nextSession.start.getTime() - 10 * 60 * 1000) : null;
     const isTrainerCheckInTime = nextSession && now >= tenMinutesBefore && now <= nextSession.end;
-
     const isSessionActive = nextSession && now >= nextSession.start && now <= nextSession.end;
 
     if (isLoading) {
@@ -200,7 +157,6 @@ function ProfessionalTrainerDashboard() {
                     לוח זמנים מלא
                 </button>
             </header>
-
             <div className="dashboard-grid-pro">
                 <main className="main-panel-pro">
                     <section className="card-pro next-session-card">
@@ -212,16 +168,20 @@ function ProfessionalTrainerDashboard() {
                             <>
                                 <p className="session-title">{nextSession.name}</p>
                                 <p className="session-time">{new Intl.DateTimeFormat('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(nextSession.start)}</p>
-                                
                                 <div className="session-actions trainer-actions">
                                     {isTrainerCheckInTime ? (
-                                        // --- הכפתור המעודכן ---
                                         <button 
-                                            className="btn-primary confirm-arrival" 
+                                            className={`btn-primary confirm-arrival ${nextSession.trainer_arrival_time ? 'is-confirmed' : ''}`} 
                                             onClick={() => handleTrainerArrival(nextSession.id)}
                                             disabled={!!nextSession.trainer_arrival_time}
                                         >
-                                            {nextSession.trainer_arrival_time ? 'הגעתך אושרה' : 'אשר את הגעתך'}
+                                            {nextSession.trainer_arrival_time ? (
+                                                <>
+                                                    <span className="checkmark-icon">✓</span> הגעתך אושרה
+                                                </>
+                                            ) : (
+                                                'אשר את הגעתך'
+                                            )}
                                         </button>
                                     ) : (
                                         <>
@@ -234,7 +194,6 @@ function ProfessionalTrainerDashboard() {
                                         </>
                                     )}
                                 </div>
-
                                 <div className="roster-container">
                                     <h4>נרשמים ({nextSession.participants?.length || 0} / {nextSession.capacity})</h4>
                                     <div className="roster-list">
@@ -250,7 +209,6 @@ function ProfessionalTrainerDashboard() {
                                         ) : <p className="empty-state-small">אין עדיין נרשמים לשיעור זה.</p>}
                                     </div>
                                 </div>
-
                                 {nextSession.waitingList && nextSession.waitingList.length > 0 && (
                                     <div className="roster-container waiting-list">
                                         <h4>רשימת המתנה ({nextSession.waitingList.length})</h4>
@@ -271,7 +229,6 @@ function ProfessionalTrainerDashboard() {
                         )}
                     </section>
                 </main>
-
                 <aside className="side-panel-pro">
                     <section className="card-pro list-card">
                         <div className="card-header">
@@ -282,7 +239,6 @@ function ProfessionalTrainerDashboard() {
                             todaysSessions.map(s => <AgendaItem key={s.id} session={s} />)
                         ) : <p className="empty-state">סיימת להיום! 💪</p>}
                     </section>
-                    
                     <section className="card-pro list-card">
                         <div className="card-header">
                             <span className="card-icon">📚</span>
@@ -297,7 +253,6 @@ function ProfessionalTrainerDashboard() {
                     </section>
                 </aside>
             </div>
-            
             {isDetailsModalOpen && nextSession && (
                 <SessionDetailsModal session={nextSession} onClose={() => setIsDetailsModalOpen(false)} />
             )}

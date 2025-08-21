@@ -1,83 +1,96 @@
 const meetingModel = require('../models/meeting_M');
-const studioConfig = require('../config/studio_config');
 
-const getMeetingsForUser = async (user, date, requestedRole) => {
-    const roleToUse = requestedRole || (user.roles.includes('admin') ? 'admin' : user.roles.includes('trainer') ? 'trainer' : 'member');
-
-    if (!user.roles.includes(roleToUse)) {
-        return [];
+const getMeetingsForDashboard = async (user, date) => {
+    const { id: userId, studioId, roles } = user;
+    if (!studioId) {
+        throw new Error("No studio selected.");
     }
 
-    switch (roleToUse) {
-        case 'admin': {
-            const [adminMeetings] = await meetingModel.getPublicSchedule(date);
-            return adminMeetings;
-        }
-        case 'trainer': {
-            const [trainerMeetings] = await meetingModel.getByTrainerId(user.id, date);
-            const meetingsWithData = await Promise.all(trainerMeetings.map(async (meeting) => {
-                const [participants] = await meetingModel.getActiveParticipants(meeting.id);
-                const [waitingList] = await meetingModel.getWaitingParticipants(meeting.id);
-                return { ...meeting, participants, waitingList };
-            }));
-            return meetingsWithData;
-        }
-        case 'member': {
-            const [memberMeetings] = await meetingModel.getByMemberId(user.id, date);
-            return memberMeetings;
-        }
-        default:
-            return [];
+    if (roles.includes('admin')) {
+        const adminMeetings = await meetingModel.getAllByStudioId(studioId, date);
+        return Promise.all(adminMeetings.map(async (meeting) => {
+            const participants = await meetingModel.getActiveParticipants(meeting.id);
+            const waitingList = await meetingModel.getWaitingParticipants(meeting.id);
+            return { ...meeting, participants, waitingList };
+        }));
     }
+
+    let meetingsMap = new Map();
+
+    if (roles.includes('member')) {
+        const memberMeetings = await meetingModel.getByMemberId(userId, studioId, date);
+        memberMeetings.forEach(meeting => meetingsMap.set(meeting.id, meeting));
+    }
+
+    if (roles.includes('trainer')) {
+        const trainerMeetings = await meetingModel.getByTrainerId(userId, studioId, date);
+        trainerMeetings.forEach(meeting => {
+            const existingMeeting = meetingsMap.get(meeting.id);
+            if (existingMeeting) {
+                // ###  זה התיקון המרכזי ###
+                // אם השיעור קיים, מזג את המידע החדש לתוך הישן
+                // זה ישמור על ה-'status' מהרישום ויוסיף את ה-'trainer_arrival_time'
+                meetingsMap.set(meeting.id, { ...meeting, ...existingMeeting });
+            } else {
+                // אם השיעור לא קיים, פשוט הוסף אותו
+                meetingsMap.set(meeting.id, meeting);
+            }
+        });
+    }
+
+    const allUserMeetings = Array.from(meetingsMap.values());
+
+    const meetingsWithData = await Promise.all(allUserMeetings.map(async (meeting) => {
+        if (roles.includes('trainer') && meeting.trainer_id === userId) {
+            const participants = await meetingModel.getActiveParticipants(meeting.id);
+            const waitingList = await meetingModel.getWaitingParticipants(meeting.id);
+            return { ...meeting, participants, waitingList };
+        }
+        return meeting;
+    }));
+
+    return meetingsWithData;
 };
 
-const getPublicSchedule = async (date) => {
-    const [meetings] = await meetingModel.getPublicSchedule(date);
+const getPublicSchedule = async (studioId, date) => {
+    const [meetings] = await meetingModel.getPublicSchedule(studioId, date);
     return meetings;
 };
 
-const createMeeting = async (meetingData) => {
-    // שלב 1: בדיקת שעות פעילות
-    const { start_time, end_time } = meetingData;
-    const { OPEN, CLOSE } = studioConfig.OPERATING_HOURS;
-
-    if (start_time < OPEN || end_time > CLOSE) {
-        throw new Error(`שעות הפעילות הן בין ${OPEN.slice(0,5)} ל-${CLOSE.slice(0,5)}.`);
-    }
-
-    // שלב 2: בדיקת התנגשות חדרים
-    const [overlapping] = await meetingModel.findOverlappingMeeting(meetingData);
+const createMeeting = async (meetingData, user) => {
+    const meetingInfo = { 
+        ...meetingData, 
+        studio_id: user.studioId,
+    };
+    
+    const [overlapping] = await meetingModel.findOverlappingMeeting(meetingInfo);
     if (overlapping.length > 0) {
-        throw new Error('החדר תפוס בזמן המבוקש. אנא בחר זמן או חדר אחר.');
+        throw new Error('The room is already booked for the requested time.');
     }
 
-    // שלב 3: יצירת השיעור
-    const [result] = await meetingModel.create(meetingData);
-    return { id: result.insertId, ...meetingData };
+    const [result] = await meetingModel.create(meetingInfo);
+    return { id: result.insertId, ...meetingInfo };
 };
 
 const markTrainerArrival = async (meetingId, user) => {
     const [[meeting]] = await meetingModel.getById(meetingId);
-
     if (!meeting) {
         throw new Error('Meeting not found');
     }
 
-    // וודא שהמשתמש הוא המאמן של השיעור או מנהל
+    if (user.studioId !== meeting.studio_id) {
+        throw new Error('Unauthorized');
+    }
     if (meeting.trainer_id !== user.id && !user.roles.includes('admin')) {
-        throw new Error('Unauthorized'); // 403 Forbidden
+        throw new Error('Unauthorized');
     }
 
-    const [result] = await meetingModel.markTrainerArrival(meetingId);
-    if (result.affectedRows === 0) {
-        // ייתכן שכבר סומן הגעה
-        return { message: 'Arrival already marked or meeting not found.' };
-    }
+    await meetingModel.markTrainerArrival(meetingId);
     return { message: 'Trainer arrival marked successfully' };
 };
 
 module.exports = {
-    getMeetingsForUser,
+    getMeetingsForDashboard,
     getPublicSchedule,
     createMeeting,
     markTrainerArrival

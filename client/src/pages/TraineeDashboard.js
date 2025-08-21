@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext'; // ודא שהנתיב נכון
-import '../styles/ProfessionalDashboard.css'; // ייבוא העיצוב החדש
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api'; // <<< 1. ייבוא שירות ה-API החדש
+import '../styles/ProfessionalDashboard.css';
 
-// --- רכיבי עזר קטנים ---
+// --- (רכיבי העזר הקטנים נשארים ללא שינוי) ---
 const StatPill = ({ label, value, icon }) => (
     <div className="stat-pill">
         <span className="stat-icon">{icon}</span>
@@ -22,7 +23,6 @@ const ListItem = ({ title, subtitle, status, statusType }) => (
     </div>
 );
 
-// --- רכיב Modal לפרטי שיעור ---
 const SessionDetailsModal = ({ session, isOpen, onClose }) => {
     useEffect(() => {
         const handleEsc = (event) => {
@@ -56,7 +56,7 @@ const SessionDetailsModal = ({ session, isOpen, onClose }) => {
 
 // --- רכיב הדשבורד הראשי ---
 function ProfessionalDashboard() {
-    const { user } = useAuth();
+    const { user, activeStudio } = useAuth();
     const navigate = useNavigate();
     
     const [myMeetings, setMyMeetings] = useState([]);
@@ -67,11 +67,11 @@ function ProfessionalDashboard() {
 
     useEffect(() => {
         const fetchMeetings = async () => {
+            setIsLoading(true);
+            setError(null);
             try {
-                const response = await fetch('/api/meetings?role=member'); 
-                if (!response.ok) throw new Error('Network response was not ok');
-                const data = await response.json();
-
+                const data = await api.get('/api/meetings'); 
+                
                 if (Array.isArray(data)) {
                     const processedMeetings = data.map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }));
                     setMyMeetings(processedMeetings);
@@ -85,8 +85,13 @@ function ProfessionalDashboard() {
                 setIsLoading(false);
             }
         };
-        fetchMeetings();
-    }, [user]);
+
+        if (user && activeStudio) {
+            fetchMeetings();
+        } else {
+            setIsLoading(false);
+        }
+    }, [user, activeStudio]);
 
     const openSessionDetails = (session) => {
         setSelectedSession(session);
@@ -105,7 +110,7 @@ function ProfessionalDashboard() {
         url.searchParams.append('text', session.name);
         url.searchParams.append('dates', `${startTime}/${endTime}`);
         url.searchParams.append('details', details);
-        url.searchParams.append('location', `סטודיו EasyFit - ${session.roomName}`);
+        url.searchParams.append('location', `סטודיו ${activeStudio?.studio_name || 'EasyFit'} - ${session.roomName}`);
         
         return url.toString();
     };
@@ -133,8 +138,8 @@ function ProfessionalDashboard() {
         .sort((a, b) => a.start - b.start);
 
     const pastSessions = myMeetings
-        .filter(m => m.end < now && (m.status === 'active' || m.status === 'confirmed'))
-        .sort((a, b) => b.start - a.start);
+        .filter(m => m.end < now && ['active', 'confirmed', 'checked_in'].includes(m.status))
+        .sort((a, b) => a.start - b.start);
 
     const completedThisMonth = pastSessions
         .filter(m => m.start.getMonth() === now.getMonth() && m.start.getFullYear() === now.getFullYear())
@@ -142,7 +147,6 @@ function ProfessionalDashboard() {
         
     const totalCompletedSessions = pastSessions.length;
 
-    // --- התיקון כאן: הגדרת חלון הזמן לאישור הגעה ---
     const fiveMinutesBefore = nextSession ? new Date(nextSession.start.getTime() - 5 * 60 * 1000) : null;
     const isSessionActiveNow = nextSession && now >= fiveMinutesBefore && now <= nextSession.end;
 
@@ -157,7 +161,7 @@ function ProfessionalDashboard() {
             <div className="pro-dashboard">
                 <header className="dashboard-header-pro">
                     <div className="header-text">
-                        <h1>שלום, {user?.full_name || "ציון"}!</h1>
+                        <h1>שלום, {user?.full_name || "מתאמן"}!</h1>
                         <p>מוכנ/ה לכבוש את המטרות שלך היום? הנה תמונת המצב שלך.</p>
                     </div>
                     <button className="cta-button-pro" onClick={() => navigate('/schedule')}>

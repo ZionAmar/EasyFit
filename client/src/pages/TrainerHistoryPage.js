@@ -1,15 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import api from '../services/api'; // <<< 1. ייבוא שירות ה-API החדש
 import '../styles/HistoryPage.css';
 
-// --- רכיב עזר חדש: מודאל פרטי שיעור ---
 const SessionDetailsModal = ({ session, onClose }) => {
     if (!session) return null;
-
     const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(date));
     const formatDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(date));
-    
     const handleContentClick = (e) => e.stopPropagation();
 
     return (
@@ -30,8 +28,7 @@ const SessionDetailsModal = ({ session, onClose }) => {
     );
 };
 
-// --- רכיב עזר: כרטיסיית שיעור בהיסטוריה ---
-const HistoryCard = ({ session, onShowDetails }) => { // מקבל פונקציה להצגת פרטים
+const HistoryCard = ({ session, onShowDetails }) => {
     const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
 
     return (
@@ -59,32 +56,29 @@ const HistoryCard = ({ session, onShowDetails }) => { // מקבל פונקציה
     );
 };
 
-// --- רכיב הדף הראשי ---
 function TrainerHistoryPage() {
-    const { user } = useAuth();
+    const { user, activeStudio } = useAuth(); // <<< 2. קבלת הסטודיו הפעיל
     const navigate = useNavigate();
     const [pastSessions, setPastSessions] = useState([]);
     const [filteredSessions, setFilteredSessions] = useState([]);
     const [months, setMonths] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState('all');
     const [isLoading, setIsLoading] = useState(true);
-    
-    // State חדש לניהול המודאל
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
+            setIsLoading(true);
             try {
-                const response = await fetch('/api/meetings?role=trainer');
-                if (!response.ok) throw new Error('Failed to fetch history');
-                const data = await response.json();
-
+                // <<< 3. שימוש ב-api.get במקום fetch, והסרת ה-query param המיותר
+                const data = await api.get('/api/meetings'); 
+                
                 if (Array.isArray(data)) {
                     const now = new Date();
                     const processed = data
                         .map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }))
-                        .filter(m => m.end < now)
+                        .filter(m => m.end < now) // סינון רק לשיעורי עבר
                         .sort((a, b) => b.start - a.start);
 
                     setPastSessions(processed);
@@ -95,12 +89,20 @@ function TrainerHistoryPage() {
                 }
             } catch (error) {
                 console.error("Error fetching trainer history:", error);
+                setPastSessions([]); // איפוס במקרה של שגיאה
+                setFilteredSessions([]);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchHistory();
-    }, [user]);
+
+        // <<< 4. הפעלת הפונקציה רק אם יש משתמש וסטודיו פעיל
+        if (user && activeStudio) {
+            fetchHistory();
+        } else {
+            setIsLoading(false);
+        }
+    }, [user, activeStudio]); // הוספת activeStudio כתלות
 
     const handleMonthChange = (e) => {
         const month = e.target.value;
@@ -118,7 +120,6 @@ function TrainerHistoryPage() {
         return date.toLocaleString('he-IL', { month: 'long', year: 'numeric' });
     };
 
-    // פונקציות חדשות לפתיחה וסגירה של המודאל
     const handleShowDetails = (session) => {
         setSelectedSession(session);
         setIsModalOpen(true);
@@ -138,7 +139,13 @@ function TrainerHistoryPage() {
             <header className="history-header">
                 <div className="header-content">
                     <h1>היסטוריית שיעורים</h1>
-                    <p>סה"כ העברת {pastSessions.length} שיעורים. יישר כוח!</p>
+                    <p>
+                        {pastSessions.length === 1
+                            ? 'סה"כ העברת שיעור אחד.'
+                            : `סה"כ העברת ${pastSessions.length} שיעורים.`
+                        }
+                        {pastSessions.length >= 1 && ' יישר כוח!'}
+                    </p>
                 </div>
                 <div className="filter-container">
                     <label htmlFor="month-filter">סנן לפי חודש:</label>
@@ -159,7 +166,7 @@ function TrainerHistoryPage() {
                         <HistoryCard 
                             key={session.id} 
                             session={session} 
-                            onShowDetails={handleShowDetails} // העברת הפונקציה לקומפוננטה
+                            onShowDetails={handleShowDetails}
                         />
                     ))
                 ) : (
@@ -169,7 +176,6 @@ function TrainerHistoryPage() {
                 )}
             </main>
 
-            {/* רינדור מותנה של המודאל */}
             {isModalOpen && selectedSession && (
                 <SessionDetailsModal session={selectedSession} onClose={handleCloseModal} />
             )}

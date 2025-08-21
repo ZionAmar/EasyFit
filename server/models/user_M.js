@@ -1,80 +1,128 @@
+// קובץ: models/user_M.js
+
 const db = require('../config/db_config');
 
-// פונקציה עוזרת להפוך roles לדגלים
-const getFlagsFromRoles = (roles = []) => ({
-  is_admin: roles.includes('admin') ? 1 : 0,
-  is_trainer: roles.includes('trainer') ? 1 : 0,
-  is_member: roles.includes('member') ? 1 : 0,
-});
-
-const getRolesFromFlags = ({ is_admin, is_trainer, is_member }) => {
-  const roles = [];
-  if (is_admin) roles.push('admin');
-  if (is_trainer) roles.push('trainer');
-  if (is_member) roles.push('member');
-  return roles;
+const getAll = () => {
+    const query = `
+        SELECT 
+            u.id, u.full_name, u.email, u.userName, u.phone,
+            GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)) as roles
+        FROM users u
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
+        LEFT JOIN studios s ON ur.studio_id = s.id
+        GROUP BY u.id
+    `;
+    return db.query(query);
 };
 
-// קבלת כל המשתמשים
-const getAll = () => db.query('SELECT * FROM users');
-
-// קבלת משתמש לפי ID
-const getById = (id) => db.query('SELECT * FROM users WHERE id = ?', [id]);
-
-// קבלת משתמש לפי userName
-const getByUserName = (userName) =>
-  db.query('SELECT * FROM users WHERE userName = ?', [userName])
-    .then(([rows]) => rows[0] || null);
-
-// קבלת משתמש לפי userName + סיסמה
-const getByCredentials = (userName, password_hash) =>
-  db.query(
-    'SELECT * FROM users WHERE userName = ? AND password_hash = ?',
-    [userName, password_hash]
-  ).then(([rows]) => rows[0] || null);
-
-// יצירת משתמש מלא
-const createFull = ({ full_name, userName, password_hash, email, phone, roles = [] }) => {
-  const { is_admin, is_trainer, is_member } = getFlagsFromRoles(roles);
-
-  return db.query(`
-    INSERT INTO users (full_name, userName, password_hash, email, phone, is_member, is_trainer, is_admin, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
-  `, [full_name, userName, password_hash, email, phone, is_member, is_trainer, is_admin]);
+const getById = (id) => {
+    const query = `
+        SELECT 
+            u.id, u.full_name, u.email, u.userName, u.phone,
+            GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)) as roles
+        FROM users u
+        LEFT JOIN user_roles ur ON u.id = ur.user_id
+        LEFT JOIN roles r ON ur.role_id = r.id
+        LEFT JOIN studios s ON ur.studio_id = s.id
+        WHERE u.id = ?
+        GROUP BY u.id
+    `;
+    return db.query(query, [id]);
 };
 
-// יצירת משתמש בסיסי (למשל על ידי admin)
-const createBasic = ({ full_name, email, roles = [] }) => {
-  const { is_admin, is_trainer, is_member } = getFlagsFromRoles(roles);
-
-  return db.query(`
-    INSERT INTO users (full_name, email, is_admin, is_trainer, is_member, created_at)
-    VALUES (?, ?, ?, ?, ?, NOW())
-  `, [full_name, email, is_admin, is_trainer, is_member]);
+const getByUserName = (userName) => {
+    const query = `SELECT * FROM users WHERE userName = ?`;
+    return db.query(query, [userName]).then(([rows]) => rows[0] || null);
 };
 
-// עדכון משתמש
-const update = (id, { full_name, email, roles = [] }) => {
-  const { is_admin, is_trainer, is_member } = getFlagsFromRoles(roles);
-
-  return db.query(`
-    UPDATE users SET full_name = ?, email = ?, is_admin = ?, is_trainer = ?, is_member = ?
-    WHERE id = ?
-  `, [full_name, email, is_admin, is_trainer, is_member, id]);
+const findStudiosAndRolesByUserId = (userId) => {
+    const query = `
+        SELECT 
+            s.id as studio_id,
+            s.name as studio_name,
+            r.name as role_name
+        FROM user_roles ur
+        JOIN studios s ON ur.studio_id = s.id
+        JOIN roles r ON ur.role_id = r.id
+        WHERE ur.user_id = ?
+    `;
+    return db.query(query, [userId]);
 };
 
-// מחיקה
-const remove = (id) => db.query('DELETE FROM users WHERE id = ?', [id]);
+const findRolesByStudio = (userId, studioId) => {
+    const query = `
+        SELECT r.name 
+        FROM user_roles ur
+        JOIN roles r ON ur.role_id = r.id
+        WHERE ur.user_id = ? AND ur.studio_id = ?
+    `;
+    return db.query(query, [userId, studioId]);
+};
+
+const create = async ({ full_name, email, userName, password_hash, phone, roles, studioId }) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const userQuery = 'INSERT INTO users (full_name, email, userName, password_hash, phone) VALUES (?, ?, ?, ?, ?)';
+        const [userResult] = await connection.query(userQuery, [full_name, email, userName, password_hash, phone]);
+        const userId = userResult.insertId;
+
+        if (roles && roles.length > 0 && studioId) {
+            const rolesQuery = 'INSERT INTO user_roles (user_id, studio_id, role_id) SELECT ?, ?, r.id FROM roles r WHERE r.name IN (?)';
+            await connection.query(rolesQuery, [userId, studioId, [roles]]);
+        }
+        
+        await connection.commit();
+        return { id: userId, full_name, email, roles, studioId };
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+};
+
+const update = async (id, { full_name, email, phone, roles, studioId }) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const userQuery = 'UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?';
+        await connection.query(userQuery, [full_name, email, phone, id]);
+
+        if (roles && studioId) {
+            const deleteQuery = 'DELETE FROM user_roles WHERE user_id = ? AND studio_id = ?';
+            await connection.query(deleteQuery, [id, studioId]);
+
+            if (roles.length > 0) {
+                const rolesQuery = 'INSERT INTO user_roles (user_id, studio_id, role_id) SELECT ?, ?, r.id FROM roles r WHERE r.name IN (?)';
+                await connection.query(rolesQuery, [id, studioId, [roles]]);
+            }
+        }
+
+        await connection.commit();
+        return { id, full_name, email };
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+};
+
+const remove = (id) => {
+    return db.query('DELETE FROM users WHERE id = ?', [id]);
+};
 
 module.exports = {
-  getAll,
-  getById,
-  getByUserName,
-  getFlagsFromRoles,
-  getRolesFromFlags,
-  getByCredentials,
-  createFull,
-  createBasic,
-  update,
-  remove,
+    getAll,
+    getById,
+    getByUserName,
+    findStudiosAndRolesByUserId,
+    findRolesByStudio,
+    create,
+    update,
+    remove,
 };

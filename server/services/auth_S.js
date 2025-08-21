@@ -1,5 +1,4 @@
-// >> קובץ: services/auth_S.js
-// >> תיקון: פישוט הלוגיקה, החזרת אובייקט משתמש מלא ותקין.
+// קובץ: services/auth_S.js
 
 const md5 = require('md5');
 const userModel = require('../models/user_M');
@@ -8,43 +7,60 @@ const Salt = process.env.Salt;
 const encWithSalt = (str) => md5(Salt + str);
 
 const login = async ({ userName, pass }) => {
-  // FIX: הפונקציה מקבלת רק את המידע שהיא צריכה, לא את כל req, res
-  const user = await userModel.getByCredentials(userName, encWithSalt(pass));
-  
-  // כאן הבדיקה הקריטית. אם המשתמש הוא null, תיזרק שגיאה
-  if (!user) {
-    throw new Error("שם משתמש או סיסמה שגויים");
-  }
+    const user = await userModel.getByUserName(userName);
+    if (!user || user.password_hash !== encWithSalt(pass)) {
+        throw new Error("שם משתמש או סיסמה שגויים");
+    }
 
-  // FIX: מחזירים את האובייקט המלא עם התפקידים שלו
-  return { 
-      id: user.id,
-      full_name: user.full_name,
-      email: user.email,
-      roles: userModel.getRolesFromFlags(user)
-  };
+    const [studiosAndRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
+
+    return {
+        userDetails: {
+            id: user.id,
+            full_name: user.full_name,
+            email: user.email,
+            userName: user.userName // חשוב להחזיר גם את זה
+        },
+        studios: studiosAndRoles
+    };
+};
+
+// --- הפונקציה שהייתה חסרה ---
+const verifyUserFromId = async (userId) => {
+    const [[user]] = await userModel.getById(userId);
+    if (!user) {
+        throw new Error("User not found for verification");
+    }
+
+    const [studiosAndRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
+
+    return {
+        userDetails: {
+            id: user.id,
+            full_name: user.full_name,
+            email: user.email,
+        },
+        studios: studiosAndRoles
+    };
 };
 
 const register = async (userData) => {
-  const existing = await userModel.getByUserName(userData.userName);
-  if (existing) throw new Error("שם משתמש כבר קיים במערכת");
+    const { userName, pass, full_name, email, phone, studioId } = userData;
+    if (!studioId) throw new Error("לא ניתן להירשם ללא שיוך לסטודיו.");
+    
+    const existing = await userModel.getByUserName(userName);
+    if (existing) throw new Error("שם משתמש כבר קיים במערכת");
 
-  userData.password_hash = encWithSalt(userData.pass);
+    const password_hash = encWithSalt(pass);
+    const roles = ['member'];
 
-  // IMPROVEMENT: משתמש חדש מקבל אוטומטית תפקיד 'member'
-  const roles = ['member'];
-
-  return userModel.createFull({
-    full_name: userData.full_name,
-    userName: userData.userName,
-    password_hash: userData.password_hash,
-    email: userData.email,
-    phone: userData.phone,
-    roles,
-  });
+    return userModel.create({
+        full_name, userName, password_hash, email, phone, roles, studioId
+    });
 };
 
 module.exports = {
-  login,
-  register,
+    login,
+    register,
+    verifyUserFromId
 };

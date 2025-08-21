@@ -1,0 +1,39 @@
+// קובץ: src/services/api.js
+
+let STUDIO_ID = localStorage.getItem('activeStudioId') || null;
+
+const setStudioId = (studioId) => {
+    STUDIO_ID = studioId;
+    if (studioId) {
+        localStorage.setItem('activeStudioId', studioId);
+    } else {
+        localStorage.removeItem('activeStudioId');
+    }
+};
+
+const customFetch = async (url, options = {}) => {
+    const headers = options.headers || new Headers();
+    if (STUDIO_ID) {
+        headers.set('x-studio-id', STUDIO_ID);
+    }
+    headers.set('Content-Type', 'application/json');
+
+    const updatedOptions = { ...options, headers, credentials: 'include' };
+
+    const response = await fetch(url, updatedOptions);
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `Server error: ${response.statusText}` }));
+        throw new Error(errorData.message || 'An API error occurred');
+    }
+    
+    if (response.status === 204) return null;
+    return response.json();
+};
+
+export default {
+    setStudioId,
+    get: (url, options) => customFetch(url, { ...options, method: 'GET' }),
+    post: (url, body, options) => customFetch(url, { ...options, method: 'POST', body: JSON.stringify(body) }),
+    patch: (url, body, options) => customFetch(url, { ...options, method: 'PATCH', body: JSON.stringify(body) }),
+};

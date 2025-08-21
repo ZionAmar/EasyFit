@@ -1,78 +1,102 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import * as authService from '../services/auth.service';
+import api from '../services/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  // >>> הוספה: State חדש שיחזיק את התפקיד הפעיל הנוכחי
-  const [activeRole, setActiveRole] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+    const [user, setUser] = useState(null);
+    const [studios, setStudios] = useState([]);
+    const [activeStudio, setActiveStudio] = useState(null);
+    const [activeRole, setActiveRole] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    async function verifyUser() {
-      try {
-        const userData = await authService.verify();
-        setUser(userData);
-        // >>> הוספה: קביעת תפקיד ברירת המחדל בטעינת האפליקציה
-        if (userData.roles.includes('admin')) {
-          setActiveRole('admin');
-        } else if (userData.roles.includes('trainer')) {
-          setActiveRole('trainer');
-        } else if (userData.roles.includes('member')) {
-          setActiveRole('member');
+    const setupSession = (data) => {
+        const { userDetails, studios: userStudios } = data;
+        setUser(userDetails);
+
+        // שלב חשוב: מקבצים את התפקידים לכל סטודיו למבנה נתונים נוח
+        const studiosMap = new Map();
+        userStudios.forEach(({ studio_id, studio_name, role_name }) => {
+            if (!studiosMap.has(studio_id)) {
+                studiosMap.set(studio_id, { studio_id, studio_name, roles: [] });
+            }
+            studiosMap.get(studio_id).roles.push(role_name);
+        });
+        const studiosWithRoles = Array.from(studiosMap.values());
+        setStudios(studiosWithRoles);
+
+        if (studiosWithRoles.length > 0) {
+            const initialStudioId = localStorage.getItem('activeStudioId');
+            const defaultStudio = studiosWithRoles.find(s => s.studio_id == initialStudioId) || studiosWithRoles[0];
+            
+            setActiveStudio(defaultStudio);
+            api.setStudioId(defaultStudio.studio_id);
+            
+            // קובעים תפקיד ברירת מחדל מהסטודיו הפעיל
+            // נותנים עדיפות לתפקיד בכיר יותר אם קיים
+            const preferredRole = ['admin', 'trainer', 'member'].find(r => defaultStudio.roles.includes(r));
+            setActiveRole(preferredRole);
         }
-      } catch (error) {
-        setUser(null);
-        setActiveRole(null); // >>> הוספה: איפוס התפקיד אם האימות נכשל
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    verifyUser();
-  }, []);
+    };
 
-  const login = async (userName, pass) => {
-    const loggedInUser = await authService.login(userName, pass);
-    setUser(loggedInUser);
+    useEffect(() => {
+        async function verifyUser() {
+            try {
+                const data = await authService.verify();
+                if (data && data.userDetails) {
+                    setupSession(data);
+                }
+            } catch (error) {
+                // User is not logged in, state remains null
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        verifyUser();
+    }, []);
+
+    const login = async (userName, pass) => {
+        const data = await authService.login(userName, pass);
+        setupSession(data);
+        return data;
+    };
+  
+    const logout = async () => {
+        try {
+            await authService.logout();
+        } catch (error) {
+            console.error("Logout failed:", error);
+        } finally {
+            setUser(null);
+            setStudios([]);
+            setActiveStudio(null);
+            setActiveRole(null);
+            api.setStudioId(null);
+        }
+    };
+
+    const switchStudio = (studioId) => {
+        const newActiveStudio = studios.find(s => s.studio_id === parseInt(studioId));
+        if (newActiveStudio) {
+            setActiveStudio(newActiveStudio);
+            api.setStudioId(newActiveStudio.studio_id);
+            window.location.reload(); // The easiest way to refetch all data for the new context
+        }
+    };
     
-    // >>> הוספה: קביעת תפקיד ברירת המחדל אחרי התחברות
-    if (loggedInUser.roles.includes('admin')) {
-      setActiveRole('admin');
-    } else if (loggedInUser.roles.includes('trainer')) {
-      setActiveRole('trainer');
-    } else if (loggedInUser.roles.includes('member')) {
-      setActiveRole('member');
-    }
-
-    return loggedInUser;
-  };
-
-  const register = async (userData) => {
-    return authService.register(userData);
-  };
+    const switchRole = (newRole) => {
+        if (activeStudio && activeStudio.roles.includes(newRole)) {
+            setActiveRole(newRole);
+            console.log(`Switched to role: ${newRole}`);
+        }
+    };
   
-  const logout = async () => {
-    await authService.logout();
-    setUser(null);
-    setActiveRole(null); // >>> הוספה: איפוס התפקיד ביציאה
-  };
-  
-  // >>> הוספה: פונקציה שתאפשר לרכיבים אחרים לשנות את התפקיד הפעיל
-  const switchRole = (newRole) => {
-    // בודקים שהמשתמש באמת מחזיק בתפקיד הזה לפני שמבצעים את השינוי
-    if (user && user.roles.includes(newRole)) {
-      setActiveRole(newRole);
-      console.log(`Switched to ${newRole} view`); // לוג לבדיקה
-    }
-  };
+    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout };
 
-  // >>> עדכון: הוספנו את המשתנים והפונקציות החדשות ל-value
-  const value = { user, isLoading, activeRole, switchRole, login, register, logout };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+    return useContext(AuthContext);
 }

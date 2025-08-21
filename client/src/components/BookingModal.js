@@ -6,10 +6,16 @@ function BookingModal({ event, onClose }) {
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // ###  השינוי מתחיל כאן ###
+    // 1. נוסיף משתנה שבודק אם האירוע כבר התרחש
+    const isEventInPast = event.start < new Date();
+
     const handleRegister = async () => {
         setError('');
         setIsSubmitting(true);
         try {
+            // ב-fetch זה, מומלץ להשתמש ב-api service כמו שעשינו בקומפוננטות אחרות
+            // כדי להבטיח שהבקשה תהיה מאומתת
             const response = await fetch('/api/participants', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -23,7 +29,7 @@ function BookingModal({ event, onClose }) {
             }
             
             alert(`נרשמת בהצלחה לשיעור: ${event.title}`);
-            onClose();
+            onClose(); // סגור את המודאל ורענן את היומן אם צריך
         } catch (err) {
             setError(err.message);
         } finally {
@@ -44,9 +50,12 @@ function BookingModal({ event, onClose }) {
                 
                 {error && <p className="error">{error}</p>}
 
-                {user && activeRole === 'member' && !event.isMyEvent ? (
+                {/* 2. נעדכן את הלוגיקה שתבדוק קודם כל אם השיעור עבר */}
+                {isEventInPast ? (
+                    <p><strong>שיעור כבר התקיים.</strong></p>
+                ) : user && activeRole === 'member' && !event.isMyEvent ? (
                     <button className="cta-button" onClick={handleRegister} disabled={isSubmitting}>
-                        {isSubmitting ? 'רושם...' : 'כן, הרשם אותי!'}
+                        {isSubmitting ? 'רושם...' : 'הירשם'}
                     </button>
                 ) : (
                     <p><strong>{event.isMyEvent ? 'אתה כבר רשום לשיעור זה.' : 'יש להתחבר כמתאמן כדי להירשם.'}</strong></p>
