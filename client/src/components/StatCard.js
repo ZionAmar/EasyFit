@@ -1,12 +1,16 @@
 import React from 'react';
+import '../styles/StatCard.css';
 
-function StatCard({ title, value }) {
-  return (
-    <div className="stat-card card">
-      <span className="stat-value">{value}</span>
-      <span className="stat-title">{title}</span>
-    </div>
-  );
+function StatCard({ label, value, icon }) {
+    return (
+        <div className="stat-card-pro">
+            <div className="stat-card-icon">{icon}</div>
+            <div className="stat-card-info">
+                <span className="stat-card-value">{value}</span>
+                <span className="stat-card-label">{label}</span>
+            </div>
+        </div>
+    );
 }
 
 export default StatCard;

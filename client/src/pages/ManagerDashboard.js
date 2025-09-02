@@ -1,37 +1,104 @@
-import React from 'react';
-// import StatCard from './StatCard';
-// import PopularClassesChart from './PopularClassesChart';
-// import QuickActions from './QuickActions';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // ודא שהייבוא הזה קיים
+import api from '../services/api';
+import DailySchedule from '../components/DailySchedule';
+import StatCard from '../components/StatCard';
+import '../styles/ManagerDashboard.css';
+
+// --- רכיבי תצוגה פנימיים ---
+const OverviewView = ({ stats }) => (
+    <div className="dashboard-grid-pro">
+        <main className="main-panel-pro">
+            <section className="card-pro stats-container">
+                <div className="stats-grid">
+                    <StatCard label="מתאמנים פעילים" value={stats.activeMembers} icon="👥" />
+                    <StatCard label="שיעורים היום" value={stats.classesToday} icon="🗓️" />
+                    <StatCard label="מצטרפים החודש" value={stats.newMembersThisMonth} icon="📈" />
+                </div>
+            </section>
+        </main>
+        <aside className="side-panel-pro">
+            <section className="card-pro">
+                <DailySchedule />
+            </section>
+        </aside>
+    </div>
+);
+
+const TrainersView = () => <div className="card-pro placeholder-view"><h2>ניהול מאמנים</h2></div>;
+const MembersView = () => <div className="card-pro placeholder-view"><h2>ניהול מתאמנים</h2></div>;
+const StudioSettingsView = () => <div className="card-pro placeholder-view"><h2>הגדרות</h2></div>;
+
 
 function ManagerDashboard() {
+    // <<< התיקון כאן: הוספת הגדרת ה-navigate >>>
+    const navigate = useNavigate();
+    
+    const [currentView, setCurrentView] = useState('overview'); 
+    const [basicData, setBasicData] = useState(null);
+    const [stats, setStats] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-  // כאן תבוא לוגיקה שתשלוף מהשרת נתונים מעובדים וסטטיסטיקות
+    useEffect(() => {
+        const fetchAllData = async () => {
+            try {
+                const [basicDataRes, statsRes] = await Promise.all([
+                    api.get('/api/studio/dashboard'),
+                    api.get('/api/studio/dashboard/stats')
+                ]);
+                setBasicData(basicDataRes);
+                setStats(statsRes);
+            } catch (err) {
+                setError("שגיאה בטעינת המידע.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchAllData();
+    }, []);
 
-  return (
-    <div className="dashboard-container manager-dashboard">
-      <h1>סקירת הסטודיו</h1>
+    const renderView = () => {
+        if (!stats) return null;
+        switch (currentView) {
+            case 'trainers': return <TrainersView />;
+            case 'members': return <MembersView />;
+            case 'settings': return <StudioSettingsView />;
+            case 'overview': default: return <OverviewView stats={stats} />;
+        }
+    };
 
-      <div className="stats-grid">
-        {/* <StatCard title="תפוסה היום" value="78%" /> */}
-        {/* <StatCard title="הכנסה חודשית" value="15,200 ₪" /> */}
-        {/* <StatCard title="חברים חדשים" value="12" /> */}
-        <p>[כרטיסיות נתונים יופיעו כאן]</p>
-      </div>
-      
-      <div className="main-dashboard-grid">
-        <div className="main-panel">
-            <h3>שיעורים פופולריים</h3>
-            {/* <PopularClassesChart data={...} /> */}
-            <p>[גרף שיעורים פופולריים יופיע כאן]</p>
+    if (isLoading) return <div className="loading">טוען את מרכז הבקרה...</div>;
+    if (error) return <div className="error-state">{error}</div>;
+    if (!basicData) return <div>לא נמצא מידע בסיסי.</div>;
+
+    const { studio, user } = basicData;
+
+    return (
+        <div className="pro-dashboard manager-view">
+            <header className="dashboard-header-pro">
+                <div className="header-text">
+                    <h1>מרכז הבקרה</h1>
+                    <p>שלום {user.full_name}, ברוך הבא לאזור הניהול של {studio.name}.</p>
+                </div>
+                <button className="cta-button-pro" onClick={() => navigate('/manage/schedule')}>
+                    <span className="plus-icon">📅</span>
+                    לוח שנה מלא
+                </button>
+            </header>
+
+            <div className="view-switcher">
+                <button onClick={() => setCurrentView('overview')} className={currentView === 'overview' ? 'active' : ''}>סקירה כללית</button>
+                <button onClick={() => setCurrentView('trainers')} className={currentView === 'trainers' ? 'active' : ''}>מאמנים</button>
+                <button onClick={() => setCurrentView('members')} className={currentView === 'members' ? 'active' : ''}>מתאמנים</button>
+                <button onClick={() => setCurrentView('settings')} className={currentView === 'settings' ? 'active' : ''}>הגדרות</button>
+            </div>
+            
+            <div className="view-content">
+                {renderView()}
+            </div>
         </div>
-        <div className="side-panel">
-            <h3>פעילות אחרונה</h3>
-            {/* <ActivityFeed /> */}
-            <p>[פיד פעילות חיה יופיע כאן]</p>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }
 
 export default ManagerDashboard;

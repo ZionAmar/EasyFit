@@ -1,0 +1,43 @@
+.stat-card-pro {
+    background-color: var(--card-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--card-radius);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.stat-card-pro:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-shadow);
+}
+
+.stat-card-icon {
+    font-size: 2.5rem;
+    background-color: #F4F3EE;
+    color: var(--primary-color);
+    height: 60px;
+    width: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.stat-card-info {
+    text-align: right;
+}
+
+.stat-card-value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--dark-color);
+    line-height: 1;
+}
+
+.stat-card-label {
+    font-size: 1rem;
+    color: #777;
+}

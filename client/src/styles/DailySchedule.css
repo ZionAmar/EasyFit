@@ -1,0 +1,72 @@
+.daily-schedule-widget {
+    /* background-color: #2a2a3e; */
+    padding: 24px;
+    border-radius: 12px;
+    /* color: #e0e0e0; */
+}
+
+.daily-schedule-widget h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #4a4a6a;
+    padding-bottom: 10px;
+}
+
+.schedule-header, .schedule-row {
+    display: grid;
+    grid-template-columns: 1fr 2.5fr 1.5fr 1fr 1.5fr 0.5fr;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 0;
+    font-size: 0.9rem;
+}
+
+.schedule-header {
+    font-weight: bold;
+    color: #a9a9d0;
+    border-bottom: 1px solid #4a4a6a;
+    text-align: right;
+}
+
+.schedule-row {
+    border-bottom: 1px solid #3a3a5a;
+}
+
+.schedule-row:last-child {
+    border-bottom: none;
+}
+
+.schedule-row .time {
+    font-weight: 500;
+}
+
+.schedule-row .session-name {
+    font-weight: bold;
+    color: #fff;
+}
+
+.occupancy-bar {
+    background-color: #4a4a6a;
+    border-radius: 4px;
+    height: 8px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.occupancy-fill {
+    background-color: #a78bfa;
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.occupancy-text {
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 20px;
+    color: #a9a9d0;
+}

@@ -7,5 +7,6 @@ router.use('/users', require('./users_R'));
 router.use('/meetings', require('./meetings_R'));
 router.use('/rooms', require('./room_R'));
 router.use('/participants', require('./participant_R')); // <-- שינוי כאן
+router.use('/studio', require('./studio_R'));
 
 module.exports = router;
