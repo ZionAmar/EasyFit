@@ -89,9 +89,48 @@ const markTrainerArrival = async (meetingId, user) => {
     return { message: 'Trainer arrival marked successfully' };
 };
 
+const getMeetingDetails = async (meetingId) => {
+    const [[meeting]] = await meetingModel.getByIdWithParticipants(meetingId);
+    if (!meeting) throw new Error('Meeting not found');
+
+    // הקוד המעודכן שיודע לקרוא את התוצאה החדשה
+    if (meeting.participantIds && typeof meeting.participantIds === 'string') {
+        // הופך מחרוזת כמו "1,5,12" למערך של מספרים [1, 5, 12]
+        meeting.participantIds = meeting.participantIds.split(',').map(Number);
+    } else {
+        // אם אין משתתפים, יוצר מערך ריק
+        meeting.participantIds = [];
+    }
+    return meeting;
+};
+
+const updateMeeting = async (meetingId, data, user) => {
+    // הפרדת המידע: פרטי השיעור ורשימת המשתתפים
+    const { participantIds, ...meetingData } = data;
+    meetingData.studio_id = user.studioId;
+    
+    // בדיקת חפיפה (בדומה ליצירת שיעור, אך יש לוודא שהבדיקה לא כוללת את השיעור הנוכחי)
+    const [overlapping] = await meetingModel.findOverlappingMeeting(meetingData);
+    if (overlapping.length > 0 && overlapping[0].id != meetingId) {
+        throw new Error('The room is already booked for the requested time.');
+    }
+
+    await meetingModel.update(meetingId, meetingData, participantIds);
+    return getMeetingDetails(meetingId); // החזרת המידע המעודכן
+};
+
+const deleteMeeting = async (meetingId, user) => {
+    // ניתן להוסיף כאן בדיקת הרשאות אם נדרש (למשל, לוודא שהשיעור שייך לסטודיו של המנהל)
+    await meetingModel.remove(meetingId);
+    return { message: 'Meeting deleted successfully' };
+};
+
 module.exports = {
     getMeetingsForDashboard,
     getPublicSchedule,
     createMeeting,
-    markTrainerArrival
+    markTrainerArrival,
+    getMeetingDetails,
+    updateMeeting,
+    deleteMeeting
 };

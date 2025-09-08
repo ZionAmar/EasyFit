@@ -2,8 +2,8 @@
 
 const db = require('../config/db_config');
 
-const getAll = () => {
-    const query = `
+const getAll = ({ role, studioId }) => {
+    let query = `
         SELECT 
             u.id, u.full_name, u.email, u.userName, u.phone,
             GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)) as roles
@@ -11,9 +11,29 @@ const getAll = () => {
         LEFT JOIN user_roles ur ON u.id = ur.user_id
         LEFT JOIN roles r ON ur.role_id = r.id
         LEFT JOIN studios s ON ur.studio_id = s.id
-        GROUP BY u.id
     `;
-    return db.query(query);
+    const params = [];
+
+    // הוספת תנאים דינמיים לשאילתה
+    const whereClauses = [];
+    if (studioId) {
+        // ודא שהמשתמש משויך לסטודיו הספציפי
+        whereClauses.push(`u.id IN (SELECT user_id FROM user_roles WHERE studio_id = ?)`);
+        params.push(studioId);
+    }
+    if (role) {
+        // ודא שיש למשתמש את התפקיד המבוקש בסטודיו הספציפי
+        whereClauses.push(`u.id IN (SELECT user_id FROM user_roles ur_filter JOIN roles r_filter ON ur_filter.role_id = r_filter.id WHERE ur_filter.studio_id = ? AND r_filter.name = ?)`);
+        params.push(studioId, role);
+    }
+
+    if (whereClauses.length > 0) {
+        query += ` WHERE ${whereClauses.join(' AND ')}`;
+    }
+
+    query += ' GROUP BY u.id';
+    
+    return db.query(query, params);
 };
 
 const getById = (id) => {
@@ -116,6 +136,32 @@ const remove = (id) => {
     return db.query('DELETE FROM users WHERE id = ?', [id]);
 };
 
+const findAvailableTrainers = ({ studioId, date, start_time, end_time, excludeMeetingId }) => {
+    let query = `
+        SELECT u.id, u.full_name
+        FROM users u
+        JOIN user_roles ur ON u.id = ur.user_id
+        JOIN roles r ON ur.role_id = r.id
+        WHERE ur.studio_id = ? AND r.name = 'trainer'
+        AND u.id NOT IN (
+            SELECT trainer_id FROM meetings
+            WHERE date = ? 
+            AND start_time < ? 
+            AND end_time > ?
+    `;
+    const params = [studioId, date, end_time, start_time];
+
+    // In edit mode, we want to ignore the current meeting in the conflict check
+    if (excludeMeetingId) {
+        query += ` AND id != ?`;
+        params.push(excludeMeetingId);
+    }
+
+    query += `)`; // Close the subquery
+    
+    return db.query(query, params);
+};
+
 module.exports = {
     getAll,
     getById,
@@ -125,4 +171,5 @@ module.exports = {
     create,
     update,
     remove,
+    findAvailableTrainers 
 };

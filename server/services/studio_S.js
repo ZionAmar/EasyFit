@@ -29,8 +29,32 @@ const getTodaysSchedule = async (studioId) => {
     return studioModel.getTodaysScheduleByStudio(studioId);
 };
 
+const getFullSettings = async (studioId) => {
+    // נשתמש ב-Promise.all כדי לבצע את שתי הקריאות למסד הנתונים במקביל
+    const [details, hours] = await Promise.all([
+        studioModel.getDetailsById(studioId),
+        studioModel.getOperatingHours(studioId)
+    ]);
+
+    if (!details) {
+        const error = new Error("Studio not found.");
+        error.status = 404;
+        throw error;
+    }
+
+    return { details, hours };
+};
+
+const updateFullSettings = async (studioId, data) => {
+    const { details, hours } = data;
+    // כאן הקריאה לפונקציית המודל תבצע טרנזקציה כדי להבטיח אטומיות
+    return studioModel.updateSettings(studioId, details, hours);
+};
+
 module.exports = {
     getManagerDashboardDetails,
     getDashboardStats,
-    getTodaysSchedule // <- הוספה לייצוא
+    getTodaysSchedule, // <- הוספה לייצוא
+    getFullSettings,     // <-- הוספה לייצוא
+    updateFullSettings   // <-- הוספה לייצוא
 };

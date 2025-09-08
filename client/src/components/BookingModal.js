@@ -1,32 +1,20 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api'; // <--- שינוי 1: נוסף ייבוא לשירות ה-API
 
 function BookingModal({ event, onClose }) {
     const { user, activeRole } = useAuth();
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // ###  השינוי מתחיל כאן ###
-    // 1. נוסיף משתנה שבודק אם האירוע כבר התרחש
     const isEventInPast = event.start < new Date();
 
     const handleRegister = async () => {
         setError('');
         setIsSubmitting(true);
         try {
-            // ב-fetch זה, מומלץ להשתמש ב-api service כמו שעשינו בקומפוננטות אחרות
-            // כדי להבטיח שהבקשה תהיה מאומתת
-            const response = await fetch('/api/participants', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ meetingId: event.id })
-            });
-            
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'שגיאה בהרשמה');
-            }
+            // <--- שינוי 2: קריאת ה-fetch הוחלפה בקריאה לשירות ה-api
+            await api.post('/api/participants', { meetingId: event.id });
             
             alert(`נרשמת בהצלחה לשיעור: ${event.title}`);
             onClose(); // סגור את המודאל ורענן את היומן אם צריך
@@ -50,7 +38,6 @@ function BookingModal({ event, onClose }) {
                 
                 {error && <p className="error">{error}</p>}
 
-                {/* 2. נעדכן את הלוגיקה שתבדוק קודם כל אם השיעור עבר */}
                 {isEventInPast ? (
                     <p><strong>שיעור כבר התקיים.</strong></p>
                 ) : user && activeRole === 'member' && !event.isMyEvent ? (

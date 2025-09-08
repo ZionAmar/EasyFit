@@ -63,8 +63,55 @@ const getTodaysScheduleByStudio = async (studioId) => {
     return schedule;
 };
 
+const getDetailsById = async (studioId) => {
+    const [[details]] = await db.query('SELECT id, name, address, phone_number, image_url, tagline FROM studios WHERE id = ?', [studioId]);
+    return details;
+};
+
+const getOperatingHours = async (studioId) => {
+    const [hours] = await db.query('SELECT day_of_week, open_time, close_time FROM studio_operating_hours WHERE studio_id = ? ORDER BY day_of_week', [studioId]);
+    return hours;
+};
+
+const updateSettings = async (studioId, details, hours) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. עדכון פרטי הסטודיו הראשיים
+        await connection.query(
+            'UPDATE studios SET name = ?, address = ?, phone_number = ?, tagline = ? WHERE id = ?',
+            [details.name, details.address, details.phone_number, details.tagline, studioId]
+        );
+
+        // 2. מחיקת כל שעות הפעילות הישנות של הסטודיו
+        await connection.query('DELETE FROM studio_operating_hours WHERE studio_id = ?', [studioId]);
+
+        // 3. הכנסת שעות הפעילות המעודכנות
+        if (hours && hours.length > 0) {
+            const hoursValues = hours.map(h => [studioId, h.day_of_week, h.open_time, h.close_time]);
+            await connection.query(
+                'INSERT INTO studio_operating_hours (studio_id, day_of_week, open_time, close_time) VALUES ?',
+                [hoursValues]
+            );
+        }
+
+        await connection.commit();
+        return { success: true };
+    } catch (err) {
+        await connection.rollback();
+        console.error("Transaction failed in updateSettings:", err);
+        throw err; // זרוק את השגיאה הלאה כדי שהשירות יתפוס אותה
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     getStudioByManagerId,
     getDashboardStats,
-    getTodaysScheduleByStudio // <- הוספה לייצוא
+    getTodaysScheduleByStudio, // <- הוספה לייצוא
+    getDetailsById,
+    getOperatingHours,
+    updateSettings
 };

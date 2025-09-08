@@ -122,6 +122,84 @@ const markTrainerArrival = (meetingId) => {
     return db.query(query, [meetingId]);
 };
 
+const getByIdWithParticipants = (meetingId) => {
+    const query = `
+        SELECT 
+            m.*, 
+            GROUP_CONCAT(mr.user_id) as participantIds
+        FROM meetings m
+        LEFT JOIN meeting_registrations mr ON m.id = mr.meeting_id AND mr.status = 'active'
+        WHERE m.id = ?
+        GROUP BY m.id
+    `;
+    return db.query(query, [meetingId]);
+};
+
+// פונקציית עדכון מורכבת עם טרנזקציה
+const update = async (meetingId, meetingData, participantIds) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. עדכון פרטי השיעור הראשיים
+        const { name, trainer_id, date, start_time, end_time, room_id } = meetingData;
+        await connection.query(
+            `UPDATE meetings SET name=?, trainer_id=?, date=?, start_time=?, end_time=?, room_id=? WHERE id=?`,
+            [name, trainer_id, date, start_time, end_time, room_id, meetingId]
+        );
+
+        // 2. סנכרון רשימת המשתתפים: מחיקת כל הישנים והוספת החדשים
+        await connection.query(`DELETE FROM meeting_registrations WHERE meeting_id = ?`, [meetingId]);
+
+        if (participantIds && participantIds.length > 0) {
+            const registrations = participantIds.map(userId => [meetingId, userId, 'active']);
+            await connection.query(
+                `INSERT INTO meeting_registrations (meeting_id, user_id, status) VALUES ?`,
+                [registrations]
+            );
+        }
+
+        await connection.commit();
+        
+        // 3. עדכון ספירת המשתתפים בטבלת השיעורים לאחר הסנכרון
+        await syncParticipantCount(meetingId);
+
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+};
+
+// פונקציה למחיקת שיעור (דורש טרנזקציה)
+const remove = async (meetingId) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        // קודם מוחקים את הרישומים, ואז את השיעור עצמו
+        await connection.query(`DELETE FROM meeting_registrations WHERE meeting_id = ?`, [meetingId]);
+        await connection.query(`DELETE FROM meetings WHERE id = ?`, [meetingId]);
+        await connection.commit();
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+};
+
+// פונקציית עזר לסנכרון ספירת המשתתפים
+const syncParticipantCount = (meetingId) => {
+    const query = `
+        UPDATE meetings m SET m.participant_count = (
+            SELECT COUNT(*) FROM meeting_registrations mr 
+            WHERE mr.meeting_id = ? AND mr.status = 'active'
+        ) WHERE m.id = ?
+    `;
+    return db.query(query, [meetingId, meetingId]);
+};
+
 module.exports = {
     getAllByStudioId,
     getByTrainerId,
@@ -132,5 +210,9 @@ module.exports = {
     findOverlappingMeeting,
     create,
     getById, 
-    markTrainerArrival
+    markTrainerArrival,
+    syncParticipantCount, // חשוב לייצא את פונקציית העזר
+    getByIdWithParticipants,
+    update,
+    remove
 };

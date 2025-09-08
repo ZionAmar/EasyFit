@@ -1,0 +1,52 @@
+/* קובץ: src/styles/TrainersView.css */
+.trainers-view-container {
+    width: 100%;
+}
+
+.view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.view-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.trainers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+.trainer-card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+}
+
+.trainer-card h4 {
+    margin: 0 0 0.5rem 0;
+}
+
+.trainer-card p {
+    margin: 0.2rem 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.edit-btn {
+    margin-top: 1rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    align-self: flex-start; /* כפתור קטן בצד */
+    transition: background-color 0.2s;
+}

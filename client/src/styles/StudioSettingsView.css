@@ -1,0 +1,165 @@
+.settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 1rem;
+    flex-wrap: wrap; /* Allows button to wrap on very small screens */
+    gap: 1rem;
+}
+
+.form-header h2 {
+    margin: 0;
+}
+
+/* --- Mobile First Styles (Default) --- */
+
+.settings-grid-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.form-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-section h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+}
+
+.form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem; 
+}
+
+.settings-form label {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #444;
+}
+
+.settings-form input {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.settings-form input:focus {
+    outline: none;
+    border-color: var(--primary-color, #007bff);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.day-hours-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 1rem 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+.day-hours-row:last-child {
+    border-bottom: none;
+}
+
+.day-name {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.time-inputs-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.time-input-pair {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mobile-only-label {
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.desktop-only-dash {
+    display: none;
+}
+
+/* --- Desktop Styles (992px and up) --- */
+@media (min-width: 992px) {
+    .settings-grid-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+    }
+
+    .day-hours-row {
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        align-items: center;
+        gap: 1rem;
+        padding: 8px 0;
+    }
+    
+    .day-name {
+        margin-bottom: 0;
+    }
+
+    .time-inputs-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .time-input-pair {
+        flex: 1;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .mobile-only-label {
+        display: none;
+    }
+
+    .desktop-only-dash {
+        display: block;
+        text-align: center;
+        font-weight: bold;
+        color: #888;
+    }
+}
+
+.form-footer {
+    padding-top: 1rem;
+    border-top: 1px solid #f0f0f0;
+    min-height: 40px;
+}
+
+.success, .error {
+    text-align: center;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.success { color: #28a745; background-color: #e9f7ef; }
+.error { color: #dc3545; background-color: #fceeee; }

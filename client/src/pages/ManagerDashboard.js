@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // ודא שהייבוא הזה קיים
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import DailySchedule from '../components/DailySchedule';
 import StatCard from '../components/StatCard';
+import StudioSettingsView from '../components/StudioSettingsView';
+import TrainersView from '../components/TrainersView';
+import MembersView from '../components/MembersView'; // <-- 1. Import the new MembersView component
 import '../styles/ManagerDashboard.css';
 
-// --- רכיבי תצוגה פנימיים ---
+// --- Internal View Components ---
 const OverviewView = ({ stats }) => (
     <div className="dashboard-grid-pro">
         <main className="main-panel-pro">
@@ -25,13 +28,10 @@ const OverviewView = ({ stats }) => (
     </div>
 );
 
-const TrainersView = () => <div className="card-pro placeholder-view"><h2>ניהול מאמנים</h2></div>;
-const MembersView = () => <div className="card-pro placeholder-view"><h2>ניהול מתאמנים</h2></div>;
-const StudioSettingsView = () => <div className="card-pro placeholder-view"><h2>הגדרות</h2></div>;
-
+// 2. Remove the placeholder for MembersView
+// const MembersView = () => <div className="card-pro placeholder-view"><h2>ניהול מתאמנים</h2></div>;
 
 function ManagerDashboard() {
-    // <<< התיקון כאן: הוספת הגדרת ה-navigate >>>
     const navigate = useNavigate();
     
     const [currentView, setCurrentView] = useState('overview'); 
@@ -59,18 +59,18 @@ function ManagerDashboard() {
     }, []);
 
     const renderView = () => {
-        if (!stats) return null;
+        if (!basicData) return null; 
         switch (currentView) {
             case 'trainers': return <TrainersView />;
-            case 'members': return <MembersView />;
-            case 'settings': return <StudioSettingsView />;
+            case 'members': return <MembersView />; // This now renders the real component
+            case 'settings': return <StudioSettingsView initialDetails={basicData.studio} />;
             case 'overview': default: return <OverviewView stats={stats} />;
         }
     };
 
     if (isLoading) return <div className="loading">טוען את מרכז הבקרה...</div>;
     if (error) return <div className="error-state">{error}</div>;
-    if (!basicData) return <div>לא נמצא מידע בסיסי.</div>;
+    if (!basicData) return <h2>לא נמצא מידע סטודיו.</h2>;
 
     const { studio, user } = basicData;
 

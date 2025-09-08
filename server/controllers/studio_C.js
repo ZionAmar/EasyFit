@@ -30,8 +30,28 @@ const getTodaysSchedule = async (req, res, next) => {
     }
 };
 
+const getStudioSettings = async (req, res, next) => {
+    try {
+        const settings = await studioService.getFullSettings(req.user.studioId);
+        res.json(settings);
+    } catch (err) {
+        next(err);
+    }
+};
+
+const updateStudioSettings = async (req, res, next) => {
+    try {
+        const result = await studioService.updateFullSettings(req.user.studioId, req.body);
+        res.json({ message: 'הגדרות הסטודיו עודכנו בהצלחה', data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
     getDashboard,
     getStats,
-    getTodaysSchedule // <- הוספה לייצוא
+    getTodaysSchedule, // <- הוספה לייצוא
+    getStudioSettings,      // <-- הוספה לייצוא
+    updateStudioSettings    // <-- הוספה לייצוא
 };

@@ -1,0 +1,39 @@
+.multiselect-container {
+    position: relative;
+    width: 100%;
+}
+.multiselect-display {
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.multiselect-options {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    margin-top: 4px;
+}
+.multiselect-option {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    cursor: pointer;
+}
+.multiselect-option:hover {
+    background-color: #f0f0f0;
+}
+.multiselect-option input {
+    margin-right: 10px;
+}

@@ -1,20 +1,21 @@
+// קובץ: server/routes/meeting_R.js (מעודכן)
 const express = require('express');
 const router = express.Router();
 const meetingController = require('../controllers/meeting_C');
 const { isLoggedIn, requireRole } = require('../middlewares/auth_Midd');
 
-// נתיב ציבורי לקבלת לו"ז, דורש studioId ב-query params
-// דוגמה: /api/meetings/public?studioId=1
+// --- נתיבים קיימים ---
 router.get('/public', meetingController.getPublicSchedule);
-
-// נתיב מאובטח לקבלת לוחות זמנים למשתמש מחובר (מתאמן, מאמן או מנהל)
-// הלוגיקה בקונטרולר ובסרוויס תנתב את הבקשה לפי תפקיד המשתמש
 router.get('/', isLoggedIn, meetingController.getMeetings);
-
-// נתיב ליצירת שיעור, דורש הרשאת מנהל
 router.post('/', isLoggedIn, requireRole('admin'), meetingController.createMeeting);
-
-// נתיב לעדכון הגעת מאמן, דורש הרשאת מאמן או מנהל
 router.patch('/:id/arrive', isLoggedIn, requireRole('trainer', 'admin'), meetingController.markTrainerArrival);
+
+// --- נתיבים חדשים לניהול מלא ---
+// קבלת שיעור בודד עם כל הפרטים (כולל משתתפים)
+router.get('/:id', isLoggedIn, requireRole('admin'), meetingController.getMeetingById);
+// עדכון שיעור קיים
+router.put('/:id', isLoggedIn, requireRole('admin'), meetingController.updateMeeting);
+// מחיקת שיעור
+router.delete('/:id', isLoggedIn, requireRole('admin'), meetingController.deleteMeeting);
 
 module.exports = router;

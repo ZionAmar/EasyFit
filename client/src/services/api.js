@@ -1,5 +1,3 @@
-// קובץ: src/services/api.js
-
 let STUDIO_ID = localStorage.getItem('activeStudioId') || null;
 
 const setStudioId = (studioId) => {
@@ -16,7 +14,10 @@ const customFetch = async (url, options = {}) => {
     if (STUDIO_ID) {
         headers.set('x-studio-id', STUDIO_ID);
     }
-    headers.set('Content-Type', 'application/json');
+    // Only set Content-Type for methods that typically have a body
+    if (options.body) {
+        headers.set('Content-Type', 'application/json');
+    }
 
     const updatedOptions = { ...options, headers, credentials: 'include' };
 
@@ -27,7 +28,7 @@ const customFetch = async (url, options = {}) => {
         throw new Error(errorData.message || 'An API error occurred');
     }
     
-    if (response.status === 204) return null;
+    if (response.status === 204) return null; // No Content
     return response.json();
 };
 
@@ -35,5 +36,7 @@ export default {
     setStudioId,
     get: (url, options) => customFetch(url, { ...options, method: 'GET' }),
     post: (url, body, options) => customFetch(url, { ...options, method: 'POST', body: JSON.stringify(body) }),
+    put: (url, body, options) => customFetch(url, { ...options, method: 'PUT', body: JSON.stringify(body) }),       // <-- Added
     patch: (url, body, options) => customFetch(url, { ...options, method: 'PATCH', body: JSON.stringify(body) }),
+    delete: (url, options) => customFetch(url, { ...options, method: 'DELETE' }),                                    // <-- Added
 };
