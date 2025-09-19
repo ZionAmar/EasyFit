@@ -44,12 +44,18 @@ const verifyUserFromId = async (userId) => {
     };
 };
 
+// עדכן את פונקציית ה-register
 const register = async (userData) => {
     const { userName, pass, full_name, email, phone, studioId } = userData;
     if (!studioId) throw new Error("לא ניתן להירשם ללא שיוך לסטודיו.");
     
-    const existing = await userModel.getByUserName(userName);
-    if (existing) throw new Error("שם משתמש כבר קיים במערכת");
+    // בדיקה 1: האם שם המשתמש תפוס? (כבר קיים)
+    const existingUser = await userModel.getByUserName(userName);
+    if (existingUser) throw new Error("שם משתמש כבר קיים במערכת");
+
+    // בדיקה 2 (חדש): האם האימייל תפוס?
+    const existingEmail = await userModel.getByEmail(email);
+    if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
 
     const password_hash = encWithSalt(pass);
     const roles = ['member'];

@@ -1,13 +1,12 @@
-const userModel = require('../models/user_M'); // <-- תוסיף את השורה הזאת
+const userModel = require('../models/user_M');
 const userService = require('../services/user_S');
 
 async function getAllUsers(req, res, next) {
   try {
-    // קבל את הסינון מה-query ואת הסטודיו מהמשתמש המאומת
     const { role } = req.query;
     const { studioId } = req.user;
 
-    const [users] = await userModel.getAll({ role, studioId });
+    const users = await userService.getAll({ role, studioId });
     res.json(users);
   } catch (err) {
     next(err);
@@ -25,7 +24,9 @@ async function getUserById(req, res, next) {
 
 async function createUser(req, res, next) {
   try {
-    const user = await userService.create(req.body);
+    // התיקון כאן: הוספת ה-studioId למידע שנשלח
+    const userData = { ...req.body, studioId: req.user.studioId };
+    const user = await userService.create(userData);
     res.status(201).json(user);
   } catch (err) {
     next(err);
@@ -34,7 +35,9 @@ async function createUser(req, res, next) {
 
 async function updateUser(req, res, next) {
   try {
-    const user = await userService.update(req.params.id, req.body);
+    // נוסיף את ה-studioId מהמנהל המחובר, כדי שעדכון התפקידים יעבוד
+    const userData = { ...req.body, studioId: req.user.studioId };
+    const user = await userService.update(req.params.id, userData);
     res.json(user);
   } catch (err) {
     next(err);

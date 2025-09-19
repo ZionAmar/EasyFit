@@ -1,38 +1,53 @@
-// קובץ: server/services/user_S.js
+const md5 = require('md5');
 const userModel = require('../models/user_M');
+const Salt = process.env.Salt;
 
-async function getAll() {
-  // המודל userModel.getAll() כבר מחזיר את המידע על המשתמשים כולל התפקידים שלהם.
-  // אין צורך לבצע עיבוד נוסף.
-  const [rows] = await userModel.getAll();
+// "מכונת ההצפנה" שלנו
+const encWithSalt = (str) => md5(Salt + str);
+
+async function getAll(filters) {
+  // תיקון קטן: ודא שהפונקציה מקבלת את הפילטרים
+  const [rows] = await userModel.getAll(filters);
   return rows;
 }
 
 async function getById(id) {
-  const [[user]] = await userModel.getById(id); // המודל מחזיר מערך בתוך מערך
+  const [[user]] = await userModel.getById(id);
   if (!user) {
       const error = new Error('User not found');
       error.status = 404;
       throw error;
   }
-  // המודל כבר מחזיר את המשתמש עם רשימת התפקידים שלו.
   return user;
 }
 
 async function create(data) {
-  // פונקציה זו שמורה בעיקר ליצירת משתמשים דרך פאנל ניהול.
-  // הלוגיקה המורכבת יותר של הרשמה נמצאת ב-auth_S.js
-  return userModel.create(data);
+    const { pass, userName, email, ...userData } = data;
+
+    // בדיקה 1: האם שם המשתמש תפוס?
+    const existingUser = await userModel.getByUserName(userName);
+    if (existingUser) throw new Error("שם משתמש כבר קיים במערכת");
+    
+    // בדיקה 2: האם האימייל תפוס?
+    const existingEmail = await userModel.getByEmail(email);
+    if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
+
+    if (!pass) {
+        throw new Error("Password is required for a new user.");
+    }
+
+    const password_hash = encWithSalt(pass);
+    const finalUserData = { ...userData, userName, email, password_hash };
+    
+    return userModel.create(finalUserData);
 }
 
 async function update(id, data) {
-  // קודם כל, נוודא שהמשתמש קיים לפני שמנסים לעדכן אותו
   await getById(id); 
   return userModel.update(id, data);
 }
 
 async function remove(id) {
-  // נוודא שהמשתמש קיים לפני שמנסים למחוק אותו
   await getById(id);
   return userModel.remove(id);
 }

@@ -1,12 +1,10 @@
-// קובץ: models/user_M.js
-
 const db = require('../config/db_config');
 
 const getAll = ({ role, studioId }) => {
     let query = `
         SELECT 
             u.id, u.full_name, u.email, u.userName, u.phone,
-            GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)) as roles
+            CONCAT('[', GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)), ']') as roles
         FROM users u
         LEFT JOIN user_roles ur ON u.id = ur.user_id
         LEFT JOIN roles r ON ur.role_id = r.id
@@ -14,15 +12,12 @@ const getAll = ({ role, studioId }) => {
     `;
     const params = [];
 
-    // הוספת תנאים דינמיים לשאילתה
     const whereClauses = [];
     if (studioId) {
-        // ודא שהמשתמש משויך לסטודיו הספציפי
         whereClauses.push(`u.id IN (SELECT user_id FROM user_roles WHERE studio_id = ?)`);
         params.push(studioId);
     }
     if (role) {
-        // ודא שיש למשתמש את התפקיד המבוקש בסטודיו הספציפי
         whereClauses.push(`u.id IN (SELECT user_id FROM user_roles ur_filter JOIN roles r_filter ON ur_filter.role_id = r_filter.id WHERE ur_filter.studio_id = ? AND r_filter.name = ?)`);
         params.push(studioId, role);
     }
@@ -40,7 +35,7 @@ const getById = (id) => {
     const query = `
         SELECT 
             u.id, u.full_name, u.email, u.userName, u.phone,
-            GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)) as roles
+            CONCAT('[', GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)), ']') as roles
         FROM users u
         LEFT JOIN user_roles ur ON u.id = ur.user_id
         LEFT JOIN roles r ON ur.role_id = r.id
@@ -55,6 +50,12 @@ const getByUserName = (userName) => {
     const query = `SELECT * FROM users WHERE userName = ?`;
     return db.query(query, [userName]).then(([rows]) => rows[0] || null);
 };
+
+const getByEmail = (email) => {
+    const query = `SELECT * FROM users WHERE email = ?`;
+    return db.query(query, [email]).then(([rows]) => rows[0] || null);
+};
+
 
 const findStudiosAndRolesByUserId = (userId) => {
     const query = `
@@ -91,7 +92,7 @@ const create = async ({ full_name, email, userName, password_hash, phone, roles,
 
         if (roles && roles.length > 0 && studioId) {
             const rolesQuery = 'INSERT INTO user_roles (user_id, studio_id, role_id) SELECT ?, ?, r.id FROM roles r WHERE r.name IN (?)';
-            await connection.query(rolesQuery, [userId, studioId, [roles]]);
+            await connection.query(rolesQuery, [userId, studioId, roles]);
         }
         
         await connection.commit();
@@ -118,7 +119,7 @@ const update = async (id, { full_name, email, phone, roles, studioId }) => {
 
             if (roles.length > 0) {
                 const rolesQuery = 'INSERT INTO user_roles (user_id, studio_id, role_id) SELECT ?, ?, r.id FROM roles r WHERE r.name IN (?)';
-                await connection.query(rolesQuery, [id, studioId, [roles]]);
+                await connection.query(rolesQuery, [id, studioId, roles]);
             }
         }
 
@@ -151,13 +152,12 @@ const findAvailableTrainers = ({ studioId, date, start_time, end_time, excludeMe
     `;
     const params = [studioId, date, end_time, start_time];
 
-    // In edit mode, we want to ignore the current meeting in the conflict check
     if (excludeMeetingId) {
         query += ` AND id != ?`;
         params.push(excludeMeetingId);
     }
 
-    query += `)`; // Close the subquery
+    query += `)`;
     
     return db.query(query, params);
 };
@@ -166,6 +166,7 @@ module.exports = {
     getAll,
     getById,
     getByUserName,
+    getByEmail,
     findStudiosAndRolesByUserId,
     findRolesByStudio,
     create,

@@ -18,13 +18,10 @@ function ManageSchedulePage() {
     const [selectedTrainer, setSelectedTrainer] = useState('all');
     const [selectedMeeting, setSelectedMeeting] = useState(null);
     const [modalInitialData, setModalInitialData] = useState(null);
-    
     const [operatingHours, setOperatingHours] = useState([]);
     const [businessHours, setBusinessHours] = useState([]);
-
-    // --- Renamed state variables for correctness ---
-    const [slotMinTime, setSlotMinTime] = useState('00:00:00');
-    const [slotMaxTime, setSlotMaxTime] = useState('24:00:00');
+    const [viewMinTime, setViewMinTime] = useState('00:00:00');
+    const [viewMaxTime, setViewMaxTime] = useState('24:00:00');
 
     const fetchEvents = async () => {
         try {
@@ -55,7 +52,7 @@ function ManageSchedulePage() {
                     setOperatingHours(activeHours); 
 
                     const calendarHours = activeHours.map(h => ({
-                        daysOfWeek: [h.day_of_week],
+                        daysOfWeek: [ (h.day_of_week === 0 ? 6 : h.day_of_week - 1) ],
                         startTime: h.open_time,
                         endTime: h.close_time
                     }));
@@ -64,9 +61,8 @@ function ManageSchedulePage() {
                     if (activeHours.length > 0) {
                         const earliest = activeHours.reduce((min, h) => h.open_time < min ? h.open_time : min, '24:00:00');
                         const latest = activeHours.reduce((max, h) => h.close_time > max ? h.close_time : max, '00:00:00');
-                        // --- Set the correct state variables ---
-                        setSlotMinTime(earliest);
-                        setSlotMaxTime(latest);
+                        setViewMinTime(earliest);
+                        setViewMaxTime(latest);
                     }
                 }
             } catch (error) {
@@ -88,6 +84,27 @@ function ManageSchedulePage() {
                 date: arg.dateStr.split('T')[0],
                 start_time: `${hour}:${minute}`
             });
+        }
+    };
+    
+    const handleDatesSet = (dateInfo) => {
+        if (calendarRef.current) {
+            const calendarApi = calendarRef.current.getApi();
+            if (dateInfo.view.type === 'timeGridDay') {
+                const currentDay = dateInfo.view.currentStart.getDay();
+                const dayHours = businessHours.find(bh => bh.daysOfWeek.includes(currentDay));
+                
+                if (dayHours) {
+                    calendarApi.setOption('slotMinTime', dayHours.startTime);
+                    calendarApi.setOption('slotMaxTime', dayHours.endTime);
+                } else {
+                    calendarApi.setOption('slotMinTime', '08:00:00');
+                    calendarApi.setOption('slotMaxTime', '20:00:00');
+                }
+            } else {
+                calendarApi.setOption('slotMinTime', viewMinTime);
+                calendarApi.setOption('slotMaxTime', viewMaxTime);
+            }
         }
     };
 
@@ -129,22 +146,20 @@ function ManageSchedulePage() {
                     center: 'title',
                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                 }}
-                initialView={passedState?.initialView || 'dayGridMonth'}
-                initialDate={passedState?.initialDate || new Date()}
+                initialView={'dayGridMonth'}
                 locale={heLocale}
                 events={filteredEvents}
                 eventClick={handleEventClick}
                 dateClick={handleDateClick}
+                datesSet={handleDatesSet}
                 editable={true}
                 droppable={true}
                 dayMaxEvents={true}
                 height="90vh"
                 businessHours={businessHours}
-                
-                // --- Using the correct prop names ---
-                slotMinTime={slotMinTime}
-                slotMaxTime={slotMaxTime}
                 selectConstraint="businessHours"
+                slotMinTime={viewMinTime}
+                slotMaxTime={viewMaxTime}
             />
 
             {(selectedMeeting || modalInitialData) && (
