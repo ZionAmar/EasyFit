@@ -3,11 +3,9 @@ import React from 'react';
 function UpcomingSessionCard({ session }) {
 
   const handleCancel = () => {
-    // כאן תוסיף לוגיקה עתידית לביטול הרשמה
     alert(`ביטול שיעור ${session.name}`);
   };
 
-  // בדיקה למקרה שה-prop לא הגיע תקין
   if (!session || !session.start) {
     return <p>טוען פרטי שיעור...</p>;
   }
@@ -16,7 +14,6 @@ function UpcomingSessionCard({ session }) {
     <div className="session-card">
       <h4>{session.name}</h4>
       
-      {/* >>> הוספנו את שם המאמן והחדר <<< */}
       <p><strong>מאמן/ה:</strong> {session.trainerName}</p>
       <p><strong>חדר:</strong> {session.roomName}</p>
       <p><strong>תאריך:</strong> {session.start.toLocaleDateString('he-IL')}</p>

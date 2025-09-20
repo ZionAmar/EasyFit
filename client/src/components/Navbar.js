@@ -1,10 +1,8 @@
-// קובץ: components/Navbar.js
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import RoleSwitcher from './RoleSwitcher';
-import StudioSwitcher from './StudioSwitcher'; // <<< ייבוא הרכיב החדש
+import StudioSwitcher from './StudioSwitcher'; 
 import '../styles/Navbar.css';
 
 function Navbar() {
@@ -57,11 +55,9 @@ function Navbar() {
                 <span className="navbar-brand" onClick={() => handleNav('/dashboard')}>EasyFit</span>
             </div>
             <div className="navbar-desktop-right">
-                {/* <<< הוספת ה-StudioSwitcher כאן */}
                 {user ? <StudioSwitcher /> : <span onClick={() => handleNav('/register')}>הרשמה</span>}
             </div>
 
-            {/* --- מבנה תצוגת מובייל --- */}
             <div className="navbar-mobile-brand">
                  <span className="navbar-brand" onClick={() => handleNav('/dashboard')}>EasyFit</span>
             </div>
@@ -71,7 +67,7 @@ function Navbar() {
             <div className={`nav-links-mobile ${menuOpen ? 'open' : ''}`} ref={menuRef}>
                 {user ? (
                     <>
-                        <StudioSwitcher /> {/* <<< הוספת ה-StudioSwitcher גם כאן */}
+                        <StudioSwitcher /> 
                         <RoleSwitcher />
                         <span onClick={handleLogout}>התנתק</span>
                     </>

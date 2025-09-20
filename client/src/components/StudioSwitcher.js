@@ -1,12 +1,9 @@
-// קובץ: components/StudioSwitcher.js
-
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 
 function StudioSwitcher() {
     const { studios, activeStudio, switchStudio } = useAuth();
 
-    // אם למשתמש אין סטודיואים או יש לו רק אחד, אל תציג את התפריט
     if (!studios || studios.length <= 1) {
         return <span className="active-studio-name">{activeStudio?.studio_name}</span>;
     }

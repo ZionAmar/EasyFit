@@ -14,7 +14,6 @@ const customFetch = async (url, options = {}) => {
     if (STUDIO_ID) {
         headers.set('x-studio-id', STUDIO_ID);
     }
-    // Only set Content-Type for methods that typically have a body
     if (options.body) {
         headers.set('Content-Type', 'application/json');
     }
@@ -28,7 +27,7 @@ const customFetch = async (url, options = {}) => {
         throw new Error(errorData.message || 'An API error occurred');
     }
     
-    if (response.status === 204) return null; // No Content
+    if (response.status === 204) return null; 
     return response.json();
 };
 

@@ -1,4 +1,3 @@
-// קובץ: server/controllers/studio_C.js
 const studioService = require('../services/studio_S');
 
 const getDashboard = async (req, res, next) => {
@@ -20,7 +19,6 @@ const getStats = async (req, res, next) => {
     }
 };
 
-// --- פונקציה חדשה ---
 const getTodaysSchedule = async (req, res, next) => {
     try {
         const schedule = await studioService.getTodaysSchedule(req.user.studioId);
@@ -51,7 +49,7 @@ const updateStudioSettings = async (req, res, next) => {
 module.exports = {
     getDashboard,
     getStats,
-    getTodaysSchedule, // <- הוספה לייצוא
-    getStudioSettings,      // <-- הוספה לייצוא
-    updateStudioSettings    // <-- הוספה לייצוא
+    getTodaysSchedule, 
+    getStudioSettings,   
+    updateStudioSettings   
 };

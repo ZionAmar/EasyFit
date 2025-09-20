@@ -14,7 +14,7 @@ async function add(req, res, next) {
 
 async function updateStatus(req, res, next) {
     try {
-        const { participantId } = req.params; // This is the registrationId
+        const { participantId } = req.params; 
         const { status } = req.body;
         
         const result = await participantService.updateStatus(participantId, status, req.user);
@@ -24,7 +24,6 @@ async function updateStatus(req, res, next) {
         if (err.message === 'Unauthorized') {
            return res.status(403).json({ message: 'You are not authorized to perform this action.' });
         }
-        // שלח שגיאות אחרות לטיפול כללי
         next(err);
     }
 }

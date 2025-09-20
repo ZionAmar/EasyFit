@@ -14,7 +14,6 @@ function LoginPage() {
         setError('');
         try {
             const data = await login(userName, pass);
-            // נוודא שהתקבלו פרטי משתמש תקינים לפני הניווט
             if (data && data.userDetails) {
                 navigate('/dashboard');
             } else {

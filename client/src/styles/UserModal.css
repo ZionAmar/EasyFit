@@ -1,0 +1,84 @@
+/* General modal content styling */
+.modal-content {
+    padding: 0; /* Remove default padding for more control */
+    max-width: 500px;
+    width: 90%;
+    background-color: #ffffff; /* Explicitly set background */
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.user-form {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* Grouping for roles checkboxes */
+.roles-checkbox-group {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkbox-item label {
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* --- Danger Zone for destructive actions --- */
+.danger-zone {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    border: 1px solid #f5c6cb;
+    background-color: #f8d7da;
+    border-radius: 8px;
+}
+
+.danger-zone h4 {
+    margin-top: 0;
+    color: #721c24;
+}
+
+.danger-zone p {
+    font-size: 0.9rem;
+    color: #721c24;
+    margin-bottom: 1rem;
+}
+
+/* Actions at the bottom of the modal */
+.modal-actions {
+    display: flex;
+    justify-content: flex-end; /* Align buttons to the right */
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e9ecef;
+    background-color: #f8f9fa;
+    border-radius: 0 0 12px 12px;
+}

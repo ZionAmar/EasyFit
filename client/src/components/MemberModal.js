@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import '../styles/UserModal.css';
 
 function MemberModal({ member, onSave, onClose }) {
     const isEditMode = Boolean(member);
-    // 1. Add 'roles' to the form's state
     const [formData, setFormData] = useState({
         full_name: '', email: '', phone: '', userName: '', pass: '', roles: []
     });
-    // New state to hold all possible roles from the server
     const [allRoles, setAllRoles] = useState([]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        // 2. Fetch all possible roles when the modal opens
         const fetchRoles = async () => {
             try {
                 const rolesData = await api.get('/api/roles');
@@ -25,7 +23,6 @@ function MemberModal({ member, onSave, onClose }) {
         fetchRoles();
 
         if (isEditMode) {
-            // The server sends roles as a JSON string, so we need to parse it
             let rolesNames = [];
             if (member.roles) {
                 try {
@@ -45,12 +42,11 @@ function MemberModal({ member, onSave, onClose }) {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // 3. New handler for checkbox changes
     const handleRoleChange = (roleName) => {
         const currentRoles = formData.roles || [];
         const newRoles = currentRoles.includes(roleName)
-            ? currentRoles.filter(r => r !== roleName) // Remove role
-            : [...currentRoles, roleName]; // Add role
+            ? currentRoles.filter(r => r !== roleName)
+            : [...currentRoles, roleName];
         setFormData({ ...formData, roles: newRoles });
     };
 
@@ -60,10 +56,8 @@ function MemberModal({ member, onSave, onClose }) {
         setError('');
         try {
             if (isEditMode) {
-                // The formData now includes the updated roles array
                 await api.put(`/api/users/${member.id}`, formData);
             } else {
-                // When creating a new user from this modal, their default role is 'member'
                 const payload = { ...formData, roles: ['member'] };
                 await api.post('/api/users', payload);
             }
@@ -75,46 +69,56 @@ function MemberModal({ member, onSave, onClose }) {
         }
     };
 
+    const handleDelete = async () => {
+        if (window.confirm(`האם אתה בטוח שברצונך למחוק את ${formData.full_name}? לא ניתן לבטל פעולה זו.`)) {
+            setIsLoading(true);
+            try {
+                await api.delete(`/api/users/${member.id}`);
+                onSave();
+            } catch (err) {
+                setError(err.message || 'שגיאה במחיקת המתאמן.');
+                setIsLoading(false);
+            }
+        }
+    };
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <button className="modal-close-btn" onClick={onClose}>&times;</button>
-                <h2>{isEditMode ? 'Edit Member Details' : 'Add New Member'}</h2>
-                <form onSubmit={handleSubmit} className="settings-form">
+                <div className="modal-header">
+                    <h2>{isEditMode ? 'עריכת פרטי מתאמן' : 'הוספת מתאמן חדש'}</h2>
+                    <button className="modal-close-btn" onClick={onClose}>&times;</button>
+                </div>
+                
+                <form id="user-form" onSubmit={handleSubmit} className="user-form">
                     <div className="form-field">
-                        <label>Full Name</label>
+                        <label>שם מלא</label>
                         <input name="full_name" value={formData.full_name || ''} onChange={handleChange} required />
                     </div>
                     <div className="form-field">
-                        <label>Username</label>
+                        <label>שם משתמש</label>
                         <input name="userName" value={formData.userName || ''} onChange={handleChange} required disabled={isEditMode}/>
                     </div>
                     <div className="form-field">
-                        <label>Email</label>
+                        <label>אימייל</label>
                         <input type="email" name="email" value={formData.email || ''} onChange={handleChange} required />
                     </div>
                     <div className="form-field">
-                        <label>Phone</label>
+                        <label>טלפון</label>
                         <input name="phone" value={formData.phone || ''} onChange={handleChange} required />
                     </div>
                     <div className="form-field">
-                        <label>{isEditMode ? 'New Password (Optional)' : 'Password'}</label>
+                        <label>{isEditMode ? 'סיסמה חדשה (אופציונלי)' : 'סיסמה'}</label>
                         <input type="password" name="pass" value={formData.pass || ''} onChange={handleChange} required={!isEditMode} />
                     </div>
                     
-                    {/* --- 4. New section for roles (only in edit mode) --- */}
                     {isEditMode && (
                         <div className="form-field">
-                            <label>Roles</label>
+                            <label>תפקידים</label>
                             <div className="roles-checkbox-group">
                                 {allRoles.map(role => (
                                     <div key={role.id} className="checkbox-item">
-                                        <input 
-                                            type="checkbox"
-                                            id={`role-${role.name}-${member.id}`}
-                                            checked={(formData.roles || []).includes(role.name)}
-                                            onChange={() => handleRoleChange(role.name)}
-                                        />
+                                        <input type="checkbox" id={`role-${role.name}-${member.id}`} checked={(formData.roles || []).includes(role.name)} onChange={() => handleRoleChange(role.name)} />
                                         <label htmlFor={`role-${role.name}-${member.id}`}>{role.name}</label>
                                     </div>
                                 ))}
@@ -123,11 +127,23 @@ function MemberModal({ member, onSave, onClose }) {
                     )}
                     
                     {error && <p className="error">{error}</p>}
-
-                    <button type="submit" className="cta-button-pro" disabled={isLoading}>
-                        {isLoading ? 'Saving...' : 'Save'}
-                    </button>
+                    
+                    {isEditMode && (
+                        <div className="danger-zone">
+                            <h4>אזור סכנה</h4>
+                            <p>מחיקת משתמש היא פעולה קבועה. הפעולה תסיר את הפרופיל וכל המידע המשויך אליו.</p>
+                            <button type="button" className="delete-btn" onClick={handleDelete} disabled={isLoading}>
+                                מחק מתאמן
+                            </button>
+                        </div>
+                    )}
                 </form>
+
+                <div className="modal-actions">
+                    <button type="submit" form="user-form" className="cta-button-pro" disabled={isLoading}>
+                        {isLoading ? 'שומר...' : 'שמור שינויים'}
+                    </button>
+                </div>
             </div>
         </div>
     );

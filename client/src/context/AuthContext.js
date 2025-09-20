@@ -15,7 +15,6 @@ export function AuthProvider({ children }) {
         const { userDetails, studios: userStudios } = data;
         setUser(userDetails);
 
-        // שלב חשוב: מקבצים את התפקידים לכל סטודיו למבנה נתונים נוח
         const studiosMap = new Map();
         userStudios.forEach(({ studio_id, studio_name, role_name }) => {
             if (!studiosMap.has(studio_id)) {
@@ -33,8 +32,6 @@ export function AuthProvider({ children }) {
             setActiveStudio(defaultStudio);
             api.setStudioId(defaultStudio.studio_id);
             
-            // קובעים תפקיד ברירת מחדל מהסטודיו הפעיל
-            // נותנים עדיפות לתפקיד בכיר יותר אם קיים
             const preferredRole = ['admin', 'trainer', 'member'].find(r => defaultStudio.roles.includes(r));
             setActiveRole(preferredRole);
         }
@@ -48,7 +45,6 @@ export function AuthProvider({ children }) {
                     setupSession(data);
                 }
             } catch (error) {
-                // User is not logged in, state remains null
             } finally {
                 setIsLoading(false);
             }
@@ -81,7 +77,7 @@ export function AuthProvider({ children }) {
         if (newActiveStudio) {
             setActiveStudio(newActiveStudio);
             api.setStudioId(newActiveStudio.studio_id);
-            window.location.reload(); // The easiest way to refetch all data for the new context
+            window.location.reload();
         }
     };
     

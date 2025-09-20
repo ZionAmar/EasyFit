@@ -1,5 +1,3 @@
-// קובץ: services/auth_S.js
-
 const md5 = require('md5');
 const userModel = require('../models/user_M');
 
@@ -19,13 +17,12 @@ const login = async ({ userName, pass }) => {
             id: user.id,
             full_name: user.full_name,
             email: user.email,
-            userName: user.userName // חשוב להחזיר גם את זה
+            userName: user.userName 
         },
         studios: studiosAndRoles
     };
 };
 
-// --- הפונקציה שהייתה חסרה ---
 const verifyUserFromId = async (userId) => {
     const [[user]] = await userModel.getById(userId);
     if (!user) {
@@ -44,16 +41,13 @@ const verifyUserFromId = async (userId) => {
     };
 };
 
-// עדכן את פונקציית ה-register
 const register = async (userData) => {
     const { userName, pass, full_name, email, phone, studioId } = userData;
     if (!studioId) throw new Error("לא ניתן להירשם ללא שיוך לסטודיו.");
     
-    // בדיקה 1: האם שם המשתמש תפוס? (כבר קיים)
     const existingUser = await userModel.getByUserName(userName);
     if (existingUser) throw new Error("שם משתמש כבר קיים במערכת");
 
-    // בדיקה 2 (חדש): האם האימייל תפוס?
     const existingEmail = await userModel.getByEmail(email);
     if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
 

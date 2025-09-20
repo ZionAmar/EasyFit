@@ -49,7 +49,6 @@ const getByTrainerId = (trainerId, studioId, date) => {
     return db.query(query, params).then(extractRows);
 };
 
-// --- התיקון כאן: הוספת studioId ושימוש בו ---
 const getByMemberId = (memberId, studioId, date) => {
     let query = `
         SELECT 
@@ -135,20 +134,17 @@ const getByIdWithParticipants = (meetingId) => {
     return db.query(query, [meetingId]);
 };
 
-// פונקציית עדכון מורכבת עם טרנזקציה
 const update = async (meetingId, meetingData, participantIds) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
-        // 1. עדכון פרטי השיעור הראשיים
         const { name, trainer_id, date, start_time, end_time, room_id } = meetingData;
         await connection.query(
             `UPDATE meetings SET name=?, trainer_id=?, date=?, start_time=?, end_time=?, room_id=? WHERE id=?`,
             [name, trainer_id, date, start_time, end_time, room_id, meetingId]
         );
 
-        // 2. סנכרון רשימת המשתתפים: מחיקת כל הישנים והוספת החדשים
         await connection.query(`DELETE FROM meeting_registrations WHERE meeting_id = ?`, [meetingId]);
 
         if (participantIds && participantIds.length > 0) {
@@ -161,7 +157,6 @@ const update = async (meetingId, meetingData, participantIds) => {
 
         await connection.commit();
         
-        // 3. עדכון ספירת המשתתפים בטבלת השיעורים לאחר הסנכרון
         await syncParticipantCount(meetingId);
 
     } catch (err) {
@@ -172,12 +167,10 @@ const update = async (meetingId, meetingData, participantIds) => {
     }
 };
 
-// פונקציה למחיקת שיעור (דורש טרנזקציה)
 const remove = async (meetingId) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-        // קודם מוחקים את הרישומים, ואז את השיעור עצמו
         await connection.query(`DELETE FROM meeting_registrations WHERE meeting_id = ?`, [meetingId]);
         await connection.query(`DELETE FROM meetings WHERE id = ?`, [meetingId]);
         await connection.commit();
@@ -189,7 +182,6 @@ const remove = async (meetingId) => {
     }
 };
 
-// פונקציית עזר לסנכרון ספירת המשתתפים
 const syncParticipantCount = (meetingId) => {
     const query = `
         UPDATE meetings m SET m.participant_count = (
@@ -211,7 +203,7 @@ module.exports = {
     create,
     getById, 
     markTrainerArrival,
-    syncParticipantCount, // חשוב לייצא את פונקציית העזר
+    syncParticipantCount, 
     getByIdWithParticipants,
     update,
     remove

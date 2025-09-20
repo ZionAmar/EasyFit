@@ -11,7 +11,6 @@ function PastSessionsList({ sessions }) {
         <li key={session.id}>
           <div>
             <span>{session.name}</span>
-            {/* >>> התיקון כאן <<< */}
             <span style={{fontSize: '0.8rem', color: '#666', display: 'block'}}>
               עם {session.trainerName}
             </span>

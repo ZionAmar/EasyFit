@@ -1,7 +1,5 @@
-// קובץ: middlewares/auth_Midd.js
-
 const jwt = require('jsonwebtoken');
-const userModel = require('../models/user_M'); // ודא שזהו המודל המעודכן
+const userModel = require('../models/user_M');
 const { RateLimiterMemory } = require('rate-limiter-flexible');
 
 const jwtSecret = process.env.jwtSecret;
@@ -23,32 +21,27 @@ const isLoggedIn = async (req, res, next) => {
     }
 
     try {
-        // שלב 1: פענוח הטוקן כדי לקבל את מזהה המשתמש
         const decoded = jwt.verify(token, jwtSecret);
         if (!decoded.id) {
             return res.status(401).json({ message: "Unauthorized: Invalid token payload" });
         }
 
-        // שלב 2: קריאת ה-studioId מה-header של הבקשה
         const studioId = req.headers['x-studio-id'];
         if (!studioId) {
             return res.status(400).json({ message: "Bad Request: Studio ID header (x-studio-id) is missing" });
         }
 
-        // שלב 3: שליפת פרטי המשתמש הבסיסיים (ללא תפקידים)
         const [[user]] = await userModel.getById(decoded.id);
         if (!user) {
             return res.status(401).json({ message: "User not found" });
         }
 
-        // שלב 4: שליפת התפקידים הספציפיים של המשתמש בסטודיו הנבחר
         const [rolesRows] = await userModel.findRolesByStudio(user.id, studioId);
         if (rolesRows.length === 0) {
             return res.status(403).json({ message: "Forbidden: User does not belong to this studio" });
         }
         const roles = rolesRows.map(r => r.name);
 
-        // שלב 5: בניית אובייקט req.user החכם והעברתו הלאה
         req.user = {
             id: user.id,
             full_name: user.full_name,
@@ -60,7 +53,6 @@ const isLoggedIn = async (req, res, next) => {
         next();
     } catch (err) {
         console.error("isLoggedIn middleware error:", err);
-        // מנקים קוקי לא תקין כדי למנוע לולאת שגיאות
         res.clearCookie("jwt");
         return res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
     }

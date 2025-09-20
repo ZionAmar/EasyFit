@@ -73,18 +73,33 @@ function ManageSchedulePage() {
     }, []);
     
     const handleDateClick = (arg) => {
+        if (!calendarRef.current) return;
         const calendarApi = calendarRef.current.getApi();
         const currentView = calendarApi.view.type;
 
         if (currentView === 'dayGridMonth') {
             calendarApi.changeView('timeGridDay', arg.dateStr);
-        } else {
-            const [hour, minute] = arg.date.toTimeString().split(':');
-            setModalInitialData({
-                date: arg.dateStr.split('T')[0],
-                start_time: `${hour}:${minute}`
-            });
+            return;
         }
+        
+        const clickedDate = arg.date;
+        const clickedDay = clickedDate.getDay(); 
+        const hoursForDay = businessHours.find(bh => bh.daysOfWeek.includes(clickedDay));
+
+        if (!hoursForDay) {
+            return;
+        }
+
+        const clickedTime = clickedDate.toTimeString().slice(0, 8);
+        if (clickedTime < hoursForDay.startTime || clickedTime >= hoursForDay.endTime) {
+            return; 
+        }
+
+        const [hour, minute] = clickedDate.toTimeString().split(':');
+        setModalInitialData({
+            date: arg.dateStr.split('T')[0],
+            start_time: `${hour}:${minute}`
+        });
     };
     
     const handleDatesSet = (dateInfo) => {

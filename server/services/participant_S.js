@@ -25,24 +25,20 @@ const addParticipant = async (userId, meetingId) => {
 };
 
 const updateStatus = async (registrationId, newStatus, user) => {
-    // שלב 1: ודא שהרישום קיים
     const [[registration]] = await participantModel.getRegistrationById(registrationId);
     if (!registration) {
         throw new Error('Registration not found');
     }
 
-    // שלב 2: ודא שלמשתמש יש הרשאה לבצע את הפעולה
     const [[meeting]] = await meetingModel.getById(registration.meeting_id);
     if (!meeting) {
         throw new Error('Meeting associated with this registration not found');
     }
 
-    // רק המאמן של השיעור או מנהל יכולים לבצע צ'ק-אין
     if (user.id !== meeting.trainer_id && !user.roles.includes('admin')) {
         throw new Error('Unauthorized');
     }
 
-    // שלב 3: בצע את העדכון
     await participantModel.updateStatus(registrationId, newStatus);
     return { message: `Status for registration ${registrationId} updated successfully to ${newStatus}` };
 };

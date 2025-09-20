@@ -3,7 +3,6 @@ const meetingService = require('../services/meeting_S');
 const getMeetings = async (req, res, next) => {
     try {
         const { date } = req.query;
-        // מעבירים את כל אובייקט המשתמש, שהוכן ע"י המידלוור וכולל סטודיו ותפקידים
         const meetings = await meetingService.getMeetingsForDashboard(req.user, date);
         res.json(meetings);
     } catch (err) {
@@ -67,7 +66,7 @@ const updateMeeting = async (req, res, next) => {
 const deleteMeeting = async (req, res, next) => {
     try {
         await meetingService.deleteMeeting(req.params.id, req.user);
-        res.status(204).send(); // No Content
+        res.status(204).send(); 
     } catch (err) {
         next(err);
     }

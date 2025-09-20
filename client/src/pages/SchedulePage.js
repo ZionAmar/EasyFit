@@ -5,29 +5,25 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import heLocale from '@fullcalendar/core/locales/he';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api'; // <<< 1. ייבוא שירות ה-API
+import api from '../services/api'; 
 import BookingModal from '../components/BookingModal';
 import '../App.css';
 
 function SchedulePage() {
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
-    const { user, activeStudio, activeRole } = useAuth(); // <<< 2. קבלת activeStudio
+    const { user, activeStudio, activeRole } = useAuth(); 
     const navigate = useNavigate();
 
     useEffect(() => {
         const loadEvents = async () => {
             try {
-                // <<< 3. קריאת API אחת פשוטה שמביאה את כל המידע הרלוונטי
-                // השרת יחזיר את כל השיעורים בסטודיו, ויסמן את אלה שהמשתמש רשום אליהם
                 const meetings = await api.get('/api/meetings');
                 
                 if (Array.isArray(meetings)) {
                     const formattedEvents = meetings.map(item => {
-                        // בדיקה אם המשתמש רשום לשיעור (השרת מוסיף 'status' רק לשיעורים הרלוונטיים)
                         const isMyEvent = ['active', 'checked_in'].includes(item.status);
                         
-                        // בתצוגת מאמן, כל השיעורים שלו הם "שלו"
                         const isTrainerEvent = activeRole === 'trainer';
 
                         return {
@@ -39,7 +35,7 @@ function SchedulePage() {
                                 isMyEvent, 
                                 trainerName: item.trainerName, 
                                 roomName: item.roomName,
-                                status: item.status // שמירת הסטטוס לשימוש במודאל
+                                status: item.status 
                             }
                         };
                     });
@@ -47,15 +43,14 @@ function SchedulePage() {
                 }
             } catch (error) {
                 console.error("There was a problem fetching the schedule:", error);
-                setEvents([]); // איפוס במקרה של שגיאה
+                setEvents([]); 
             }
         };
 
-        // <<< 4. הפעלת הפונקציה רק אם יש סטודיו פעיל
         if (activeStudio) {
             loadEvents();
         }
-    }, [user, activeStudio, activeRole]); // הוספת התלויות הנכונות
+    }, [user, activeStudio, activeRole]);
   
     const handleEventClick = (clickInfo) => {
         setSelectedEvent({

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api'; // <<< 1. ייבוא שירות ה-API החדש
+import api from '../services/api';
 import '../styles/HistoryPage.css';
 
 const SessionDetailsModal = ({ session, onClose }) => {
@@ -57,7 +57,7 @@ const HistoryCard = ({ session, onShowDetails }) => {
 };
 
 function TrainerHistoryPage() {
-    const { user, activeStudio } = useAuth(); // <<< 2. קבלת הסטודיו הפעיל
+    const { user, activeStudio } = useAuth();
     const navigate = useNavigate();
     const [pastSessions, setPastSessions] = useState([]);
     const [filteredSessions, setFilteredSessions] = useState([]);
@@ -71,14 +71,13 @@ function TrainerHistoryPage() {
         const fetchHistory = async () => {
             setIsLoading(true);
             try {
-                // <<< 3. שימוש ב-api.get במקום fetch, והסרת ה-query param המיותר
                 const data = await api.get('/api/meetings'); 
                 
                 if (Array.isArray(data)) {
                     const now = new Date();
                     const processed = data
                         .map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }))
-                        .filter(m => m.end < now) // סינון רק לשיעורי עבר
+                        .filter(m => m.end < now) 
                         .sort((a, b) => b.start - a.start);
 
                     setPastSessions(processed);
@@ -89,20 +88,19 @@ function TrainerHistoryPage() {
                 }
             } catch (error) {
                 console.error("Error fetching trainer history:", error);
-                setPastSessions([]); // איפוס במקרה של שגיאה
+                setPastSessions([]); 
                 setFilteredSessions([]);
             } finally {
                 setIsLoading(false);
             }
         };
 
-        // <<< 4. הפעלת הפונקציה רק אם יש משתמש וסטודיו פעיל
         if (user && activeStudio) {
             fetchHistory();
         } else {
             setIsLoading(false);
         }
-    }, [user, activeStudio]); // הוספת activeStudio כתלות
+    }, [user, activeStudio]); 
 
     const handleMonthChange = (e) => {
         const month = e.target.value;

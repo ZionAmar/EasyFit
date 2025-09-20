@@ -62,7 +62,7 @@ function ProfessionalTrainerDashboard() {
     const fetchSchedule = async () => {
         try {
             const data = await api.get('/api/meetings'); 
-            console.log("RAW DATA FROM SERVER:", data); // <<< הוסף את השורה הזאת
+            console.log("RAW DATA FROM SERVER:", data); 
             if (Array.isArray(data)) {
                 const processed = data.map(m => ({
                     ...m,
@@ -90,9 +90,7 @@ function ProfessionalTrainerDashboard() {
 
     const handleCheckIn = async (registrationId) => {
         try {
-            //  ### שינוי 1: שולחים את הסטטוס הנכון לשרת ###
             await api.patch(`/api/participants/${registrationId}/status`, { status: 'checked_in' });
-            //  ### שינוי 2: טוענים מחדש את המידע מהשרת במקום לעדכן מקומית ###
             await fetchSchedule(); 
         } catch (error) {
             console.error('Check-in failed:', error);

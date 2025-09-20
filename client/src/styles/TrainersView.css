@@ -1,4 +1,3 @@
-/* קובץ: src/styles/TrainersView.css */
 .trainers-view-container {
     width: 100%;
 }
@@ -8,11 +7,22 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .view-header h3 {
     margin: 0;
     font-size: 1.2rem;
+}
+
+.search-input {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    width: 300px;
+    max-width: 100%;
+    margin-left: auto;
 }
 
 .trainers-grid {
@@ -39,14 +49,36 @@
     margin: 0.2rem 0;
     color: #666;
     font-size: 0.9rem;
+    word-break: break-all;
+}
+
+.card-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 10px;
 }
 
 .edit-btn {
-    margin-top: 1rem;
     padding: 8px 12px;
     border-radius: 6px;
     border: 1px solid #ddd;
+    /* background: #f9f9f9; */
     cursor: pointer;
-    align-self: flex-start; /* כפתור קטן בצד */
     transition: background-color 0.2s;
+}
+
+
+.delete-btn {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ffb3b3;
+    background: #fffafa;
+    color: #d9534f;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.delete-btn:hover {
+    background-color: #d9534f;
+    color: #fff;
 }

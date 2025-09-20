@@ -24,7 +24,6 @@ async function getUserById(req, res, next) {
 
 async function createUser(req, res, next) {
   try {
-    // התיקון כאן: הוספת ה-studioId למידע שנשלח
     const userData = { ...req.body, studioId: req.user.studioId };
     const user = await userService.create(userData);
     res.status(201).json(user);
@@ -35,7 +34,6 @@ async function createUser(req, res, next) {
 
 async function updateUser(req, res, next) {
   try {
-    // נוסיף את ה-studioId מהמנהל המחובר, כדי שעדכון התפקידים יעבוד
     const userData = { ...req.body, studioId: req.user.studioId };
     const user = await userService.update(req.params.id, userData);
     res.json(user);

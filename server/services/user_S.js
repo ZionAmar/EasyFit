@@ -2,11 +2,9 @@ const md5 = require('md5');
 const userModel = require('../models/user_M');
 const Salt = process.env.Salt;
 
-// "מכונת ההצפנה" שלנו
 const encWithSalt = (str) => md5(Salt + str);
 
 async function getAll(filters) {
-  // תיקון קטן: ודא שהפונקציה מקבלת את הפילטרים
   const [rows] = await userModel.getAll(filters);
   return rows;
 }
@@ -24,11 +22,9 @@ async function getById(id) {
 async function create(data) {
     const { pass, userName, email, ...userData } = data;
 
-    // בדיקה 1: האם שם המשתמש תפוס?
     const existingUser = await userModel.getByUserName(userName);
     if (existingUser) throw new Error("שם משתמש כבר קיים במערכת");
     
-    // בדיקה 2: האם האימייל תפוס?
     const existingEmail = await userModel.getByEmail(email);
     if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
 

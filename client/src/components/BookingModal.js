@@ -13,11 +13,10 @@ function BookingModal({ event, onClose }) {
         setError('');
         setIsSubmitting(true);
         try {
-            // <--- שינוי 2: קריאת ה-fetch הוחלפה בקריאה לשירות ה-api
             await api.post('/api/participants', { meetingId: event.id });
             
             alert(`נרשמת בהצלחה לשיעור: ${event.title}`);
-            onClose(); // סגור את המודאל ורענן את היומן אם צריך
+            onClose();
         } catch (err) {
             setError(err.message);
         } finally {

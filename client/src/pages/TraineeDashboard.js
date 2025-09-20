@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api'; // <<< 1. ייבוא שירות ה-API החדש
+import api from '../services/api'; 
 import '../styles/ProfessionalDashboard.css';
 
-// --- (רכיבי העזר הקטנים נשארים ללא שינוי) ---
 const StatPill = ({ label, value, icon }) => (
     <div className="stat-pill">
         <span className="stat-icon">{icon}</span>
@@ -53,8 +52,6 @@ const SessionDetailsModal = ({ session, isOpen, onClose }) => {
     );
 };
 
-
-// --- רכיב הדשבורד הראשי ---
 function ProfessionalDashboard() {
     const { user, activeStudio } = useAuth();
     const navigate = useNavigate();

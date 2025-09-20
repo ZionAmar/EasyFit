@@ -16,16 +16,12 @@ const add = (userId, meetingId, status) => {
     return db.query(query, [userId, meetingId, status]);
 };
 
-// החלף את פונקציית updateStatus בזו:
 const updateStatus = (participantId, status) => {
-    // בגישה החדשה, אנחנו מתעלמים מהסטטוס שנשלח מהלקוח
-    // ומעדכנים רק את שדה הזמן עבור הרישום הספציפי.
     const query = `
         UPDATE meeting_registrations 
         SET check_in_time = NOW() 
         WHERE id = ? AND check_in_time IS NULL
     `;
-    // אנחנו שולחים רק את מזהה הרישום
     return db.query(query, [participantId]);
 };
 

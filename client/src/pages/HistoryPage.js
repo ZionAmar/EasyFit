@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api'; // <<< שינוי 1: ייבוא שירות ה-API
+import api from '../services/api'; 
 import '../styles/HistoryPage.css';
 
-// --- רכיב עזר חדש: מודאל פרטי שיעור ---
 const SessionDetailsModal = ({ session, onClose }) => {
     if (!session) return null;
 
@@ -31,7 +30,6 @@ const SessionDetailsModal = ({ session, onClose }) => {
     );
 };
 
-// --- רכיב עזר: כרטיסיית שיעור בהיסטוריה ---
 const HistoryCard = ({ session, onShowDetails }) => {
     const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
 
@@ -60,7 +58,6 @@ const HistoryCard = ({ session, onShowDetails }) => {
     );
 };
 
-// --- רכיב הדף הראשי ---
 function HistoryPage() {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -76,7 +73,6 @@ function HistoryPage() {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                // <<< שינוי 2: החלפת קריאת ה-fetch בקריאה דרך שירות ה-api
                 const data = await api.get('/api/meetings');
 
                 if (Array.isArray(data)) {

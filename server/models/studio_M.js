@@ -1,4 +1,3 @@
-// קובץ: server/models/studio_M.js
 const db = require('../config/db_config');
 
 const getStudioByManagerId = async (managerId) => {
@@ -41,7 +40,6 @@ const getDashboardStats = async (studioId) => {
     return stats;
 };
 
-// --- פונקציה חדשה ---
 const getTodaysScheduleByStudio = async (studioId) => {
     const query = `
         SELECT 
@@ -78,16 +76,13 @@ const updateSettings = async (studioId, details, hours) => {
     try {
         await connection.beginTransaction();
 
-        // 1. עדכון פרטי הסטודיו הראשיים
         await connection.query(
             'UPDATE studios SET name = ?, address = ?, phone_number = ?, tagline = ? WHERE id = ?',
             [details.name, details.address, details.phone_number, details.tagline, studioId]
         );
 
-        // 2. מחיקת כל שעות הפעילות הישנות של הסטודיו
         await connection.query('DELETE FROM studio_operating_hours WHERE studio_id = ?', [studioId]);
 
-        // 3. הכנסת שעות הפעילות המעודכנות
         if (hours && hours.length > 0) {
             const hoursValues = hours.map(h => [studioId, h.day_of_week, h.open_time, h.close_time]);
             await connection.query(
@@ -101,7 +96,7 @@ const updateSettings = async (studioId, details, hours) => {
     } catch (err) {
         await connection.rollback();
         console.error("Transaction failed in updateSettings:", err);
-        throw err; // זרוק את השגיאה הלאה כדי שהשירות יתפוס אותה
+        throw err; 
     } finally {
         connection.release();
     }
@@ -110,7 +105,7 @@ const updateSettings = async (studioId, details, hours) => {
 module.exports = {
     getStudioByManagerId,
     getDashboardStats,
-    getTodaysScheduleByStudio, // <- הוספה לייצוא
+    getTodaysScheduleByStudio, 
     getDetailsById,
     getOperatingHours,
     updateSettings

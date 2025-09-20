@@ -1,4 +1,3 @@
-// קובץ: server/controllers/room_C.js (מעודכן)
 const roomModel = require('../models/room_M');
 
 async function getAllRooms(req, res, next) {
@@ -10,7 +9,6 @@ async function getAllRooms(req, res, next) {
     }
 }
 
-// --- פונקציה חדשה ---
 async function getAvailableRooms(req, res, next) {
     try {
         const { studioId } = req.user;
@@ -27,5 +25,5 @@ async function getAvailableRooms(req, res, next) {
 
 module.exports = {
     getAllRooms,
-    getAvailableRooms // <-- הוספה לייצוא
+    getAvailableRooms 
 };

@@ -1,8 +1,7 @@
-// קובץ: src/components/TrainersView.js
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import TrainerModal from './TrainerModal';
-import '../styles/TrainersView.css'; // ניצור קובץ עיצוב פשוט
+import '../styles/TrainersView.css';
 
 function TrainersView() {
     const [trainers, setTrainers] = useState([]);
@@ -10,6 +9,8 @@ function TrainersView() {
     const [error, setError] = useState('');
     const [editingTrainer, setEditingTrainer] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    
+    const [searchTerm, setSearchTerm] = useState('');
 
     const fetchTrainers = async () => {
         setIsLoading(true);
@@ -28,11 +29,26 @@ function TrainersView() {
     }, []);
     
     const handleSave = () => {
-        // סגור את כל המודאלים וטען מחדש את הרשימה
         setEditingTrainer(null);
         setIsAddModalOpen(false);
         fetchTrainers();
     };
+
+    const handleDelete = async (trainerId, trainerName) => {
+        if (window.confirm(`האם אתה בטוח שברצונך למחוק את ${trainerName}?`)) {
+            try {
+                await api.delete(`/api/users/${trainerId}`);
+                fetchTrainers();
+            } catch (err) {
+                setError(err.message || 'שגיאה במחיקת המאמן.');
+            }
+        }
+    };
+
+    const filteredTrainers = trainers.filter(trainer => 
+        trainer.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        trainer.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     if (isLoading) return <div className="loading">טוען מאמנים...</div>;
     if (error) return <div className="error-state">{error}</div>;
@@ -41,20 +57,32 @@ function TrainersView() {
         <div className="trainers-view-container">
             <div className="view-header">
                 <h3>צוות המאמנים</h3>
+                <input 
+                    type="text"
+                    placeholder="חפש לפי שם או אימייל..."
+                    className="search-input"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
                 <button className="cta-button-pro" onClick={() => setIsAddModalOpen(true)}>
                     + הוסף מאמן
                 </button>
             </div>
             
             <div className="trainers-grid">
-                {trainers.map(trainer => (
+                {filteredTrainers.map(trainer => (
                     <div key={trainer.id} className="trainer-card">
                         <h4>{trainer.full_name}</h4>
                         <p>{trainer.email}</p>
                         <p>{trainer.phone}</p>
-                        <button className="edit-btn" onClick={() => setEditingTrainer(trainer)}>
-                            ערוך
-                        </button>
+                        <div className="card-actions">
+                            <button className="edit-btn" onClick={() => setEditingTrainer(trainer)}>
+                                ערוך
+                            </button>
+                            <button className="delete-btn" onClick={() => handleDelete(trainer.id, trainer.full_name)}>
+                                מחק
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>

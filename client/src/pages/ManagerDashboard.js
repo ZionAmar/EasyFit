@@ -8,7 +8,6 @@ import TrainersView from '../components/TrainersView';
 import MembersView from '../components/MembersView'; // <-- 1. Import the new MembersView component
 import '../styles/ManagerDashboard.css';
 
-// --- Internal View Components ---
 const OverviewView = ({ stats }) => (
     <div className="dashboard-grid-pro">
         <main className="main-panel-pro">
@@ -27,9 +26,6 @@ const OverviewView = ({ stats }) => (
         </aside>
     </div>
 );
-
-// 2. Remove the placeholder for MembersView
-// const MembersView = () => <div className="card-pro placeholder-view"><h2>ניהול מתאמנים</h2></div>;
 
 function ManagerDashboard() {
     const navigate = useNavigate();
