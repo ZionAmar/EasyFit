@@ -7,7 +7,7 @@ async function add(req, res, next) {
         const newParticipant = await participantService.addParticipant(userId, meetingId);
         res.status(201).json(newParticipant);
     } catch (err) {
-        res.status(400).json({ message: err.message });
+        next(err); 
     }
 }
 
@@ -51,10 +51,10 @@ async function declineSpot(req, res, next) {
     }
 }
 
-module.exports = { 
-    add, 
+module.exports = {
+    add,
     cancel,
-    checkIn, 
+    checkIn,
     confirmSpot,
     declineSpot
 };

@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
 
         if (studiosWithRoles.length > 0) {
             const initialStudioId = localStorage.getItem('activeStudioId');
-            const defaultStudio = studiosWithRoles.find(s => s.studio_id == initialStudioId) || studiosWithRoles[0];
+            const defaultStudio = studiosWithRoles.find(s => s.studio_id === parseInt(initialStudioId)) || studiosWithRoles[0];
             
             setActiveStudio(defaultStudio);
             api.setStudioId(defaultStudio.studio_id);
@@ -45,6 +45,7 @@ export function AuthProvider({ children }) {
                     setupSession(data);
                 }
             } catch (error) {
+                // Handle error silently
             } finally {
                 setIsLoading(false);
             }
@@ -72,6 +73,11 @@ export function AuthProvider({ children }) {
         }
     };
 
+    const register = async (userData) => {
+        const dataToRegister = { ...userData, studioId: 1 }; 
+        return await authService.register(dataToRegister);
+    };
+
     const switchStudio = (studioId) => {
         const newActiveStudio = studios.find(s => s.studio_id === parseInt(studioId));
         if (newActiveStudio) {
@@ -84,11 +90,10 @@ export function AuthProvider({ children }) {
     const switchRole = (newRole) => {
         if (activeStudio && activeStudio.roles.includes(newRole)) {
             setActiveRole(newRole);
-            console.log(`Switched to role: ${newRole}`);
         }
     };
   
-    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout };
+    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, register };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

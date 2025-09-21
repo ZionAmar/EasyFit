@@ -1,8 +1,12 @@
 const jwt = require('jsonwebtoken');
 const userModel = require('../models/user_M');
 const { RateLimiterMemory } = require('rate-limiter-flexible');
+const md5 = require('md5'); 
 
 const jwtSecret = process.env.jwtSecret;
+const Salt = process.env.Salt; 
+
+const encWithSalt = (str) => md5(Salt + str);
 
 const rateLimiter = new RateLimiterMemory({ points: 6, duration: 3 * 60 });
 const checkLoginRateLimit = async (req, res, next) => {
@@ -47,7 +51,7 @@ const isLoggedIn = async (req, res, next) => {
             full_name: user.full_name,
             email: user.email,
             studioId: parseInt(studioId, 10),
-            roles: roles 
+            roles: roles
         };
 
         next();
@@ -77,4 +81,5 @@ module.exports = {
     checkLoginRateLimit,
     isLoggedIn,
     requireRole,
+    encWithSalt, 
 };

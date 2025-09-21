@@ -51,7 +51,7 @@ const SessionDetailsModal = ({ session, onClose }) => {
     );
 };
 
-function ProfessionalTrainerDashboard() {
+function TrainerDashboard() {
     const { user, activeStudio } = useAuth();
     const navigate = useNavigate();
     
@@ -62,13 +62,14 @@ function ProfessionalTrainerDashboard() {
     const fetchSchedule = async () => {
         try {
             const data = await api.get('/api/meetings'); 
-            console.log("RAW DATA FROM SERVER:", data); 
             if (Array.isArray(data)) {
-                const processed = data.map(m => ({
-                    ...m,
-                    start: new Date(m.start),
-                    end: new Date(m.end)
-                })).sort((a, b) => a.start - b.start);
+                const processed = data
+                    .filter(m => m.trainer_id === user.id) // *** התיקון כאן ***
+                    .map(m => ({
+                        ...m,
+                        start: new Date(m.start),
+                        end: new Date(m.end)
+                    })).sort((a, b) => a.start - b.start);
                 setMySchedule(processed);
             }
         } catch (error) {
@@ -90,7 +91,7 @@ function ProfessionalTrainerDashboard() {
 
     const handleCheckIn = async (registrationId) => {
         try {
-            await api.patch(`/api/participants/${registrationId}/status`, { status: 'checked_in' });
+            await api.patch(`/api/participants/${registrationId}/check-in`, {});
             await fetchSchedule(); 
         } catch (error) {
             console.error('Check-in failed:', error);
@@ -258,4 +259,4 @@ function ProfessionalTrainerDashboard() {
     );
 }
 
-export default ProfessionalTrainerDashboard;
+export default TrainerDashboard;

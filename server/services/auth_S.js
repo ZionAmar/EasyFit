@@ -1,8 +1,5 @@
-const md5 = require('md5');
+const { encWithSalt } = require('../middlewares/auth_Midd');
 const userModel = require('../models/user_M');
-
-const Salt = process.env.Salt;
-const encWithSalt = (str) => md5(Salt + str);
 
 const login = async ({ userName, pass }) => {
     const user = await userModel.getByUserName(userName);
@@ -17,7 +14,7 @@ const login = async ({ userName, pass }) => {
             id: user.id,
             full_name: user.full_name,
             email: user.email,
-            userName: user.userName 
+            userName: user.userName
         },
         studios: studiosAndRoles
     };
