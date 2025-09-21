@@ -15,48 +15,70 @@ function SchedulePage() {
     const { user, activeStudio, activeRole } = useAuth(); 
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const loadEvents = async () => {
-            try {
-                const meetings = await api.get('/api/meetings');
+    const fetchEvents = async () => {
+        if (!activeStudio) return;
+
+        try {
+            let meetings = [];
+            let myMeetingMap = new Map();
+
+            if (activeRole === 'trainer') {
+                meetings = await api.get('/api/meetings');
+                meetings.forEach(m => myMeetingMap.set(m.id, m.status));
+            } else {
+                meetings = await api.get(`/api/meetings/public?studioId=${activeStudio.studio_id}`);
                 
-                if (Array.isArray(meetings)) {
-                    const formattedEvents = meetings.map(item => {
-                        const isMyEvent = ['active', 'checked_in'].includes(item.status);
-                        
-                        const isTrainerEvent = activeRole === 'trainer';
-
-                        return {
-                            ...item,
-                            title: `${item.name} ${activeRole !== 'trainer' ? `(${item.trainerName})` : ''}`,
-                            backgroundColor: (isMyEvent || isTrainerEvent) ? 'var(--secondary-color)' : 'var(--primary-color)',
-                            borderColor: (isMyEvent || isTrainerEvent) ? 'var(--secondary-color)' : 'var(--primary-color)',
-                            extendedProps: { 
-                                isMyEvent, 
-                                trainerName: item.trainerName, 
-                                roomName: item.roomName,
-                                status: item.status 
-                            }
-                        };
-                    });
-                    setEvents(formattedEvents);
+                if (user) {
+                    const myMeetings = await api.get('/api/meetings');
+                    myMeetings.forEach(m => myMeetingMap.set(m.id, m.status));
                 }
-            } catch (error) {
-                console.error("There was a problem fetching the schedule:", error);
-                setEvents([]); 
             }
-        };
+            
+            if (Array.isArray(meetings)) {
+                const formattedEvents = meetings.map(item => {
+                    const userStatus = myMeetingMap.get(item.id);
+                    const isRegistered = Boolean(userStatus);
+                    
+                    let eventTitle = item.name;
+                    if (activeRole !== 'trainer') {
+                        eventTitle += ` (${item.trainerName})`;
+                    }
+                    if (userStatus === 'waiting') {
+                        eventTitle += ' (בהמתנה)';
+                    } else if (userStatus === 'pending') {
+                        eventTitle += ' (ממתין לאישור)';
+                    }
 
-        if (activeStudio) {
-            loadEvents();
+                    return {
+                        ...item,
+                        title: eventTitle,
+                        backgroundColor: isRegistered ? 'var(--secondary-color)' : 'var(--primary-color)',
+                        borderColor: isRegistered ? 'var(--secondary-color)' : 'var(--primary-color)',
+                        extendedProps: { 
+                            isMyEvent: userStatus === 'active' || userStatus === 'checked_in',
+                            trainerName: item.trainerName, 
+                            roomName: item.roomName,
+                            status: userStatus 
+                        }
+                    };
+                });
+                setEvents(formattedEvents);
+            }
+        } catch (error) {
+            console.error("There was a problem fetching the schedule:", error);
+            setEvents([]); 
         }
+    };
+
+    useEffect(() => {
+        fetchEvents();
     }, [user, activeStudio, activeRole]);
   
     const handleEventClick = (clickInfo) => {
         setSelectedEvent({
             id: clickInfo.event.id,
             title: clickInfo.event.title,
-            start: clickInfo.event.start,
+            start: new Date(clickInfo.event.startStr), // Use startStr for accuracy
             isMyEvent: clickInfo.event.extendedProps.isMyEvent,
             trainerName: clickInfo.event.extendedProps.trainerName,
             roomName: clickInfo.event.extendedProps.roomName,
@@ -64,6 +86,11 @@ function SchedulePage() {
         });
     };
 
+    const handleModalSave = () => {
+        setSelectedEvent(null);
+        fetchEvents();
+    };
+    
     const handleCloseModal = () => setSelectedEvent(null);
 
     return (
@@ -86,6 +113,7 @@ function SchedulePage() {
                 <BookingModal 
                     event={selectedEvent} 
                     onClose={handleCloseModal} 
+                    onSave={handleModalSave}
                 />
             )}
         </div>

@@ -1,5 +1,4 @@
 const participantService = require('../services/participant_S');
-const participantModel = require('../models/participant_M');
 
 async function add(req, res, next) {
     try {
@@ -12,23 +11,50 @@ async function add(req, res, next) {
     }
 }
 
-async function updateStatus(req, res, next) {
+async function cancel(req, res, next) {
     try {
-        const { participantId } = req.params; 
-        const { status } = req.body;
-        
-        const result = await participantService.updateStatus(participantId, status, req.user);
-        
+        const { registrationId } = req.params;
+        const result = await participantService.cancelRegistration(registrationId, req.user);
         res.status(200).json(result);
     } catch (err) {
-        if (err.message === 'Unauthorized') {
-           return res.status(403).json({ message: 'You are not authorized to perform this action.' });
-        }
         next(err);
+    }
+}
+
+async function checkIn(req, res, next) {
+    try {
+        const { registrationId } = req.params;
+        const result = await participantService.checkInParticipant(registrationId, req.user);
+        res.status(200).json(result);
+    } catch (err) {
+        next(err);
+    }
+}
+
+async function confirmSpot(req, res, next) {
+    try {
+        const { registrationId } = req.params;
+        await participantService.confirmSpot(registrationId);
+        res.redirect(`${process.env.BASE_URL}/booking-confirmed`);
+    } catch (err) {
+        res.redirect(`${process.env.BASE_URL}/booking-error?message=${encodeURIComponent(err.message)}`);
+    }
+}
+
+async function declineSpot(req, res, next) {
+    try {
+        const { registrationId } = req.params;
+        await participantService.declineSpot(registrationId);
+        res.redirect(`${process.env.BASE_URL}/booking-declined`);
+    } catch (err) {
+        res.redirect(`${process.env.BASE_URL}/booking-error?message=${encodeURIComponent(err.message)}`);
     }
 }
 
 module.exports = { 
     add, 
-    updateStatus 
+    cancel,
+    checkIn, 
+    confirmSpot,
+    declineSpot
 };

@@ -22,7 +22,7 @@ const ListItem = ({ title, subtitle, status, statusType }) => (
     </div>
 );
 
-const SessionDetailsModal = ({ session, isOpen, onClose }) => {
+const SessionDetailsModal = ({ session, isOpen, onClose, onCancel, showCancelButton }) => {
     useEffect(() => {
         const handleEsc = (event) => {
             if (event.keyCode === 27) onClose();
@@ -47,12 +47,18 @@ const SessionDetailsModal = ({ session, isOpen, onClose }) => {
                     <p><strong>חדר:</strong> {session.roomName}</p>
                     <p><strong>משתתפים רשומים:</strong> {session.participant_count} / {session.capacity}</p>
                 </div>
+                {showCancelButton && (
+                    <div className="modal-actions">
+                        <button className="btn-tertiary" onClick={() => onCancel(session.registrationId, session.name)}>בטל הרשמה</button>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
-function ProfessionalDashboard() {
+
+function TraineeDashboard() {
     const { user, activeStudio } = useAuth();
     const navigate = useNavigate();
     
@@ -62,33 +68,45 @@ function ProfessionalDashboard() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState(null);
 
-    useEffect(() => {
-        const fetchMeetings = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const data = await api.get('/api/meetings'); 
-                
-                if (Array.isArray(data)) {
-                    const processedMeetings = data.map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }));
-                    setMyMeetings(processedMeetings);
-                } else {
-                    setMyMeetings([]);
-                }
-            } catch (err) {
-                console.error("Error fetching meetings:", err);
-                setError("לא הצלחנו לטעון את המידע. נסה לרענן את העמוד.");
-            } finally {
-                setIsLoading(false);
+    const fetchMeetings = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const data = await api.get('/api/meetings'); 
+            if (Array.isArray(data)) {
+                const processedMeetings = data.map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }));
+                setMyMeetings(processedMeetings);
+            } else {
+                setMyMeetings([]);
             }
-        };
+        } catch (err) {
+            console.error("Error fetching meetings:", err);
+            setError("לא הצלחנו לטעון את המידע. נסה לרענן את העמוד.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
+    useEffect(() => {
         if (user && activeStudio) {
             fetchMeetings();
         } else {
             setIsLoading(false);
         }
     }, [user, activeStudio]);
+
+    const handleCancel = async (registrationId, sessionName) => {
+        if (window.confirm(`האם לבטל את הרשמתך לשיעור "${sessionName}"?`)) {
+            try {
+                await api.delete(`/api/participants/${registrationId}`);
+                alert("ההרשמה בוטלה בהצלחה.");
+                fetchMeetings();
+                closeSessionDetails();
+            } catch (err) {
+                alert(`שגיאה בביטול ההרשמה: ${err.message}`);
+            }
+        }
+    };
 
     const openSessionDetails = (session) => {
         setSelectedSession(session);
@@ -124,26 +142,12 @@ function ProfessionalDashboard() {
 
     const now = new Date();
     
-    const upcomingSessions = myMeetings
-        .filter(m => m.end > now && (m.status === 'active' || m.status === 'confirmed'))
-        .sort((a, b) => a.start - b.start);
-
+    const upcomingSessions = myMeetings.filter(m => m.end > now && m.status === 'active').sort((a, b) => a.start - b.start);
     const nextSession = upcomingSessions.length > 0 ? upcomingSessions[0] : null;
-
-    const waitingList = myMeetings
-        .filter(m => m.status === 'waiting' || m.status === 'pending')
-        .sort((a, b) => a.start - b.start);
-
-    const pastSessions = myMeetings
-        .filter(m => m.end < now && ['active', 'confirmed', 'checked_in'].includes(m.status))
-        .sort((a, b) => a.start - b.start);
-
-    const completedThisMonth = pastSessions
-        .filter(m => m.start.getMonth() === now.getMonth() && m.start.getFullYear() === now.getFullYear())
-        .length;
-        
+    const waitingList = myMeetings.filter(m => m.status === 'waiting' || m.status === 'pending').sort((a, b) => a.start - b.start);
+    const pastSessions = myMeetings.filter(m => m.end < now && ['active', 'checked_in'].includes(m.status)).sort((a, b) => b.start - b.start);
+    const completedThisMonth = pastSessions.filter(m => m.start.getMonth() === now.getMonth() && m.start.getFullYear() === now.getFullYear()).length;
     const totalCompletedSessions = pastSessions.length;
-
     const fiveMinutesBefore = nextSession ? new Date(nextSession.start.getTime() - 5 * 60 * 1000) : null;
     const isSessionActiveNow = nextSession && now >= fiveMinutesBefore && now <= nextSession.end;
 
@@ -152,6 +156,12 @@ function ProfessionalDashboard() {
 
     const formatFullDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
     const formatDateOnly = (date) => new Intl.DateTimeFormat('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
+
+    const getStatusText = (status) => {
+        if (status === 'waiting') return 'ברשימת המתנה';
+        if (status === 'pending') return 'ממתין לאישורך';
+        return '';
+    };
 
     return (
         <>
@@ -188,6 +198,7 @@ function ProfessionalDashboard() {
                                             <>
                                                 <button className="btn-primary" onClick={() => openSessionDetails(nextSession)}>פרטים</button>
                                                 <button className="btn-secondary" onClick={() => handleAddToCalendar(nextSession)}>הוסף ליומן</button>
+                                                <button className="btn-tertiary" onClick={() => handleCancel(nextSession.registrationId, nextSession.name)}>בטל הרשמה</button>
                                             </>
                                         )}
                                     </div>
@@ -225,8 +236,8 @@ function ProfessionalDashboard() {
                                         key={item.id}
                                         title={item.name}
                                         subtitle={`עם ${item.trainerName}`}
-                                        status={formatDateOnly(item.start)}
-                                        statusType="waiting"
+                                        status={getStatusText(item.status) || formatDateOnly(item.start)}
+                                        statusType={item.status}
                                     />
                                 )
                             ) : <p className="empty-state">אתה לא רשום לאף רשימת המתנה.</p>}
@@ -257,9 +268,11 @@ function ProfessionalDashboard() {
                 isOpen={isModalOpen} 
                 onClose={closeSessionDetails} 
                 session={selectedSession} 
+                onCancel={handleCancel}
+                showCancelButton={selectedSession && upcomingSessions.some(s => s.id === selectedSession.id)}
             />
         </>
     );
 }
 
-export default ProfessionalDashboard;
+export default TraineeDashboard;

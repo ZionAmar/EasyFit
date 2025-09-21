@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api from '../services/api'; // <--- שינוי 1: נוסף ייבוא לשירות ה-API
+import api from '../services/api';
 
-function BookingModal({ event, onClose }) {
+function BookingModal({ event, onClose, onSave }) {
     const { user, activeRole } = useAuth();
     const [error, setError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -13,10 +13,14 @@ function BookingModal({ event, onClose }) {
         setError('');
         setIsSubmitting(true);
         try {
-            await api.post('/api/participants', { meetingId: event.id });
+            const result = await api.post('/api/participants', { meetingId: event.id });
             
-            alert(`נרשמת בהצלחה לשיעור: ${event.title}`);
-            onClose();
+            if (result.status === 'waiting') {
+                alert('השיעור מלא! הוספנו אותך לרשימת ההמתנה.');
+            } else {
+                alert(`נרשמת בהצלחה לשיעור: ${event.title}`);
+            }
+            onSave();
         } catch (err) {
             setError(err.message);
         } finally {
@@ -29,7 +33,7 @@ function BookingModal({ event, onClose }) {
             <div className="modal-content">
                 <button className="modal-close" onClick={onClose}>×</button>
                 <h2>פרטי השיעור</h2>
-                <h3>{event.title.split('(')[0]}</h3>
+                <h3>{event.title.split(' (')[0]}</h3>
                 <p><strong>מאמן/ה:</strong> {event.trainerName}</p>
                 <p><strong>חדר:</strong> {event.roomName}</p>
                 <p><strong>תאריך:</strong> {event.start.toLocaleDateString('he-IL')}</p>

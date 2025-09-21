@@ -11,6 +11,8 @@ import HistoryPage from './pages/HistoryPage';
 import TrainerHistoryPage from './pages/TrainerHistoryPage';
 import DashboardPage from './pages/DashboardPage';
 import ManageSchedulePage from './pages/ManageSchedulePage'; 
+import BookingConfirmedPage from './pages/BookingConfirmedPage';
+import BookingErrorPage from './pages/BookingErrorPage';
 
 import './App.css';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -39,6 +41,9 @@ function AppRoutes() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/booking-confirmed" element={<BookingConfirmedPage status="confirmed" />} />
+        <Route path="/booking-declined" element={<BookingConfirmedPage status="declined" />} />
+        <Route path="/booking-error" element={<BookingErrorPage />} />
 
         <Route element={<ProtectedRoute allowedRoles={['admin', 'trainer', 'member']} />}>
             <Route path="/dashboard" element={<DashboardPage />} />

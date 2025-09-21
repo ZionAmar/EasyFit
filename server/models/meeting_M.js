@@ -26,7 +26,6 @@ const getAllByStudioId = (studioId, date) => {
 };
 
 const getByTrainerId = (trainerId, studioId, date) => {
-    
     let query = `
         SELECT 
             m.id, m.name, m.trainer_id, m.room_id, m.participant_count,
@@ -52,7 +51,9 @@ const getByTrainerId = (trainerId, studioId, date) => {
 const getByMemberId = (memberId, studioId, date) => {
     let query = `
         SELECT 
-            m.id, m.name, m.trainer_id, m.room_id, m.participant_count,
+            m.id, 
+            mr.id as registrationId, -- <-- ודא שהשורה הזו קיימת
+            m.name, m.trainer_id, m.room_id, m.participant_count,
             CONCAT(m.date, 'T', m.start_time) as start,
             CONCAT(m.date, 'T', m.end_time) as end,
             mr.status,
@@ -69,7 +70,7 @@ const getByMemberId = (memberId, studioId, date) => {
         query += ' AND m.date = ?';
         params.push(date);
     }
-    return db.query(query, params).then(extractRows);
+    return db.query(query, params).then(result => result[0]);
 };
 
 const getPublicSchedule = (studioId, date) => {
@@ -87,7 +88,13 @@ const getPublicSchedule = (studioId, date) => {
 };
 
 const getById = (id) => {
-    const query = `SELECT m.*, r.capacity FROM meetings m JOIN rooms r ON m.room_id = r.id WHERE m.id = ?`;
+    const query = `
+        SELECT m.*, r.capacity, u.full_name as trainerName 
+        FROM meetings m 
+        JOIN rooms r ON m.room_id = r.id 
+        JOIN users u ON m.trainer_id = u.id
+        WHERE m.id = ?
+    `;
     return db.query(query, [id]);
 };
 
@@ -138,15 +145,12 @@ const update = async (meetingId, meetingData, participantIds) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-
         const { name, trainer_id, date, start_time, end_time, room_id } = meetingData;
         await connection.query(
             `UPDATE meetings SET name=?, trainer_id=?, date=?, start_time=?, end_time=?, room_id=? WHERE id=?`,
             [name, trainer_id, date, start_time, end_time, room_id, meetingId]
         );
-
         await connection.query(`DELETE FROM meeting_registrations WHERE meeting_id = ?`, [meetingId]);
-
         if (participantIds && participantIds.length > 0) {
             const registrations = participantIds.map(userId => [meetingId, userId, 'active']);
             await connection.query(
@@ -154,11 +158,8 @@ const update = async (meetingId, meetingData, participantIds) => {
                 [registrations]
             );
         }
-
         await connection.commit();
-        
         await syncParticipantCount(meetingId);
-
     } catch (err) {
         await connection.rollback();
         throw err;
