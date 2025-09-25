@@ -6,7 +6,6 @@ const getMeetingsForDashboard = async (user, date, viewAs) => { // הוספת vi
         throw new Error("No studio selected.");
     }
 
-    // קובעים מה התפקיד הפעיל. אם לא נשלח, ננחש לפי סדר עדיפות
     const effectiveRole = viewAs || (roles.includes('admin') ? 'admin' : roles.includes('trainer') ? 'trainer' : 'member');
 
     if (effectiveRole === 'admin') {

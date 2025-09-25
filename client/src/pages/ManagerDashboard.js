@@ -7,6 +7,7 @@ import StudioSettingsView from '../components/StudioSettingsView';
 import TrainersView from '../components/TrainersView';
 import MembersView from '../components/MembersView'; // <-- 1. Import the new MembersView component
 import '../styles/ManagerDashboard.css';
+import RoomsView from '../components/RoomsView';
 
 const OverviewView = ({ stats }) => (
     <div className="dashboard-grid-pro">
@@ -58,7 +59,8 @@ function ManagerDashboard() {
         if (!basicData) return null; 
         switch (currentView) {
             case 'trainers': return <TrainersView />;
-            case 'members': return <MembersView />; // This now renders the real component
+            case 'members': return <MembersView />; 
+            case 'rooms': return <RoomsView />; 
             case 'settings': return <StudioSettingsView initialDetails={basicData.studio} />;
             case 'overview': default: return <OverviewView stats={stats} />;
         }
@@ -87,6 +89,7 @@ function ManagerDashboard() {
                 <button onClick={() => setCurrentView('overview')} className={currentView === 'overview' ? 'active' : ''}>סקירה כללית</button>
                 <button onClick={() => setCurrentView('trainers')} className={currentView === 'trainers' ? 'active' : ''}>מאמנים</button>
                 <button onClick={() => setCurrentView('members')} className={currentView === 'members' ? 'active' : ''}>מתאמנים</button>
+                <button onClick={() => setCurrentView('rooms')} className={currentView === 'rooms' ? 'active' : ''}>חדרים</button>
                 <button onClick={() => setCurrentView('settings')} className={currentView === 'settings' ? 'active' : ''}>הגדרות</button>
             </div>
             

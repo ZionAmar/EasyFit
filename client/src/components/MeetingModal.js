@@ -14,6 +14,8 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    const today = new Date().toISOString().split('T')[0];
+
     useEffect(() => {
         const loadPrerequisites = async () => {
             setIsLoading(true);
@@ -49,7 +51,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
             if (date && start_time && end_time) {
                 try {
                     let url = `/api/rooms/available?date=${date}&start_time=${start_time}&end_time=${end_time}`;
-                    if (isEditMode && meeting.id) {
+                    if (isEditMode && meeting?.id) {
                         url += `&meetingId=${meeting.id}`;
                     }
                     const availableRooms = await api.get(url);
@@ -69,7 +71,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
             if (date && start_time && end_time) {
                 try {
                     let url = `/api/users/available-trainers?date=${date}&start_time=${start_time}&end_time=${end_time}`;
-                    if (isEditMode && meeting.id) {
+                    if (isEditMode && meeting?.id) {
                         url += `&meetingId=${meeting.id}`;
                     }
                     const availableTrainers = await api.get(url);
@@ -102,18 +104,26 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
         e.preventDefault();
         setError('');
         
-        const meetingDayJs = new Date(formData.date).getDay(); // JS Day: 0=Sunday, ... 6=Saturday
-        const meetingDayDB = (meetingDayJs + 1) % 7;
+        const now = new Date();
+        const meetingStartDateTime = new Date(`${formData.date}T${formData.start_time}`);
+        now.setSeconds(0, 0); 
 
+        if (meetingStartDateTime < now) {
+            setError('לא ניתן לקבוע שיעור בזמן עבר.');
+            return;
+        }
+
+        const meetingDayJs = new Date(formData.date).getDay(); 
+        const meetingDayDB = (meetingDayJs + 1) % 7; 
         const hoursForDay = operatingHours.find(h => h.day_of_week === meetingDayDB);
 
         if (!hoursForDay || (hoursForDay.open_time === hoursForDay.close_time)) {
-            setError(`The studio is closed on the selected day.`);
+            setError(`הסטודיו סגור ביום שנבחר.`);
             return;
         }
 
         if (formData.start_time < hoursForDay.open_time || formData.end_time > hoursForDay.close_time) {
-            setError(`Operating hours on this day are from ${hoursForDay.open_time.slice(0,5)} to ${hoursForDay.close_time.slice(0,5)}.`);
+            setError(`שעות הפעילות ביום זה הן בין ${hoursForDay.open_time.slice(0,5)} ל-${hoursForDay.close_time.slice(0,5)}.`);
             return;
         }
         
@@ -153,11 +163,23 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                 <h2>{isEditMode ? 'עריכת שיעור' : 'שיעור חדש'}</h2>
                 <form onSubmit={handleSave} className="settings-form">
                     <div className="form-field"><label>שם שיעור</label><input name="name" value={formData.name || ''} onChange={handleChange} required /></div>
-                    <div className="form-field"><label>תאריך</label><input type="date" name="date" value={formData.date || ''} onChange={handleChange} required /></div>
+                    <div className="form-field"><label>תאריך</label><input type="date" name="date" value={formData.date || ''} onChange={handleChange} min={today} required /></div>
                     <div className="form-field"><label>שעת התחלה</label><input type="time" name="start_time" value={formData.start_time || ''} onChange={handleChange} required /></div>
-                    <div className="form-field"><label>שעת סיום</label><input type="time" value={formData.end_time || ''} onChange={handleChange} required /></div>
+                    <div className="form-field"><label>שעת סיום</label><input type="time" name="end_time" value={formData.end_time || ''} onChange={handleChange} required /></div>
                     <div className="form-field"><label>מאמן</label><select name="trainer_id" value={formData.trainer_id || ''} onChange={handleChange} required><option value="">בחר מאמן</option>{allTrainers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}</select></div>
-                    <div className="form-field"><label>חדר</label><select name="room_id" value={formData.room_id || ''} onChange={handleChange} required><option value="">בחר חדר</option>{allRooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}</select></div>
+                    
+                    <div className="form-field">
+                        <label>חדר</label>
+                        <select name="room_id" value={formData.room_id || ''} onChange={handleChange} required>
+                            <option value="">בחר חדר</option>
+                            {allRooms.map(r => (
+                                <option key={r.id} value={r.id}>
+                                    {`${r.name} (קיבולת: ${r.capacity}) ${r.has_equipment ? '🏋️‍♂️' : ''}`}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     <div className="form-field">
                         <label>משתתפים</label>
                         <MultiSelect 
