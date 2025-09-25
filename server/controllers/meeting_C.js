@@ -1,9 +1,10 @@
 const meetingService = require('../services/meeting_S');
 
+
 const getMeetings = async (req, res, next) => {
     try {
-        const { date } = req.query;
-        const meetings = await meetingService.getMeetingsForDashboard(req.user, date);
+        const { date, viewAs } = req.query; // הוספת viewAs
+        const meetings = await meetingService.getMeetingsForDashboard(req.user, date, viewAs); // העברת viewAs
         res.json(meetings);
     } catch (err) {
         next(err);

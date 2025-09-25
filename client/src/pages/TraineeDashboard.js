@@ -72,7 +72,7 @@ function TraineeDashboard() {
         setIsLoading(true);
         setError(null);
         try {
-            const data = await api.get('/api/meetings'); 
+            const data = await api.get('/api/meetings?viewAs=member'); 
             if (Array.isArray(data)) {
                 const processedMeetings = data.map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }));
                 setMyMeetings(processedMeetings);

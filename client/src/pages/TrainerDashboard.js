@@ -61,11 +61,9 @@ function TrainerDashboard() {
 
     const fetchSchedule = async () => {
         try {
-            const data = await api.get('/api/meetings'); 
+            const data = await api.get('/api/meetings?viewAs=trainer'); 
             if (Array.isArray(data)) {
-                const processed = data
-                    .filter(m => m.trainer_id === user.id) // *** התיקון כאן ***
-                    .map(m => ({
+                const processed = data.map(m => ({
                         ...m,
                         start: new Date(m.start),
                         end: new Date(m.end)

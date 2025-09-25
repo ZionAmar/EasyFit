@@ -1,12 +1,15 @@
 const meetingModel = require('../models/meeting_M');
 
-const getMeetingsForDashboard = async (user, date) => {
+const getMeetingsForDashboard = async (user, date, viewAs) => { // הוספת viewAs
     const { id: userId, studioId, roles } = user;
     if (!studioId) {
         throw new Error("No studio selected.");
     }
 
-    if (roles.includes('admin')) {
+    // קובעים מה התפקיד הפעיל. אם לא נשלח, ננחש לפי סדר עדיפות
+    const effectiveRole = viewAs || (roles.includes('admin') ? 'admin' : roles.includes('trainer') ? 'trainer' : 'member');
+
+    if (effectiveRole === 'admin') {
         const adminMeetings = await meetingModel.getAllByStudioId(studioId, date);
         return Promise.all(adminMeetings.map(async (meeting) => {
             const participants = await meetingModel.getActiveParticipants(meeting.id);
@@ -15,37 +18,30 @@ const getMeetingsForDashboard = async (user, date) => {
         }));
     }
 
-    let meetingsMap = new Map();
-
-    if (roles.includes('member')) {
-        const memberMeetings = await meetingModel.getByMemberId(userId, studioId, date);
-        memberMeetings.forEach(meeting => meetingsMap.set(meeting.id, meeting));
-    }
-
-    if (roles.includes('trainer')) {
+    if (effectiveRole === 'trainer') {
         const trainerMeetings = await meetingModel.getByTrainerId(userId, studioId, date);
-        trainerMeetings.forEach(meeting => {
-            const existingMeeting = meetingsMap.get(meeting.id);
-            if (existingMeeting) {
-                meetingsMap.set(meeting.id, { ...meeting, ...existingMeeting });
-            } else {
-                meetingsMap.set(meeting.id, meeting);
-            }
-        });
-    }
-
-    const allUserMeetings = Array.from(meetingsMap.values());
-
-    const meetingsWithData = await Promise.all(allUserMeetings.map(async (meeting) => {
-        if (roles.includes('trainer') && meeting.trainer_id === userId) {
+        return Promise.all(trainerMeetings.map(async (meeting) => {
             const participants = await meetingModel.getActiveParticipants(meeting.id);
             const waitingList = await meetingModel.getWaitingParticipants(meeting.id);
             return { ...meeting, participants, waitingList };
-        }
-        return meeting;
-    }));
+        }));
+    }
 
-    return meetingsWithData;
+    if (effectiveRole === 'member') {
+        const meetingsMap = new Map();
+        const myMeetings = await meetingModel.getByMemberId(userId, studioId, date);
+        myMeetings.forEach(meeting => meetingsMap.set(meeting.id, meeting));
+
+        const [publicFutureMeetings] = await meetingModel.getPublicSchedule(studioId, date);
+        publicFutureMeetings.forEach(meeting => {
+            if (!meetingsMap.has(meeting.id)) {
+                meetingsMap.set(meeting.id, meeting);
+            }
+        });
+        return Array.from(meetingsMap.values());
+    }
+
+    return [];
 };
 
 const getPublicSchedule = async (studioId, date) => {

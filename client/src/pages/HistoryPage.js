@@ -73,15 +73,16 @@ function HistoryPage() {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                const data = await api.get('/api/meetings');
+                // *** התיקון כאן ***
+                const data = await api.get('/api/meetings?viewAs=member');
 
                 if (Array.isArray(data)) {
                     const now = new Date();
-                    const validStatuses = ['active', 'confirmed', 'checked_in'];
+                    const validStatuses = ['active', 'checked_in'];
                     
                     const processed = data
                         .map(m => ({ ...m, start: new Date(m.start), end: new Date(m.end) }))
-                        .filter(m => m.end < now && validStatuses.includes(m.status))
+                        .filter(m => m.end < now && m.status && validStatuses.includes(m.status))
                         .sort((a, b) => b.start - a.start);
 
                     setPastSessions(processed);
@@ -96,7 +97,11 @@ function HistoryPage() {
                 setIsLoading(false);
             }
         };
-        fetchHistory();
+        if (user) {
+            fetchHistory();
+        } else {
+            setIsLoading(false);
+        }
     }, [user]);
 
     const handleMonthChange = (e) => {

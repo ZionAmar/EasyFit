@@ -1,46 +1,49 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../context/AuthContext';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import heLocale from '@fullcalendar/core/locales/he';
-import { useAuth } from '../context/AuthContext';
-import api from '../services/api'; 
+import api from '../services/api';
 import BookingModal from '../components/BookingModal';
 import '../App.css';
 
 function SchedulePage() {
     const [events, setEvents] = useState([]);
     const [selectedEvent, setSelectedEvent] = useState(null);
-    const { user, activeStudio, activeRole } = useAuth(); 
-    const navigate = useNavigate();
+    const { user, activeStudio, activeRole } = useAuth();
 
-    const fetchEvents = async () => {
+    const fetchEvents = useCallback(async () => {
         if (!activeStudio) return;
 
         try {
-            let meetings = [];
-            let myMeetingMap = new Map();
-
-            if (activeRole === 'trainer') {
-                meetings = await api.get('/api/meetings');
-                meetings.forEach(m => myMeetingMap.set(m.id, m.status));
-            } else {
-                meetings = await api.get(`/api/meetings/public?studioId=${activeStudio.studio_id}`);
-                
-                if (user) {
-                    const myMeetings = await api.get('/api/meetings');
-                    myMeetings.forEach(m => myMeetingMap.set(m.id, m.status));
-                }
-            }
+            let publicMeetings = [];
+            // שלב 1: שלוף תמיד את כל השיעורים הציבוריים העתידיים
+            publicMeetings = await api.get(`/api/meetings/public?studioId=${activeStudio.studio_id}`);
             
-            if (Array.isArray(meetings)) {
-                const formattedEvents = meetings.map(item => {
-                    const userStatus = myMeetingMap.get(item.id);
+            // צור מפה של כל השיעורים לפי ID לגישה מהירה
+            const meetingsMap = new Map(publicMeetings.map(m => [m.id, m]));
+
+            // שלב 2: אם המשתמש מחובר, שלוף את כל השיעורים הספציפיים שלו
+            if (user) {
+                const myMeetings = await api.get(`/api/meetings?viewAs=${activeRole}`);
+                
+                // שלב 3: עדכן את המפה עם המידע האישי של המשתמש
+                // זה יבטיח שהסטטוס האישי (רשום/בהמתנה) תמיד ידרוס את המידע הציבורי
+                myMeetings.forEach(myMeeting => {
+                    meetingsMap.set(myMeeting.id, myMeeting);
+                });
+            }
+
+            const allMeetings = Array.from(meetingsMap.values());
+            
+            if (Array.isArray(allMeetings)) {
+                const formattedEvents = allMeetings.map(item => {
+                    const userStatus = item.status;
                     const isRegistered = Boolean(userStatus);
                     
                     let eventTitle = item.name;
-                    if (activeRole !== 'trainer') {
+                    if (activeRole !== 'trainer' && item.trainerName) {
                         eventTitle += ` (${item.trainerName})`;
                     }
                     if (userStatus === 'waiting') {
@@ -68,17 +71,17 @@ function SchedulePage() {
             console.error("There was a problem fetching the schedule:", error);
             setEvents([]); 
         }
-    };
+    }, [user, activeStudio, activeRole]);
 
     useEffect(() => {
         fetchEvents();
-    }, [user, activeStudio, activeRole]);
+    }, [fetchEvents]);
   
     const handleEventClick = (clickInfo) => {
         setSelectedEvent({
             id: clickInfo.event.id,
             title: clickInfo.event.title,
-            start: new Date(clickInfo.event.startStr), // Use startStr for accuracy
+            start: new Date(clickInfo.event.startStr),
             isMyEvent: clickInfo.event.extendedProps.isMyEvent,
             trainerName: clickInfo.event.extendedProps.trainerName,
             roomName: clickInfo.event.extendedProps.roomName,
