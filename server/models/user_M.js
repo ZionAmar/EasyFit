@@ -3,7 +3,7 @@ const db = require('../config/db_config');
 const getAll = ({ role, studioId }) => {
     let query = `
         SELECT 
-            u.id, u.full_name, u.email, u.userName, u.phone,
+            u.id, u.full_name, u.email, u.userName, u.phone, u.profile_picture_url,
             CONCAT('[', GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)), ']') as roles
         FROM users u
         LEFT JOIN user_roles ur ON u.id = ur.user_id
@@ -34,14 +34,9 @@ const getAll = ({ role, studioId }) => {
 const getById = (id) => {
     const query = `
         SELECT 
-            u.id, u.full_name, u.email, u.userName, u.phone,
-            CONCAT('[', GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)), ']') as roles
+            u.id, u.full_name, u.email, u.userName, u.phone, u.profile_picture_url
         FROM users u
-        LEFT JOIN user_roles ur ON u.id = ur.user_id
-        LEFT JOIN roles r ON ur.role_id = r.id
-        LEFT JOIN studios s ON ur.studio_id = s.id
         WHERE u.id = ?
-        GROUP BY u.id
     `;
     return db.query(query, [id]);
 };
@@ -162,6 +157,35 @@ const findAvailableTrainers = ({ studioId, date, start_time, end_time, excludeMe
     return db.query(query, params);
 };
 
+const updateProfile = (id, data) => {
+    const { full_name, phone, profile_picture_url } = data;
+    const fieldsToUpdate = [];
+    const values = [];
+
+    if (full_name !== undefined) {
+        fieldsToUpdate.push('full_name = ?');
+        values.push(full_name);
+    }
+    if (phone !== undefined) {
+        fieldsToUpdate.push('phone = ?');
+        values.push(phone);
+    }
+    if (profile_picture_url !== undefined) {
+        fieldsToUpdate.push('profile_picture_url = ?');
+        values.push(profile_picture_url);
+    }
+
+    if (fieldsToUpdate.length === 0) {
+        return Promise.resolve();
+    }
+
+    const query = `UPDATE users SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
+    values.push(id);
+    
+    return db.query(query, values);
+};
+
+
 module.exports = {
     getAll,
     getById,
@@ -172,5 +196,6 @@ module.exports = {
     create,
     update,
     remove,
-    findAvailableTrainers 
+    findAvailableTrainers,
+    updateProfile
 };

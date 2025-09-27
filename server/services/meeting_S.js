@@ -1,6 +1,6 @@
 const meetingModel = require('../models/meeting_M');
 
-const getMeetingsForDashboard = async (user, date, viewAs) => { // הוספת viewAs
+const getMeetingsForDashboard = async (user, date, viewAs) => {
     const { id: userId, studioId, roles } = user;
     if (!studioId) {
         throw new Error("No studio selected.");
@@ -8,18 +8,12 @@ const getMeetingsForDashboard = async (user, date, viewAs) => { // הוספת vi
 
     const effectiveRole = viewAs || (roles.includes('admin') ? 'admin' : roles.includes('trainer') ? 'trainer' : 'member');
 
-    if (effectiveRole === 'admin') {
-        const adminMeetings = await meetingModel.getAllByStudioId(studioId, date);
-        return Promise.all(adminMeetings.map(async (meeting) => {
-            const participants = await meetingModel.getActiveParticipants(meeting.id);
-            const waitingList = await meetingModel.getWaitingParticipants(meeting.id);
-            return { ...meeting, participants, waitingList };
-        }));
-    }
-
-    if (effectiveRole === 'trainer') {
-        const trainerMeetings = await meetingModel.getByTrainerId(userId, studioId, date);
-        return Promise.all(trainerMeetings.map(async (meeting) => {
+    if (effectiveRole === 'admin' || effectiveRole === 'trainer') {
+        const meetings = effectiveRole === 'admin' 
+            ? await meetingModel.getAllByStudioId(studioId, date) 
+            : await meetingModel.getByTrainerId(userId, studioId, date);
+            
+        return Promise.all(meetings.map(async (meeting) => {
             const participants = await meetingModel.getActiveParticipants(meeting.id);
             const waitingList = await meetingModel.getWaitingParticipants(meeting.id);
             return { ...meeting, participants, waitingList };
@@ -90,16 +84,16 @@ const markTrainerArrival = async (meetingId, user) => {
 };
 
 const getMeetingDetails = async (meetingId) => {
-    const [[meeting]] = await meetingModel.getByIdWithParticipants(meetingId);
+    const [[meeting]] = await meetingModel.getById(meetingId);
     if (!meeting) throw new Error('Meeting not found');
 
-    if (meeting.participantIds && typeof meeting.participantIds === 'string') {
-        meeting.participantIds = meeting.participantIds.split(',').map(Number);
-    } else {
-        meeting.participantIds = [];
-    }
-    return meeting;
+    const participants = await meetingModel.getActiveParticipants(meetingId);
+    
+    const waitingList = await meetingModel.getWaitingParticipants(meetingId);
+
+    return { ...meeting, participants, waitingList };
 };
+
 
 const updateMeeting = async (meetingId, data, user) => {
     const { participantIds, ...meetingData } = data;

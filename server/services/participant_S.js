@@ -40,12 +40,16 @@ const cancelRegistration = async (registrationId, user) => {
 const checkInParticipant = async (registrationId, user) => {
     const [[registration]] = await participantModel.getRegistrationById(registrationId);
     if (!registration) throw new Error('ההרשמה לא נמצאה.');
+    
     const [[meeting]] = await meetingModel.getById(registration.meeting_id);
     if (!meeting) throw new Error('השיעור לא נמצא.');
+    
     if (user.id !== meeting.trainer_id && !user.roles.includes('admin')) {
         throw new Error('אין לך הרשאה לבצע צ\'ק-אין לשיעור זה.');
     }
-    await participantModel.updateRegistrationStatus(registrationId, 'checked_in');
+
+    await participantModel.setCheckInTime(registrationId);
+    
     return { message: 'המתאמן עודכן בהצלחה.' };
 };
 

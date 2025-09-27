@@ -21,6 +21,12 @@ const updateRegistrationStatus = (registrationId, status) => {
     return db.query(query, [status, registrationId]);
 };
 
+const setCheckInTime = (registrationId) => {
+    const query = 'UPDATE meeting_registrations SET status = \'checked_in\', check_in_time = NOW() WHERE id = ?';
+    return db.query(query, [registrationId]);
+};
+
+
 const getRegistrationById = (registrationId) => {
     return db.query('SELECT * FROM meeting_registrations WHERE id = ?', [registrationId]);
 };
@@ -45,6 +51,7 @@ module.exports = {
     findExisting,
     add,
     updateRegistrationStatus,
+    setCheckInTime, 
     getRegistrationById,
     getNextInWaitingList
 };

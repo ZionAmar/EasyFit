@@ -134,3 +134,54 @@
     transform: scale(1);
   }
 }
+
+.profile-picture-field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.profile-picture-preview {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid var(--border-color);
+    position: relative;
+    cursor: pointer;
+    overflow: hidden;
+    background-color: var(--light-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-picture-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.placeholder-avatar {
+    font-size: 3rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.upload-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: white;
+    text-align: center;
+    padding: 8px 0;
+    font-size: 0.9rem;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+}
+
+.profile-picture-preview:hover .upload-overlay {
+    transform: translateY(0);
+}

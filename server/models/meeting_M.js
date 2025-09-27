@@ -96,7 +96,7 @@ const getPublicSchedule = (studioId, date) => {
 
 const getById = (id) => {
     const query = `
-        SELECT m.*, r.capacity, u.full_name as trainerName 
+        SELECT m.*, r.name as roomName, r.capacity, u.full_name as trainerName 
         FROM meetings m 
         JOIN rooms r ON m.room_id = r.id 
         JOIN users u ON m.trainer_id = u.id
@@ -104,6 +104,7 @@ const getById = (id) => {
     `;
     return db.query(query, [id]);
 };
+
 
 const findOverlappingMeeting = ({ date, start_time, end_time, room_id, studio_id }) => {
     const query = `SELECT id FROM meetings WHERE room_id = ? AND date = ? AND start_time < ? AND end_time > ? AND studio_id = ?`;
@@ -115,13 +116,11 @@ const create = async (meetingData, participantIds) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-
         const [result] = await connection.query(
             `INSERT INTO meetings (studio_id, name, trainer_id, date, start_time, end_time, room_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [studio_id, name, trainer_id, date, start_time, end_time, room_id]
         );
         const meetingId = result.insertId;
-
         if (participantIds && participantIds.length > 0) {
             const registrations = participantIds.map(userId => [meetingId, userId, 'active']);
             await connection.query(
@@ -129,11 +128,8 @@ const create = async (meetingData, participantIds) => {
                 [registrations]
             );
         }
-        
         await connection.commit();
-        
         await syncParticipantCount(meetingId); 
-        
         return { insertId: meetingId };
     } catch (err) {
         await connection.rollback();
@@ -158,13 +154,8 @@ const findOverlappingMeetingForTrainer = ({ date, start_time, end_time, trainer_
         SELECT m.id, m.name, u.full_name as trainerName 
         FROM meetings m
         JOIN users u ON m.trainer_id = u.id
-        WHERE m.trainer_id = ? 
-        AND m.date = ? 
-        AND m.start_time < ? 
-        AND m.end_time > ? 
-        AND m.studio_id = ?`;
+        WHERE m.trainer_id = ? AND m.date = ? AND m.start_time < ? AND m.end_time > ? AND m.studio_id = ?`;
     const params = [trainer_id, date, end_time, start_time, studio_id];
-
     if (excludeMeetingId) {
         query += ` AND m.id != ?`;
         params.push(excludeMeetingId);
@@ -176,26 +167,18 @@ const findOverlappingMeetingsForParticipants = ({ date, start_time, end_time, st
     if (!participantIds || participantIds.length === 0) {
         return Promise.resolve([]);
     }
-
     let query = `
         SELECT DISTINCT u.full_name
         FROM users u
         JOIN meeting_registrations mr ON u.id = mr.user_id
         JOIN meetings m ON mr.meeting_id = m.id
-        WHERE u.id IN (?)
-        AND mr.status IN ('active', 'checked_in', 'pending')
-        AND m.date = ?
-        AND m.start_time < ?
-        AND m.end_time > ?
-        AND m.studio_id = ?
+        WHERE u.id IN (?) AND mr.status IN ('active', 'checked_in', 'pending') AND m.date = ? AND m.start_time < ? AND m.end_time > ? AND m.studio_id = ?
     `;
     const params = [participantIds, date, end_time, start_time, studio_id];
-
     if (excludeMeetingId) {
         query += ` AND m.id != ?`;
         params.push(excludeMeetingId);
     }
-    
     return db.query(query, params).then(result => result[0]);
 };
 
@@ -206,19 +189,6 @@ const getWaitingParticipants = (meetingId) => {
 
 const markTrainerArrival = (meetingId) => {
     const query = `UPDATE meetings SET trainer_arrival_time = NOW() WHERE id = ? AND trainer_arrival_time IS NULL`;
-    return db.query(query, [meetingId]);
-};
-
-const getByIdWithParticipants = (meetingId) => {
-    const query = `
-        SELECT 
-            m.*, 
-            GROUP_CONCAT(mr.user_id) as participantIds
-        FROM meetings m
-        LEFT JOIN meeting_registrations mr ON m.id = mr.meeting_id AND mr.status = 'active'
-        WHERE m.id = ?
-        GROUP BY m.id
-    `;
     return db.query(query, [meetingId]);
 };
 
@@ -286,7 +256,6 @@ module.exports = {
     getById, 
     markTrainerArrival,
     syncParticipantCount, 
-    getByIdWithParticipants,
     update,
     remove,
     findOverlappingMeetingForTrainer,

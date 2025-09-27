@@ -1,29 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import '../styles/UserModal.css';
 
 function ProfileModal({ isOpen, onClose }) {
-    const { user, refreshUser } = useAuth(); 
-    const [formData, setFormData] = useState({
-        full_name: '',
-        phone: '',
-        profile_picture_url: ''
-    });
+    const { user, refreshUser } = useAuth();
+    const [formData, setFormData] = useState({ full_name: '', phone: '' });
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [preview, setPreview] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const fileInputRef = useRef();
 
     useEffect(() => {
-        if (user) {
+        if (user && isOpen) {
             setFormData({
                 full_name: user.full_name || '',
                 phone: user.phone || '',
-                profile_picture_url: user.profile_picture_url || ''
             });
+            setPreview(user.profile_picture_url || null);
+            setSelectedFile(null); 
         }
     }, [user, isOpen]);
 
+    useEffect(() => {
+        if (!selectedFile) {
+            setPreview(user?.profile_picture_url || null);
+            return;
+        }
+        const objectUrl = URL.createObjectURL(selectedFile);
+        setPreview(objectUrl);
+        return () => URL.revokeObjectURL(objectUrl);
+    }, [selectedFile, user]);
+
+
     if (!isOpen) return null;
+
+    const handleFileChange = (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            setSelectedFile(e.target.files[0]);
+        }
+    };
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -34,12 +51,21 @@ function ProfileModal({ isOpen, onClose }) {
         e.preventDefault();
         setIsLoading(true);
         setError('');
+
+        const data = new FormData();
+        data.append('full_name', formData.full_name);
+        data.append('phone', formData.phone);
+        if (selectedFile) {
+            data.append('profile_picture', selectedFile);
+        }
+
         try {
-            await api.put('/api/users/profile', formData);
+            await api.put('/api/users/profile', data);
+
             if (refreshUser) {
                 await refreshUser();
             }
-            onClose(); 
+            onClose();
         } catch (err) {
             setError(err.message || 'שגיאה בעדכון הפרופיל.');
         } finally {
@@ -53,47 +79,33 @@ function ProfileModal({ isOpen, onClose }) {
                 <button className="modal-close-btn" onClick={onClose}>&times;</button>
                 <h2>עריכת פרופיל</h2>
                 <form onSubmit={handleSave} className="settings-form">
-                    <div className="form-field">
-                        <label>שם מלא</label>
+                    <div className="form-field profile-picture-field">
+                        <label>תמונת פרופיל</label>
+                        <div className="profile-picture-preview" onClick={() => fileInputRef.current.click()}>
+                            {preview ? (
+                                <img src={preview} alt="תצוגה מקדימה" />
+                            ) : (
+                                <div className="placeholder-avatar">{user?.full_name?.charAt(0)}</div>
+                            )}
+                            <div className="upload-overlay">לחץ לשינוי</div>
+                        </div>
                         <input
-                            type="text"
-                            name="full_name"
-                            value={formData.full_name}
-                            onChange={handleChange}
-                            required
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleFileChange}
+                            style={{ display: 'none' }}
+                            accept="image/*"
                         />
                     </div>
                     <div className="form-field">
-                        <label>אימייל (לא ניתן לעריכה)</label>
-                        <input
-                            type="email"
-                            value={user.email || ''}
-                            disabled
-                            title="לא ניתן לשנות את כתובת האימייל"
-                        />
+                        <label>שם מלא</label>
+                        <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} required />
                     </div>
                     <div className="form-field">
                         <label>טלפון</label>
-                        <input
-                            type="tel"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                        />
+                        <input type="tel" name="phone" value={formData.phone} onChange={handleChange} />
                     </div>
-                    <div className="form-field">
-                        <label>כתובת URL לתמונת פרופיל</label>
-                        <input
-                            type="text"
-                            name="profile_picture_url"
-                            placeholder="הדבק כאן קישור לתמונה"
-                            value={formData.profile_picture_url}
-                            onChange={handleChange}
-                        />
-                    </div>
-
                     {error && <p className="error">{error}</p>}
-                    
                     <div className="modal-actions">
                         <button type="submit" className="btn register-btn" disabled={isLoading}>
                             {isLoading ? 'שומר...' : 'שמור שינויים'}

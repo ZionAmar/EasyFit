@@ -45,7 +45,6 @@ export function AuthProvider({ children }) {
                     setupSession(data);
                 }
             } catch (error) {
-                // Handle error silently
             } finally {
                 setIsLoading(false);
             }
@@ -58,7 +57,7 @@ export function AuthProvider({ children }) {
         setupSession(data);
         return data;
     };
-  
+ 
     const logout = async () => {
         try {
             await authService.logout();
@@ -70,6 +69,18 @@ export function AuthProvider({ children }) {
             setActiveStudio(null);
             setActiveRole(null);
             api.setStudioId(null);
+        }
+    };
+    
+    const refreshUser = async () => {
+        try {
+            const data = await authService.verify();
+            if (data && data.userDetails) {
+                setupSession(data);
+            }
+        } catch (error) {
+            console.error("Failed to refresh user data, logging out.", error);
+            logout();
         }
     };
 
@@ -92,8 +103,8 @@ export function AuthProvider({ children }) {
             setActiveRole(newRole);
         }
     };
-  
-    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, register };
+ 
+    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, register, refreshUser };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -101,3 +112,4 @@ export function AuthProvider({ children }) {
 export function useAuth() {
     return useContext(AuthContext);
 }
+

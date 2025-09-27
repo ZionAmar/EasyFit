@@ -253,3 +253,61 @@
         grid-template-columns: 1fr;
     }
 }
+
+.check-in-info {
+    background-color: var(--light-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+    text-align: center;
+}
+
+.next-session-card.live-session {
+    background-color: var(--primary-light-color);
+    border-color: var(--primary-color);
+}
+
+.live-session .card-header {
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 1rem;
+}
+
+.live-indicator {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.live-session .session-title {
+    font-size: 1.8rem; 
+    font-weight: 600;
+}
+
+.live-session .confirm-arrival {
+    width: 100%;
+    padding: 0.9rem;
+    font-size: 1.1rem;
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.live-session .btn.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+    color: white;
+    cursor: default;
+}
+
+.live-session .btn.btn-success .checkmark-icon {
+    font-weight: bold;
+}

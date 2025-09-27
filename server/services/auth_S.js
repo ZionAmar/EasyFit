@@ -9,13 +9,10 @@ const login = async ({ userName, pass }) => {
 
     const [studiosAndRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
 
+    const { password_hash, ...userDetails } = user;
+    
     return {
-        userDetails: {
-            id: user.id,
-            full_name: user.full_name,
-            email: user.email,
-            userName: user.userName
-        },
+        userDetails,
         studios: studiosAndRoles
     };
 };
@@ -27,13 +24,11 @@ const verifyUserFromId = async (userId) => {
     }
 
     const [studiosAndRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
+    
+    const { password_hash, ...userDetails } = user;
 
     return {
-        userDetails: {
-            id: user.id,
-            full_name: user.full_name,
-            email: user.email,
-        },
+        userDetails,
         studios: studiosAndRoles
     };
 };

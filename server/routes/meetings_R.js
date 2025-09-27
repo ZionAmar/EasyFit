@@ -7,7 +7,7 @@ router.get('/public', meetingController.getPublicSchedule);
 router.get('/', isLoggedIn, meetingController.getMeetings);
 router.post('/', isLoggedIn, requireRole('admin'), meetingController.createMeeting);
 router.patch('/:id/arrive', isLoggedIn, requireRole('trainer', 'admin'), meetingController.markTrainerArrival);
-router.get('/:id', isLoggedIn, requireRole('admin'), meetingController.getMeetingById);
+router.get('/:id', isLoggedIn, requireRole('admin', 'trainer'), meetingController.getMeetingById);
 router.put('/:id', isLoggedIn, requireRole('admin'), meetingController.updateMeeting);
 router.delete('/:id', isLoggedIn, requireRole('admin'), meetingController.deleteMeeting);
 

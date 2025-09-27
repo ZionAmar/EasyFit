@@ -65,11 +65,29 @@ async function getAvailableTrainers(req, res, next) {
     }
 }
 
+async function updateProfile(req, res, next) {
+    console.log('--- DEBUG: [4/4] Reached the final updateProfile controller.');
+    try {
+        const userId = req.user.id;
+        const userData = { ...req.body };
+
+        if (req.file) {
+            userData.profile_picture_url = `/avatars/${req.file.filename}`;
+        }
+
+        const updatedUser = await userService.updateProfile(userId, userData);
+        res.json(updatedUser);
+    } catch (err) {
+        next(err);
+    }
+}
+
 module.exports = {
   getAllUsers,
   getUserById,
   createUser,
   updateUser,
   deleteUser,
-  getAvailableTrainers
+  getAvailableTrainers,
+  updateProfile
 };

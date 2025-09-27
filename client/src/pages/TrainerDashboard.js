@@ -4,21 +4,51 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import '../styles/Dashboard.css';
 
-const ParticipantRow = ({ participant, onCheckIn, isCheckInActive }) => (
-    <div className={`participant-row ${participant.check_in_time ? 'checked-in' : ''}`}>
-        <div className="participant-details">
-            {participant.check_in_time && <span className="checkmark-icon">✓</span>}
-            <span>{participant.full_name}</span>
+const ParticipantRow = ({ participant, onCheckIn, isCheckInActive, checkingInId }) => {
+    
+    const renderCheckInButton = () => {
+        if (checkingInId === participant.registrationId) {
+            return (
+                <button className="check-in-btn loading" disabled>
+                    <div className="spinner"></div> מעדכן...
+                </button>
+            );
+        }
+        if (participant.check_in_time) {
+            return (
+                <button className="check-in-btn checked-in" disabled>
+                    <span className="checkmark-icon">✓</span> בוצע צ׳ק-אין
+                </button>
+            );
+        }
+        if (isCheckInActive) {
+            return (
+                <button
+                    onClick={() => onCheckIn(participant.registrationId)}
+                    className="check-in-btn active"
+                >
+                    בצע צ׳ק-אין
+                </button>
+            );
+        }
+        return (
+            <button className="check-in-btn upcoming" disabled>
+                צ'ק-אין
+            </button>
+        );
+    };
+
+    return (
+        <div className={`participant-row ${participant.check_in_time ? 'checked-in' : ''}`}>
+            <div className="participant-details">
+                {participant.check_in_time && <span className="checkmark-icon">✓</span>}
+                <span>{participant.full_name}</span>
+            </div>
+            {renderCheckInButton()}
         </div>
-        <button 
-            onClick={() => onCheckIn(participant.registrationId)}
-            disabled={!!participant.check_in_time || !isCheckInActive}
-            className="check-in-btn"
-        >
-            {participant.check_in_time ? 'בוצע צ׳ק-אין' : 'בצע צ׳ק-אין'}
-        </button>
-    </div>
-);
+    );
+};
+
 
 const AgendaItem = ({ session }) => (
     <div className="agenda-item">
@@ -58,6 +88,7 @@ function TrainerDashboard() {
     const [mySchedule, setMySchedule] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+    const [checkingInId, setCheckingInId] = useState(null);
 
     const fetchSchedule = async () => {
         try {
@@ -86,14 +117,30 @@ function TrainerDashboard() {
             setMySchedule([]);
         }
     }, [user, activeStudio]);
-
+    
     const handleCheckIn = async (registrationId) => {
+        setCheckingInId(registrationId);
         try {
             await api.patch(`/api/participants/${registrationId}/check-in`, {});
-            await fetchSchedule(); 
+            
+            setMySchedule(currentSchedule => 
+                currentSchedule.map(session => ({
+                    ...session,
+                    participants: session.participants.map(p => 
+                        p.registrationId === registrationId 
+                            ? { ...p, check_in_time: new Date().toISOString() } 
+                            : p
+                    )
+                }))
+            );
+
         } catch (error) {
             console.error('Check-in failed:', error);
-            alert('שגיאה בעדכון סטטוס המתאמן.');
+            const errorMessage = error.response?.data?.message || error.message;
+            alert(`שגיאה בעדכון סטטוס המתאמן: ${errorMessage}`);
+            fetchSchedule();
+        } finally {
+            setCheckingInId(null);
         }
     };
     
@@ -103,13 +150,14 @@ function TrainerDashboard() {
             alert('הגעתך אושרה. שיהיה שיעור מוצלח!');
             await fetchSchedule();
         } catch (error) {
-            console.error('Error confirming arrival:', error);
-            alert(`שגיאה באישור הגעה: ${error.message}`);
+            console.error('Error confirming arrival:', error.response || error);
+            const errorMessage = error.response?.data?.message || error.message;
+            alert(`שגיאה באישור הגעה: ${errorMessage}`);
         }
     };
 
     const generateGoogleCalendarLink = (session) => {
-        const formatDateForGoogle = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, '');
+        const formatDateForGoogle = (date) => new Date(date).toISOString().replace(/-|:|\.\d{3}/g, '');
         const startTime = formatDateForGoogle(session.start);
         const endTime = formatDateForGoogle(session.end);
         const details = `שיעור ${session.name} בסטודיו ${activeStudio?.studio_name || 'EasyFit'}.`;
@@ -130,14 +178,14 @@ function TrainerDashboard() {
     };
 
     const now = new Date();
-    const upcomingSessions = mySchedule.filter(m => m.end >= now);
+    const upcomingSessions = mySchedule.filter(m => new Date(m.end) >= now);
     const nextSession = upcomingSessions.length > 0 ? upcomingSessions[0] : null;
-    const todaysSessions = mySchedule.filter(m => m.start.toDateString() === now.toDateString());
-    const pastSessions = mySchedule.filter(m => m.end < now).sort((a,b) => b.start - a.start);
+    const todaysSessions = mySchedule.filter(m => new Date(m.start).toDateString() === now.toDateString());
+    const pastSessions = mySchedule.filter(m => new Date(m.end) < now).sort((a,b) => new Date(b.start) - new Date(a.start));
 
-    const tenMinutesBefore = nextSession ? new Date(nextSession.start.getTime() - 10 * 60 * 1000) : null;
-    const isTrainerCheckInTime = nextSession && now >= tenMinutesBefore && now <= nextSession.end;
-    const isSessionActive = nextSession && now >= nextSession.start && now <= nextSession.end;
+    const tenMinutesBefore = nextSession ? new Date(new Date(nextSession.start).getTime() - 10 * 60 * 1000) : null;
+    const isTrainerCheckInTime = nextSession && now >= tenMinutesBefore && now <= new Date(nextSession.end);
+    const isSessionActive = nextSession && now >= new Date(nextSession.start) && now <= new Date(nextSession.end);
 
     if (isLoading) {
         return <div className="loading">טוען את לוח הזמנים שלך...</div>;
@@ -164,7 +212,7 @@ function TrainerDashboard() {
                         {nextSession ? (
                             <>
                                 <p className="session-title">{nextSession.name}</p>
-                                <p className="session-time">{new Intl.DateTimeFormat('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(nextSession.start)}</p>
+                                <p className="session-time">{new Intl.DateTimeFormat('he-IL', { weekday: 'long', hour: '2-digit', minute: '2-digit' }).format(new Date(nextSession.start))}</p>
                                 <div className="session-actions trainer-actions">
                                     {isTrainerCheckInTime ? (
                                         <button 
@@ -193,6 +241,13 @@ function TrainerDashboard() {
                                 </div>
                                 <div className="roster-container">
                                     <h4>נרשמים ({nextSession.participants?.length || 0} / {nextSession.capacity})</h4>
+                                    
+                                    {!isSessionActive && (
+                                        <div className="check-in-info">
+                                            צ'ק-אין למשתתפים יתאפשר עם תחילת השיעור בשעה {new Date(nextSession.start).toLocaleTimeString('he-IL', {hour: '2-digit', minute:'2-digit'})}.
+                                        </div>
+                                    )}
+
                                     <div className="roster-list">
                                         {nextSession.participants && nextSession.participants.length > 0 ? (
                                             nextSession.participants.map(p => 
@@ -201,6 +256,7 @@ function TrainerDashboard() {
                                                     participant={p} 
                                                     onCheckIn={handleCheckIn} 
                                                     isCheckInActive={isSessionActive}
+                                                    checkingInId={checkingInId}
                                                 />
                                             )
                                         ) : <p className="empty-state-small">אין עדיין נרשמים לשיעור זה.</p>}

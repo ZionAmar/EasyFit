@@ -1,6 +1,8 @@
 const md5 = require('md5');
 const userModel = require('../models/user_M');
 const Salt = process.env.Salt;
+const path = require('path'); 
+const fs = require('fs');
 
 const encWithSalt = (str) => md5(Salt + str);
 
@@ -48,10 +50,32 @@ async function remove(id) {
   return userModel.remove(id);
 }
 
+async function updateProfile(id, data) {
+    const currentUser = await getById(id);
+
+    if (currentUser.profile_picture_url && data.profile_picture_url) {
+        const oldImageName = path.basename(currentUser.profile_picture_url);
+        const oldImagePath = path.join(__dirname, '..', 'public', 'avatars', oldImageName);
+
+        fs.unlink(oldImagePath, (err) => {
+            if (err) {
+                console.error(`Failed to delete old avatar: ${oldImagePath}`, err);
+            } else {
+                console.log(`Successfully deleted old avatar: ${oldImagePath}`);
+            }
+        });
+    }
+    
+    await userModel.updateProfile(id, data);
+    const [[updatedUser]] = await userModel.getById(id);
+    return updatedUser;
+}
+
 module.exports = {
   getAll,
   getById,
   create,
   update,
   delete: remove,
+  updateProfile
 };
