@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
-import '../styles/ProfessionalTrainerDashboard.css';
+import '../styles/Dashboard.css';
 
 const ParticipantRow = ({ participant, onCheckIn, isCheckInActive }) => (
     <div className={`participant-row ${participant.check_in_time ? 'checked-in' : ''}`}>
@@ -64,10 +64,10 @@ function TrainerDashboard() {
             const data = await api.get('/api/meetings?viewAs=trainer'); 
             if (Array.isArray(data)) {
                 const processed = data.map(m => ({
-                        ...m,
-                        start: new Date(m.start),
-                        end: new Date(m.end)
-                    })).sort((a, b) => a.start - b.start);
+                    ...m,
+                    start: new Date(m.start),
+                    end: new Date(m.end)
+                })).sort((a, b) => a.start - b.start);
                 setMySchedule(processed);
             }
         } catch (error) {
@@ -150,7 +150,7 @@ function TrainerDashboard() {
                     <h1>שלום, {user?.full_name || "מאמן"}!</h1>
                     <p>הנה מה שמצפה לך היום. שיהיה אימון מעולה!</p>
                 </div>
-                <button className="cta-button-pro secondary" onClick={() => navigate('/schedule')}>
+                <button className="btn btn-primary" onClick={() => navigate('/schedule')}>
                     לוח זמנים מלא
                 </button>
             </header>
@@ -168,7 +168,7 @@ function TrainerDashboard() {
                                 <div className="session-actions trainer-actions">
                                     {isTrainerCheckInTime ? (
                                         <button 
-                                            className={`btn-primary confirm-arrival ${nextSession.trainer_arrival_time ? 'is-confirmed' : ''}`} 
+                                            className={`btn btn-primary confirm-arrival ${nextSession.trainer_arrival_time ? 'is-confirmed' : ''}`} 
                                             onClick={() => handleTrainerArrival(nextSession.id)}
                                             disabled={!!nextSession.trainer_arrival_time}
                                         >
@@ -182,10 +182,10 @@ function TrainerDashboard() {
                                         </button>
                                     ) : (
                                         <>
-                                            <button className="btn-secondary" onClick={() => handleAddToCalendar(nextSession)}>
+                                            <button className="btn btn-secondary" onClick={() => handleAddToCalendar(nextSession)}>
                                                 הוסף ליומן
                                             </button>
-                                            <button className="btn-secondary details-btn" onClick={() => setIsDetailsModalOpen(true)}>
+                                            <button className="btn btn-secondary details-btn" onClick={() => setIsDetailsModalOpen(true)}>
                                                 פרטים
                                             </button>
                                         </>

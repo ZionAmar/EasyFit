@@ -2,31 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api'; 
+import Modal from '../components/Modal'; 
 import '../styles/HistoryPage.css';
 
-const SessionDetailsModal = ({ session, onClose }) => {
+const SessionDetails = ({ session }) => {
     if (!session) return null;
 
     const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(date));
     const formatDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(date));
     
-    const handleContentClick = (e) => e.stopPropagation();
-
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={handleContentClick}>
-                <button className="modal-close-btn" onClick={onClose}>&times;</button>
-                <h2>פרטי האימון</h2>
-                <h3>{session.name}</h3>
-                <div className="modal-details">
-                    <p><strong>תאריך:</strong> {formatDate(session.start)}</p>
-                    <p><strong>שעה:</strong> {formatTime(session.start)} - {formatTime(session.end)}</p>
-                    <p><strong>מדריך/ה:</strong> {session.trainerName}</p>
-                    <p><strong>מיקום:</strong> חדר {session.roomName}</p>
-                    <p><strong>סטטוס:</strong> הושלם</p>
-                </div>
+        <>
+            <h2>פרטי האימון</h2>
+            <h3>{session.name}</h3>
+            <div className="modal-details">
+                <p><strong>תאריך:</strong> {formatDate(session.start)}</p>
+                <p><strong>שעה:</strong> {formatTime(session.start)} - {formatTime(session.end)}</p>
+                <p><strong>מדריך/ה:</strong> {session.trainerName}</p>
+                <p><strong>מיקום:</strong> חדר {session.roomName}</p>
+                <p><strong>סטטוס:</strong> הושלם</p>
             </div>
-        </div>
+        </>
     );
 };
 
@@ -50,7 +46,7 @@ const HistoryCard = ({ session, onShowDetails }) => {
                 </div>
             </div>
             <div className="card-actions">
-                <button className="details-btn-secondary" onClick={() => onShowDetails(session)}>
+                <button className="btn btn-secondary" onClick={() => onShowDetails(session)}>
                     פרטים
                 </button>
             </div>
@@ -73,9 +69,7 @@ function HistoryPage() {
     useEffect(() => {
         const fetchHistory = async () => {
             try {
-                // *** התיקון כאן ***
                 const data = await api.get('/api/meetings?viewAs=member');
-
                 if (Array.isArray(data)) {
                     const now = new Date();
                     const validStatuses = ['active', 'checked_in'];
@@ -172,14 +166,14 @@ function HistoryPage() {
                 ) : (
                     <div className="empty-state-history">
                         <h3>לא נמצאו אימונים בתקופה שנבחרה.</h3>
-                        <button onClick={() => navigate('/schedule')}>בוא/י נקבע אימון חדש!</button>
+                        <button className="btn btn-primary" onClick={() => navigate('/schedule')}>בוא/י נקבע אימון חדש!</button>
                     </div>
                 )}
             </main>
 
-            {isModalOpen && selectedSession && (
-                <SessionDetailsModal session={selectedSession} onClose={handleCloseModal} />
-            )}
+            <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+                <SessionDetails session={selectedSession} />
+            </Modal>
         </div>
     );
 }

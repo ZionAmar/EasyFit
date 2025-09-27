@@ -2,29 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import Modal from '../components/Modal'; 
 import '../styles/HistoryPage.css';
 
-const SessionDetailsModal = ({ session, onClose }) => {
+const SessionDetails = ({ session }) => {
     if (!session) return null;
     const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(date));
     const formatDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(date));
-    const handleContentClick = (e) => e.stopPropagation();
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={handleContentClick}>
-                <button className="modal-close-btn" onClick={onClose}>&times;</button>
-                <h2>פרטי השיעור</h2>
-                <h3>{session.name}</h3>
-                <div className="modal-details">
-                    <p><strong>תאריך:</strong> {formatDate(session.start)}</p>
-                    <p><strong>שעה:</strong> {formatTime(session.start)} - {formatTime(session.end)}</p>
-                    <p><strong>מיקום:</strong> חדר {session.roomName}</p>
-                    <p><strong>משתתפים:</strong> {session.participant_count || 0} </p>
-                    <p><strong>סטטוס:</strong> הושלם</p>
-                </div>
+        <>
+            <h2>פרטי השיעור</h2>
+            <h3>{session.name}</h3>
+            <div>
+                <p><strong>תאריך:</strong> {formatDate(session.start)}</p>
+                <p><strong>שעה:</strong> {formatTime(session.start)} - {formatTime(session.end)}</p>
+                <p><strong>מיקום:</strong> חדר {session.roomName}</p>
+                <p><strong>משתתפים:</strong> {session.participant_count || 0} </p>
+                <p><strong>סטטוס:</strong> הושלם</p>
             </div>
-        </div>
+        </>
     );
 };
 
@@ -48,7 +45,7 @@ const HistoryCard = ({ session, onShowDetails }) => {
                 </div>
             </div>
             <div className="card-actions">
-                <button className="details-btn-secondary" onClick={() => onShowDetails(session)}>
+                <button className="btn btn-secondary" onClick={() => onShowDetails(session)}>
                     פרטים
                 </button>
             </div>
@@ -88,8 +85,6 @@ function TrainerHistoryPage() {
                 }
             } catch (error) {
                 console.error("Error fetching trainer history:", error);
-                setPastSessions([]); 
-                setFilteredSessions([]);
             } finally {
                 setIsLoading(false);
             }
@@ -174,9 +169,9 @@ function TrainerHistoryPage() {
                 )}
             </main>
 
-            {isModalOpen && selectedSession && (
-                <SessionDetailsModal session={selectedSession} onClose={handleCloseModal} />
-            )}
+            <Modal isOpen={isModalOpen} onClose={handleCloseModal}>
+                <SessionDetails session={selectedSession} />
+            </Modal>
         </div>
     );
 }

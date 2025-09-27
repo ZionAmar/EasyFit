@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import '../styles/MultiSelect.css'; // ניצור קובץ עיצוב קטן
+import '../styles/MultiSelect.css';
 
 function MultiSelect({ options, selected, onChange, placeholder = "בחר..." }) {
     const [isOpen, setIsOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
 
     const handleSelect = (optionValue) => {
         if (selected.includes(optionValue)) {
@@ -11,28 +12,47 @@ function MultiSelect({ options, selected, onChange, placeholder = "בחר..." })
             onChange([...selected, optionValue]);
         }
     };
-    
-    const selectedLabels = options
-        .filter(opt => selected.includes(opt.value))
-        .map(opt => opt.label)
-        .join(', ');
+
+    const selectedItems = options.filter(opt => selected.includes(opt.value));
+    const filteredOptions = options.filter(opt => 
+        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     return (
         <div className="multiselect-container">
             <div className="multiselect-display" onClick={() => setIsOpen(!isOpen)}>
-                {selectedLabels || placeholder}
+                {selectedItems.length > 0 ? (
+                    selectedItems.map(item => (
+                        <span key={item.value} className="selected-item-tag">
+                            {item.label}
+                            <button className="remove-tag-btn" onClick={(e) => {
+                                e.stopPropagation(); // Prevent dropdown from opening
+                                handleSelect(item.value);
+                            }}>&times;</button>
+                        </span>
+                    ))
+                ) : (
+                    <span className="placeholder-text">{placeholder}</span>
+                )}
             </div>
             {isOpen && (
                 <div className="multiselect-options">
-                    {options.map(option => (
-                        <div key={option.value} className="multiselect-option">
-                            <input 
+                    <div className="multiselect-search">
+                        <input
+                            type="text"
+                            placeholder="חפש משתתפים..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                    </div>
+                    {filteredOptions.map(option => (
+                        <div key={option.value} className="multiselect-option" onClick={() => handleSelect(option.value)}>
+                             <input 
                                 type="checkbox"
-                                id={`ms-opt-${option.value}`}
                                 checked={selected.includes(option.value)}
-                                onChange={() => handleSelect(option.value)}
+                                readOnly
                             />
-                            <label htmlFor={`ms-opt-${option.value}`}>{option.label}</label>
+                            <label>{option.label}</label>
                         </div>
                     ))}
                 </div>

@@ -4,54 +4,50 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import heLocale from '@fullcalendar/core/locales/he';
-import api from '../services/api';
+import api from '../services/api'; 
 import BookingModal from '../components/BookingModal';
-import '../App.css';
+import TrainerViewModal from '../components/TrainerViewModal'; 
+import '../styles/FullCalendar.css';
 
 function SchedulePage() {
     const [events, setEvents] = useState([]);
-    const [selectedEvent, setSelectedEvent] = useState(null);
-    const { user, activeStudio, activeRole } = useAuth();
+    const [selectedEventForBooking, setSelectedEventForBooking] = useState(null);
+    const [selectedMeetingIdForTrainer, setSelectedMeetingIdForTrainer] = useState(null);
+    const { user, activeStudio, activeRole } = useAuth(); 
 
     const fetchEvents = useCallback(async () => {
         if (!activeStudio) return;
-
         try {
-            let publicMeetings = [];
-            // שלב 1: שלוף תמיד את כל השיעורים הציבוריים העתידיים
-            publicMeetings = await api.get(`/api/meetings/public?studioId=${activeStudio.studio_id}`);
+            let meetingsToDisplay = [];
+        
+            if (activeRole === 'trainer') {
+                meetingsToDisplay = await api.get(`/api/meetings?viewAs=trainer`);
+            } else {
+                const publicMeetings = await api.get(`/api/meetings/public?studioId=${activeStudio.studio_id}`);
+                const meetingsMap = new Map(publicMeetings.map(m => [m.id, m]));
             
-            // צור מפה של כל השיעורים לפי ID לגישה מהירה
-            const meetingsMap = new Map(publicMeetings.map(m => [m.id, m]));
-
-            // שלב 2: אם המשתמש מחובר, שלוף את כל השיעורים הספציפיים שלו
-            if (user) {
-                const myMeetings = await api.get(`/api/meetings?viewAs=${activeRole}`);
-                
-                // שלב 3: עדכן את המפה עם המידע האישי של המשתמש
-                // זה יבטיח שהסטטוס האישי (רשום/בהמתנה) תמיד ידרוס את המידע הציבורי
-                myMeetings.forEach(myMeeting => {
-                    meetingsMap.set(myMeeting.id, myMeeting);
-                });
+                if (user) { 
+                    const myMeetings = await api.get(`/api/meetings?viewAs=${activeRole}`);
+                    myMeetings.forEach(myMeeting => {
+                        meetingsMap.set(myMeeting.id, myMeeting);
+                    });
+                }
+                meetingsToDisplay = Array.from(meetingsMap.values());
             }
-
-            const allMeetings = Array.from(meetingsMap.values());
-            
-            if (Array.isArray(allMeetings)) {
-                const formattedEvents = allMeetings.map(item => {
+        
+            if (Array.isArray(meetingsToDisplay)) {
+                const formattedEvents = meetingsToDisplay.map(item => {
                     const userStatus = item.status;
                     const isRegistered = Boolean(userStatus);
-                    
                     let eventTitle = item.name;
+                    
                     if (activeRole !== 'trainer' && item.trainerName) {
                         eventTitle += ` (${item.trainerName})`;
                     }
-                    if (userStatus === 'waiting') {
-                        eventTitle += ' (בהמתנה)';
-                    } else if (userStatus === 'pending') {
-                        eventTitle += ' (ממתין לאישור)';
-                    }
-
+                
+                    if (userStatus === 'waiting') eventTitle += ' (בהמתנה)';
+                    else if (userStatus === 'pending') eventTitle += ' (ממתין לאישור)';
+                
                     return {
                         ...item,
                         title: eventTitle,
@@ -76,25 +72,34 @@ function SchedulePage() {
     useEffect(() => {
         fetchEvents();
     }, [fetchEvents]);
-  
+     
     const handleEventClick = (clickInfo) => {
-        setSelectedEvent({
-            id: clickInfo.event.id,
-            title: clickInfo.event.title,
-            start: new Date(clickInfo.event.startStr),
-            isMyEvent: clickInfo.event.extendedProps.isMyEvent,
-            trainerName: clickInfo.event.extendedProps.trainerName,
-            roomName: clickInfo.event.extendedProps.roomName,
-            status: clickInfo.event.extendedProps.status
-        });
+        if (activeRole === 'trainer') {
+            setSelectedMeetingIdForTrainer(clickInfo.event.id);
+        } else {
+            setSelectedEventForBooking({
+                id: clickInfo.event.id,
+                title: clickInfo.event.title,
+                start: new Date(clickInfo.event.startStr),
+                isMyEvent: clickInfo.event.extendedProps.isMyEvent,
+                trainerName: clickInfo.event.extendedProps.trainerName,
+                roomName: clickInfo.event.extendedProps.roomName,
+                status: clickInfo.event.extendedProps.status,
+                registrationId: clickInfo.event.extendedProps.registrationId 
+            });
+        }
     };
 
     const handleModalSave = () => {
-        setSelectedEvent(null);
+        setSelectedEventForBooking(null);
+        setSelectedMeetingIdForTrainer(null);
         fetchEvents();
     };
     
-    const handleCloseModal = () => setSelectedEvent(null);
+    const handleCloseModal = () => {
+        setSelectedEventForBooking(null);
+        setSelectedMeetingIdForTrainer(null);
+    };
 
     return (
         <div className="container">
@@ -109,14 +114,21 @@ function SchedulePage() {
                 events={events}
                 timeZone='local'
                 eventClick={handleEventClick}
-                height="auto"
+                dayMaxEvents={true}
             />
 
-            {selectedEvent && (
+            {selectedEventForBooking && (
                 <BookingModal 
-                    event={selectedEvent} 
+                    event={selectedEventForBooking} 
                     onClose={handleCloseModal} 
                     onSave={handleModalSave}
+                />
+            )}
+
+            {selectedMeetingIdForTrainer && (
+                <TrainerViewModal
+                    meetingId={selectedMeetingIdForTrainer}
+                    onClose={handleCloseModal}
                 />
             )}
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import MemberModal from './MemberModal';
+import MemberModal from '../components/MemberModal';
 import '../styles/TrainersView.css'; 
 
 function MembersView() {
@@ -38,7 +38,7 @@ function MembersView() {
         if (window.confirm(`האם אתה בטוח שברצונך למחוק את ${memberName}?`)) {
             try {
                 await api.delete(`/api/users/${memberId}`);
-                fetchMembers(); // Refresh the list after deleting
+                fetchMembers();
             } catch (err) {
                 setError(err.message || 'שגיאה במחיקת המתאמן.');
             }
@@ -51,7 +51,7 @@ function MembersView() {
     );
 
     if (isLoading) return <div className="loading">טוען מתאמנים...</div>;
-    if (error) return <div className="error-state">{error}</div>;
+    if (error) return <div className="error">{error}</div>;
 
     return (
         <div className="trainers-view-container">
@@ -64,7 +64,7 @@ function MembersView() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <button className="cta-button-pro" onClick={() => setIsAddModalOpen(true)}>
+                <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
                     + הוסף מתאמן
                 </button>
             </div>
@@ -76,10 +76,10 @@ function MembersView() {
                         <p>{member.email}</p>
                         <p>{member.phone}</p>
                         <div className="card-actions">
-                            <button className="edit-btn" onClick={() => setEditingMember(member)}>
+                            <button className="btn btn-secondary" onClick={() => setEditingMember(member)}>
                                 ערוך
                             </button>
-                            <button className="delete-btn" onClick={() => handleDelete(member.id, member.full_name)}>
+                            <button className="btn btn-danger" onClick={() => handleDelete(member.id, member.full_name)}>
                                 מחק
                             </button>
                         </div>
@@ -94,6 +94,8 @@ function MembersView() {
                     onSave={handleSave}
                 />
             )}
+
+            <button className="fab" onClick={() => setIsAddModalOpen(true)}>+</button>
         </div>
     );
 }

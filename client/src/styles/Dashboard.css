@@ -1,131 +1,255 @@
-/* --- Dashboard Layout & Components --- */
 
-.dashboard-container {
-  padding: 1rem;
-}
-
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+.pro-dashboard {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+    font-family: 'Rubik', sans-serif; 
 }
 
-.dashboard-header h1 {
-  margin: 0;
-  font-weight: 600;
-  color: var(--dark-color);
-}
-
-.stats-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1.5rem; /* <<< אפשר להגדיל את זה ל-2rem אם רוצים יותר רווח */
-  margin-bottom: 2rem;
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 1.5rem; /* <<< גם כאן, אפשר להגדיל ל-2rem */
-  align-items: flex-start;
-}
-
-.card {
-  background: var(--glass-bg);
-  border-radius: 16px;
-  padding: 2rem; /* <<< הגדלנו את הריווח הפנימי */
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-}
-
-.quick-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.secondary-button {
-  background-color: transparent;
-  color: var(--primary-color);
-  border: 2px solid var(--primary-color);
-}
-.secondary-button:hover {
-  background-color: rgba(124, 154, 146, 0.1); /* צבע רקע עדין במעבר עכבר */
-}
-
-.card h3 {
-  margin-top: 0;
-  border-bottom: 1px solid var(--primary-color);
-  padding-bottom: 0.75rem; /* <<< הגדלנו קצת את הריווח */
-  margin-bottom: 1.5rem; /* <<< הגדלנו את הריווח */
-  color: var(--primary-color);
-  font-weight: 600;
-}
-
-/* >>>>>>>>>> הוספה חשובה: מרווח בין הכרטיסיות בפאנל הצדדי <<<<<<<<<< */
-.side-panel .card:not(:last-child) {
-  margin-bottom: 1.5rem;
-}
-
-/* --- Specific Component Styles --- */
-
-.stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 1.5rem; /* <<< הגדלנו את הריווח הפנימי */
-}
-
-.stat-value {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: var(--dark-color);
-  line-height: 1.2;
-}
-
-.stat-title {
-  font-size: 0.9rem;
-  font-weight: 400;
-  color: #666;
-  margin-top: 0.5rem; /* <<< הוספנו מרווח קטן */
-}
-
-.session-card h4 {
-  margin-top: 0;
-  font-size: 1.2rem;
-}
-.session-card p {
-    margin: 0.5rem 0;
-}
-.session-card button {
-    margin-top: 1rem;
-    background-color: var(--primary-color);
-    color: white;
-}
-
-.simple-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.simple-list li {
+.dashboard-header-pro {
     display: flex;
     justify-content: space-between;
-    border-bottom: 1px solid var(--glass-border);
-}
-.simple-list li:last-child {
-    border-bottom: none;
+    align-items: center;
+    margin-bottom: 2.5rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
 }
 
-/* Responsive: On smaller screens, the grid becomes a single column */
-@media (max-width: 900px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
+.header-text h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.header-text p {
+    font-size: 1.1rem;
+    color: var(--text-secondary-color);
+    max-width: 500px;
+}
+
+.dashboard-grid-pro {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 1.5rem;
+}
+
+.main-panel-pro > section:not(:last-child),
+.side-panel-pro > section:not(:last-child) {
+    margin-bottom: 1.5rem;
+}
+
+.card-pro {
+    background-color: var(--card-bg-color);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: box-shadow 0.3s ease;
+}
+
+.card-pro:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.card-icon {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+}
+
+.empty-state, .empty-state-small {
+    padding: 1rem 0;
+    text-align: center;
+    color: var(--text-secondary-color);
+    font-style: italic;
+}
+
+.see-all-link {
+    display: block;
+    text-align: left;
+    margin-top: 1rem;
+    color: var(--primary-color);
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.see-all-link:hover {
+    color: var(--primary-dark-color);
+    text-decoration: underline;
+}
+
+.stats-pills-container {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+.stat-pill {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-color: var(--background-color);
+    border-radius: 8px;
+    text-align: center;
+    min-width: 120px;
+}
+.stat-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+}
+
+/* --- Next Session Card --- */
+.next-session-card .session-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+.next-session-card .session-trainer,
+.next-session-card .session-time {
+    color: var(--text-secondary-color);
+    margin-bottom: 1rem;
+}
+.session-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.list-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.85rem 0.25rem;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.2s ease;
+}
+.list-card .list-item:last-of-type {
+    border-bottom: none;
+}
+.list-item:hover {
+    background-color: var(--background-color);
+}
+.item-details {
+    display: flex;
+    flex-direction: column;
+}
+.item-title {
+    font-weight: 500;
+}
+.item-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+}
+.status-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+.status-badge.waiting {
+    background-color: #fff8e1;
+    color: #f59e0b;
+}
+.status-badge.pending {
+    background-color: #e0f2fe; 
+    color: #3b82f6;
+}
+
+.roster-container {
+    margin-top: 2rem;
+}
+.roster-container h4 {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.roster-container.waiting-list {
+    margin-top: 2rem;
+}
+.participant-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.5rem;
+    border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+.participant-row:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+}
+.participant-row.checked-in {
+    background-color: #f0fdf4; 
+    color: #166534;
+}
+.participant-row .checkmark-icon {
+    margin-left: 0.5rem;
+    font-weight: bold;
+}
+.check-in-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+.check-in-btn:disabled {
+    background-color: #65a30d; 
+    cursor: not-allowed;
+}
+
+.agenda-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    gap: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.agenda-item:last-child {
+    border-bottom: none;
+}
+.agenda-time {
+    background-color: var(--background-color);
+    padding: 0.4rem 0.6rem;
+    border-radius: 5px;
+    font-weight: 500;
+}
+.agenda-occupancy {
+    margin-right: auto;
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+}
+
+@media (max-width: 992px) {
+    .dashboard-grid-pro {
+        grid-template-columns: 1fr;
+    }
 }

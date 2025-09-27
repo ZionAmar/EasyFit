@@ -1,46 +1,44 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 function RoleSwitcher() {
     const { activeStudio, activeRole, switchRole } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
 
     if (!activeStudio || !activeStudio.roles || activeStudio.roles.length <= 1) {
         return null;
     }
 
-    const handleRoleChange = (e) => {
-        const newRole = e.target.value;
+    const handleRoleChange = (newRole) => {
         switchRole(newRole);
+        setIsOpen(false);
     };
 
     const translateRole = (role) => {
         switch (role) {
-            case 'admin':
-                return 'מנהל';
-            case 'trainer':
-                return 'מאמן';
-            case 'member':
-                return 'מתאמן';
-            default:
-                return role;
+            case 'admin': return 'מנהל';
+            case 'trainer': return 'מאמן';
+            case 'member': return 'מתאמן';
+            default: return role;
         }
     };
 
     return (
-        <div className="role-switcher">
-            <label htmlFor="role-select">תצוגת:</label>
-            <select
-                id="role-select"
-                value={activeRole || ''}
-                onChange={handleRoleChange}
-                className="role-select"
-            >
+        <div className="custom-select">
+            <div className="select-selected" onClick={() => setIsOpen(!isOpen)}>
+                {translateRole(activeRole)}
+            </div>
+            <div className={`select-items ${isOpen ? '' : 'select-hide'}`}>
                 {activeStudio.roles.map(role => (
-                    <option key={role} value={role}>
+                    <div 
+                        key={role} 
+                        className="select-item"
+                        onClick={() => handleRoleChange(role)}
+                    >
                         {translateRole(role)}
-                    </option>
+                    </div>
                 ))}
-            </select>
+            </div>
         </div>
     );
 }

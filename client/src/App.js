@@ -13,6 +13,7 @@ import DashboardPage from './pages/DashboardPage';
 import ManageSchedulePage from './pages/ManageSchedulePage'; 
 import BookingConfirmedPage from './pages/BookingConfirmedPage';
 import BookingErrorPage from './pages/BookingErrorPage';
+import Breadcrumbs from './components/Breadcrumbs';
 
 import './App.css';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -36,7 +37,7 @@ const ProtectedRoute = ({ allowedRoles }) => {
 
 function AppRoutes() {
   return (
-    <main className="container">
+    <main className="main-content">
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
@@ -73,6 +74,7 @@ function App() {
     <AuthProvider>
       <Router>
         <Navbar />
+        <Breadcrumbs />
         <AppRoutes />
       </Router>
     </AuthProvider>

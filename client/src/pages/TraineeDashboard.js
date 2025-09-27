@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api'; 
-import '../styles/ProfessionalDashboard.css';
+import '../styles/Dashboard.css';
 
 const StatPill = ({ label, value, icon }) => (
     <div className="stat-pill">
@@ -49,7 +49,7 @@ const SessionDetailsModal = ({ session, isOpen, onClose, onCancel, showCancelBut
                 </div>
                 {showCancelButton && (
                     <div className="modal-actions">
-                        <button className="btn-tertiary" onClick={() => onCancel(session.registrationId, session.name)}>בטל הרשמה</button>
+                        <button className="btn btn-danger" onClick={() => onCancel(session.registrationId, session.name)}>בטל הרשמה</button>
                     </div>
                 )}
             </div>
@@ -171,9 +171,9 @@ function TraineeDashboard() {
                         <h1>שלום, {user?.full_name || "מתאמן"}!</h1>
                         <p>מוכנ/ה לכבוש את המטרות שלך היום? הנה תמונת המצב שלך.</p>
                     </div>
-                    <button className="cta-button-pro" onClick={() => navigate('/schedule')}>
-                        <span className="plus-icon">+</span>
-                        הזמן שיעור חדש
+                    <button className="btn btn-primary" onClick={() => navigate('/schedule')}>
+                        <span>+</span>
+                        <span>הזמן שיעור חדש</span>
                     </button>
                 </header>
 
@@ -191,14 +191,14 @@ function TraineeDashboard() {
                                     <p className="session-time">{formatFullDate(nextSession.start)}</p>
                                     <div className="session-actions">
                                         {isSessionActiveNow ? (
-                                            <button className="btn-primary confirm-arrival" onClick={() => handleConfirmArrival(nextSession.id)}>
+                                            <button className="btn btn-primary confirm-arrival" onClick={() => handleConfirmArrival(nextSession.id)}>
                                                 אישור הגעה
                                             </button>
                                         ) : (
                                             <>
-                                                <button className="btn-primary" onClick={() => openSessionDetails(nextSession)}>פרטים</button>
-                                                <button className="btn-secondary" onClick={() => handleAddToCalendar(nextSession)}>הוסף ליומן</button>
-                                                <button className="btn-tertiary" onClick={() => handleCancel(nextSession.registrationId, nextSession.name)}>בטל הרשמה</button>
+                                                <button className="btn btn-primary" onClick={() => openSessionDetails(nextSession)}>פרטים</button>
+                                                <button className="btn btn-secondary" onClick={() => handleAddToCalendar(nextSession)}>הוסף ליומן</button>
+                                                <button className="btn btn-danger" onClick={() => handleCancel(nextSession.registrationId, nextSession.name)}>בטל הרשמה</button>
                                             </>
                                         )}
                                     </div>

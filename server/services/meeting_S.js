@@ -48,18 +48,27 @@ const getPublicSchedule = async (studioId, date) => {
     return meetings;
 };
 
-const createMeeting = async (meetingData, user) => {
-    const meetingInfo = { 
-        ...meetingData, 
-        studio_id: user.studioId,
-    };
-    
-    const [overlapping] = await meetingModel.findOverlappingMeeting(meetingInfo);
-    if (overlapping.length > 0) {
-        throw new Error('The room is already booked for the requested time.');
+const createMeeting = async (data, user) => {
+    const { participantIds, ...meetingData } = data;
+    const meetingInfo = { ...meetingData, studio_id: user.studioId };
+
+    const [overlappingRoom] = await meetingModel.findOverlappingMeeting(meetingInfo);
+    if (overlappingRoom.length > 0) {
+        throw new Error('החדר כבר תפוס בשעה המבוקשת.');
     }
 
-    const [result] = await meetingModel.create(meetingInfo);
+    const overlappingTrainer = await meetingModel.findOverlappingMeetingForTrainer(meetingInfo);
+    if (overlappingTrainer.length > 0) {
+        throw new Error(`המאמן ${overlappingTrainer[0].trainerName} כבר משובץ למפגש '${overlappingTrainer[0].name}' בזמן זה.`);
+    }
+
+    const busyParticipants = await meetingModel.findOverlappingMeetingsForParticipants(meetingInfo, participantIds);
+    if (busyParticipants.length > 0) {
+        const names = busyParticipants.map(p => p.full_name).join(', ');
+        throw new Error(`המתאמנים הבאים כבר רשומים למפגש אחר בזמן זה: ${names}.`);
+    }
+
+    const result = await meetingModel.create(meetingInfo, participantIds);
     return { id: result.insertId, ...meetingInfo };
 };
 
@@ -94,11 +103,22 @@ const getMeetingDetails = async (meetingId) => {
 
 const updateMeeting = async (meetingId, data, user) => {
     const { participantIds, ...meetingData } = data;
-    meetingData.studio_id = user.studioId;
-    
-    const [overlapping] = await meetingModel.findOverlappingMeeting(meetingData);
-    if (overlapping.length > 0 && overlapping[0].id != meetingId) {
-        throw new Error('The room is already booked for the requested time.');
+    const meetingInfo = { ...meetingData, studio_id: user.studioId };
+
+    const [overlappingRoom] = await meetingModel.findOverlappingMeeting(meetingInfo);
+    if (overlappingRoom.length > 0 && overlappingRoom[0].id != meetingId) {
+        throw new Error('החדר כבר תפוס בשעה המבוקשת.');
+    }
+
+    const overlappingTrainer = await meetingModel.findOverlappingMeetingForTrainer(meetingInfo, meetingId);
+    if (overlappingTrainer.length > 0) {
+        throw new Error(`המאמן ${overlappingTrainer[0].trainerName} כבר משובץ למפגש '${overlappingTrainer[0].name}' בזמן זה.`);
+    }
+
+    const busyParticipants = await meetingModel.findOverlappingMeetingsForParticipants(meetingInfo, participantIds, meetingId);
+     if (busyParticipants.length > 0) {
+        const names = busyParticipants.map(p => p.full_name).join(', ');
+        throw new Error(`המתאמנים הבאים כבר רשומים למפגש אחר בזמן זה: ${names}.`);
     }
 
     await meetingModel.update(meetingId, meetingData, participantIds);

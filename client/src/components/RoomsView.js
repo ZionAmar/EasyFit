@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import RoomModal from './RoomModal';
-import '../styles/TrainersView.css'; 
+import RoomModal from '../components/RoomModal';
+import '../styles/TrainersView.css';
 
 function RoomsView() {
     const [rooms, setRooms] = useState([]);
@@ -9,6 +9,8 @@ function RoomsView() {
     const [error, setError] = useState('');
     const [editingRoom, setEditingRoom] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    
+    const [searchTerm, setSearchTerm] = useState('');
 
     const fetchRooms = async () => {
         setIsLoading(true);
@@ -43,27 +45,40 @@ function RoomsView() {
         }
     };
 
+    const filteredRooms = rooms.filter(room => 
+        room.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
     if (isLoading) return <div className="loading">טוען חדרים...</div>;
-    if (error) return <div className="error-state">{error}</div>;
+    if (error) return <div className="error">{error}</div>;
 
     return (
         <div className="trainers-view-container">
             <div className="view-header">
                 <h3>רשימת חדרים</h3>
-                <button className="cta-button-pro" onClick={() => setIsAddModalOpen(true)}>
+                
+                <input 
+                    type="text"
+                    placeholder="חפש לפי שם חדר..."
+                    className="search-input"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+
+                <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
                     + הוסף חדר
                 </button>
             </div>
             
             <div className="trainers-grid">
-                {rooms.map(room => (
+                {filteredRooms.map(room => (
                     <div key={room.id} className="trainer-card">
                         <h4>{room.name}</h4>
                         <p>קיבולת: {room.capacity} אנשים</p>
-                        <p>{room.is_available ? 'זמין' : 'לא זמין'}</p>
+                        <p>{room.has_equipment ? 'כולל ציוד' : 'ללא ציוד'}</p>
                         <div className="card-actions">
-                            <button className="edit-btn" onClick={() => setEditingRoom(room)}>ערוך</button>
-                            <button className="delete-btn" onClick={() => handleDelete(room.id, room.name)}>מחק</button>
+                            <button className="btn btn-secondary" onClick={() => setEditingRoom(room)}>ערוך</button>
+                            <button className="btn btn-danger" onClick={() => handleDelete(room.id, room.name)}>מחק</button>
                         </div>
                     </div>
                 ))}
@@ -76,6 +91,8 @@ function RoomsView() {
                     onSave={handleSave}
                 />
             )}
+
+            <button className="fab" onClick={() => setIsAddModalOpen(true)}>+</button>
         </div>
     );
 }

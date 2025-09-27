@@ -7,6 +7,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import heLocale from '@fullcalendar/core/locales/he';
 import api from '../services/api';
 import MeetingModal from '../components/MeetingModal';
+import '../styles/FullCalendar.css';
 
 function ManageSchedulePage() {
     const location = useLocation();
@@ -142,7 +143,7 @@ function ManageSchedulePage() {
     );
 
     return (
-        <div className="container">
+        <div className="container"> 
             <div className="schedule-header">
                 <h2>ניהול לוח שנה</h2>
                 <div className="schedule-filters">
@@ -168,13 +169,9 @@ function ManageSchedulePage() {
                 dateClick={handleDateClick}
                 datesSet={handleDatesSet}
                 editable={true}
-                droppable={true}
-                dayMaxEvents={true}
-                height="90vh"
+                dayMaxEvents={true} 
                 businessHours={businessHours}
                 selectConstraint="businessHours"
-                slotMinTime={viewMinTime}
-                slotMaxTime={viewMaxTime}
             />
 
             {(selectedMeeting || modalInitialData) && (
@@ -182,6 +179,7 @@ function ManageSchedulePage() {
                     meeting={selectedMeeting}
                     initialData={modalInitialData}
                     operatingHours={operatingHours}
+                    trainers={trainers}
                     onClose={handleModalClose}
                     onSave={handleModalSave}
                 />

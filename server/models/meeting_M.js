@@ -52,24 +52,31 @@ const getByMemberId = (memberId, studioId, date) => {
     let query = `
         SELECT 
             m.id, 
-            mr.id as registrationId, -- <-- ודא שהשורה הזו קיימת
+            mr.id as registrationId,
             m.name, m.trainer_id, m.room_id, m.participant_count,
             CONCAT(m.date, 'T', m.start_time) as start,
             CONCAT(m.date, 'T', m.end_time) as end,
-            mr.status,
+            mr.status, 
             u.full_name as trainerName,
-            r.name as roomName
+            r.name as roomName,
+            r.capacity
         FROM meetings AS m
         JOIN meeting_registrations AS mr ON m.id = mr.meeting_id
         JOIN users u ON m.trainer_id = u.id
         JOIN rooms r ON m.room_id = r.id
-        WHERE mr.user_id = ? AND m.studio_id = ?
+        WHERE mr.user_id = ? 
+          AND m.studio_id = ?
+          AND mr.status != 'cancelled'
     `;
     const params = [memberId, studioId];
+    
     if (date) {
         query += ' AND m.date = ?';
         params.push(date);
     }
+
+    query += ' GROUP BY m.id';
+    
     return db.query(query, params).then(result => result[0]);
 };
 
@@ -103,9 +110,37 @@ const findOverlappingMeeting = ({ date, start_time, end_time, room_id, studio_id
     return db.query(query, [room_id, date, end_time, start_time, studio_id]);
 };
 
-const create = ({ studio_id, name, trainer_id, date, start_time, end_time, room_id }) => {
-    const query = `INSERT INTO meetings (studio_id, name, trainer_id, date, start_time, end_time, room_id) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    return db.query(query, [studio_id, name, trainer_id, date, start_time, end_time, room_id]);
+const create = async (meetingData, participantIds) => {
+    const { studio_id, name, trainer_id, date, start_time, end_time, room_id } = meetingData;
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [result] = await connection.query(
+            `INSERT INTO meetings (studio_id, name, trainer_id, date, start_time, end_time, room_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [studio_id, name, trainer_id, date, start_time, end_time, room_id]
+        );
+        const meetingId = result.insertId;
+
+        if (participantIds && participantIds.length > 0) {
+            const registrations = participantIds.map(userId => [meetingId, userId, 'active']);
+            await connection.query(
+                `INSERT INTO meeting_registrations (meeting_id, user_id, status) VALUES ?`,
+                [registrations]
+            );
+        }
+        
+        await connection.commit();
+        
+        await syncParticipantCount(meetingId); 
+        
+        return { insertId: meetingId };
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
 };
 
 const getActiveParticipants = (meetingId) => {
@@ -116,6 +151,52 @@ const getActiveParticipants = (meetingId) => {
         WHERE mr.meeting_id = ? AND mr.status IN ('active', 'checked_in')
     `;
     return db.query(query, [meetingId]).then(extractRows);
+};
+
+const findOverlappingMeetingForTrainer = ({ date, start_time, end_time, trainer_id, studio_id }, excludeMeetingId = null) => {
+    let query = `
+        SELECT m.id, m.name, u.full_name as trainerName 
+        FROM meetings m
+        JOIN users u ON m.trainer_id = u.id
+        WHERE m.trainer_id = ? 
+        AND m.date = ? 
+        AND m.start_time < ? 
+        AND m.end_time > ? 
+        AND m.studio_id = ?`;
+    const params = [trainer_id, date, end_time, start_time, studio_id];
+
+    if (excludeMeetingId) {
+        query += ` AND m.id != ?`;
+        params.push(excludeMeetingId);
+    }
+    return db.query(query, params).then(result => result[0]);
+};
+
+const findOverlappingMeetingsForParticipants = ({ date, start_time, end_time, studio_id }, participantIds = [], excludeMeetingId = null) => {
+    if (!participantIds || participantIds.length === 0) {
+        return Promise.resolve([]);
+    }
+
+    let query = `
+        SELECT DISTINCT u.full_name
+        FROM users u
+        JOIN meeting_registrations mr ON u.id = mr.user_id
+        JOIN meetings m ON mr.meeting_id = m.id
+        WHERE u.id IN (?)
+        AND mr.status IN ('active', 'checked_in', 'pending')
+        AND m.date = ?
+        AND m.start_time < ?
+        AND m.end_time > ?
+        AND m.studio_id = ?
+    `;
+    const params = [participantIds, date, end_time, start_time, studio_id];
+
+    if (excludeMeetingId) {
+        query += ` AND m.id != ?`;
+        params.push(excludeMeetingId);
+    }
+    
+    return db.query(query, params).then(result => result[0]);
 };
 
 const getWaitingParticipants = (meetingId) => {
@@ -207,5 +288,7 @@ module.exports = {
     syncParticipantCount, 
     getByIdWithParticipants,
     update,
-    remove
+    remove,
+    findOverlappingMeetingForTrainer,
+    findOverlappingMeetingsForParticipants
 };

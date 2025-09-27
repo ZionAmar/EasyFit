@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import TrainerModal from './TrainerModal';
+import TrainerModal from '../components/TrainerModal';
 import '../styles/TrainersView.css';
 
 function TrainersView() {
@@ -51,7 +51,7 @@ function TrainersView() {
     );
 
     if (isLoading) return <div className="loading">טוען מאמנים...</div>;
-    if (error) return <div className="error-state">{error}</div>;
+    if (error) return <div className="error">{error}</div>;
 
     return (
         <div className="trainers-view-container">
@@ -64,7 +64,7 @@ function TrainersView() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <button className="cta-button-pro" onClick={() => setIsAddModalOpen(true)}>
+                <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
                     + הוסף מאמן
                 </button>
             </div>
@@ -76,10 +76,10 @@ function TrainersView() {
                         <p>{trainer.email}</p>
                         <p>{trainer.phone}</p>
                         <div className="card-actions">
-                            <button className="edit-btn" onClick={() => setEditingTrainer(trainer)}>
+                            <button className="btn btn-secondary" onClick={() => setEditingTrainer(trainer)}>
                                 ערוך
                             </button>
-                            <button className="delete-btn" onClick={() => handleDelete(trainer.id, trainer.full_name)}>
+                            <button className="btn btn-danger" onClick={() => handleDelete(trainer.id, trainer.full_name)}>
                                 מחק
                             </button>
                         </div>
@@ -94,6 +94,8 @@ function TrainersView() {
                     onSave={handleSave}
                 />
             )}
+
+            <button className="fab" onClick={() => setIsAddModalOpen(true)}>+</button>
         </div>
     );
 }

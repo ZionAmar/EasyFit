@@ -5,7 +5,7 @@ import DailySchedule from '../components/DailySchedule';
 import StatCard from '../components/StatCard';
 import StudioSettingsView from '../components/StudioSettingsView';
 import TrainersView from '../components/TrainersView';
-import MembersView from '../components/MembersView'; // <-- 1. Import the new MembersView component
+import MembersView from '../components/MembersView'; 
 import '../styles/ManagerDashboard.css';
 import RoomsView from '../components/RoomsView';
 
@@ -77,11 +77,11 @@ function ManagerDashboard() {
             <header className="dashboard-header-pro">
                 <div className="header-text">
                     <h1>מרכז הבקרה</h1>
-                    <p>שלום {user.full_name}, ברוך הבא לאזור הניהול של {studio.name}.</p>
+                    <p>שלום {user.full_name},</p><p> ברוך הבא לאזור הניהול של {studio.name}.</p>
                 </div>
-                <button className="cta-button-pro" onClick={() => navigate('/manage/schedule')}>
-                    <span className="plus-icon">📅</span>
-                    לוח שנה מלא
+                <button className="btn btn-primary" onClick={() => navigate('/manage/schedule')}>
+                    <span>📅</span>
+                    <span>לוח שנה מלא</span>
                 </button>
             </header>
 

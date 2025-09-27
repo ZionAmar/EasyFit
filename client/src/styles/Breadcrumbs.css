@@ -1,0 +1,21 @@
+.breadcrumbs {
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-color);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.9rem;
+}
+.breadcrumbs a {
+  color: var(--primary-color);
+  text-decoration: none;
+}
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
+.breadcrumbs span {
+  margin: 0 0.5rem;
+  color: #999;
+}
+.breadcrumbs .current-page {
+  color: var(--dark-color);
+  font-weight: 500;
+}

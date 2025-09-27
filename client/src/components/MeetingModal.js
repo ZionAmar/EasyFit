@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import MultiSelect from './MultiSelect';
+import '../styles/UserModal.css'; 
 
 function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours }) {
     const isEditMode = Boolean(meeting);

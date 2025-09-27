@@ -1,121 +1,337 @@
-/* --- 3. Navigation Bar (Updated) --- */
+
 .navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.2rem 2rem;
-    position: relative;
-    background: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: 0 0 12px 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-    z-index: 10;
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  box-sizing: border-box; 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 1000;
 }
 
 .navbar-brand {
-    font-size: 1.8rem;
-    font-weight: 600;
-    color: var(--primary-color); /* ודא שמשתנה זה מוגדר בקובץ ה-CSS הראשי שלך */
-    cursor: pointer;
-    letter-spacing: 1px;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: pointer;
 }
 
-/* --- Desktop Layout (from 769px and up) --- */
-.navbar-desktop-left, .navbar-desktop-center, .navbar-desktop-right {
-    flex: 1;
-    display: flex;
-    align-items: center;
-}
-.navbar-desktop-left {
-    justify-content: flex-start;
-}
-.navbar-desktop-center {
-    justify-content: center;
-}
+.navbar-desktop-left,
+.navbar-desktop-center,
 .navbar-desktop-right {
-    justify-content: flex-end;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
 }
 
-.navbar-desktop-left span {
-    cursor: pointer;
-    font-size: 1rem;
-    font-weight: 400;
-    color: var(--dark-color);
-    padding: 5px 0;
+.navbar-desktop-left { justify-content: flex-start; }
+.navbar-desktop-center { justify-content: center; }
+.navbar-desktop-right { justify-content: flex-end; }
+
+.nav-link {
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--dark-color);
+  padding: 5px 0;
+  position: relative;
+  background: none;
+  border: none;
+  text-decoration: none;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: var(--primary-color);
+  transition: width 0.3s;
+}
+
+.nav-link:hover::after,
+.nav-link.active::after {
+  width: 100%;
+}
+
+.nav-link.active {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* =================================== */
+/* Mobile Styles (Hidden by default)  */
+/* =================================== */
+.navbar-mobile-brand,
+.hamburger,
+.nav-links-mobile,
+.nav-links-mobile-overlay {
+  display: none;
+}
+
+/* =================================== */
+/* Responsive Breakpoint               */
+/* =================================== */
+@media (max-width: 768px) {
+  .navbar-desktop-left,
+  .navbar-desktop-center,
+  .navbar-desktop-right {
+    display: none;
+  }
+
+  .navbar-mobile-brand,
+  .hamburger {
+    display: block;
+  }
+
+.hamburger {
+    display: block;
     position: relative;
-    background: none;
+    width: 28px; 
+    height: 22px; 
+    cursor: pointer;
+    z-index: 1003;
+    background: transparent;
     border: none;
 }
-.navbar-desktop-left span::after {
-    content: '';
+
+.hamburger-bar {
+    display: block;
     position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: 0;
+    height: 3px; 
+    width: 100%;
+    background: var(--dark-color);
+    border-radius: 3px;
+    opacity: 1;
     left: 0;
-    background-color: var(--primary-color);
-    transition: width 0.3s;
+    transform: rotate(0deg);
+    transition: .25s ease-in-out;
 }
-.navbar-desktop-left span:hover::after {
+
+.hamburger-bar:nth-child(1) { top: 0px; }
+.hamburger-bar:nth-child(2) { top: 9px; }
+.hamburger-bar:nth-child(3) { top: 18px; }
+
+.hamburger.open .hamburger-bar:nth-child(1) {
+    top: 9px;
+    transform: rotate(135deg);
+}
+
+.hamburger.open .hamburger-bar:nth-child(2) {
+    opacity: 0;
+    left: -60px; 
+}
+
+.hamburger.open .hamburger-bar:nth-child(3) {
+    top: 9px;
+    transform: rotate(-135deg);
+}
+
+  .nav-links-mobile-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    z-index: 1003;
+  }
+
+  .nav-links-mobile-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .nav-links-mobile {
+    display: flex;
+    position: fixed;
+    top: 0;
+    height: 100vh;
+    width: 250px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 2rem;
+    box-shadow: -2px 0 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease-in-out;
+    z-index: 1002;
+    right: 0;
+    transform: translateX(100%);
+  }
+
+  .nav-links-mobile.open {
+    transform: translateX(0);
+  }
+}
+
+/* =================================== */
+/* Custom Select (Role Switcher)      */
+/* =================================== */
+.custom-select {
+  position: relative;
+  width: 150px;
+  font-family: var(--font-family);
+}
+.select-selected {
+  background-color: var(--light-color);
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  border-radius: 50px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 500;
+}
+.select-selected::after {
+  content: "▾";
+  margin-right: 10px;
+}
+.select-items {
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  right: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  z-index: 1003; /* Higher than mobile menu */
+  overflow: hidden;
+}
+.select-item {
+  padding: 10px 16px;
+  cursor: pointer;
+}
+.select-item:hover {
+  background-color: var(--bg-color);
+}
+.select-hide {
+  display: none;
+}
+
+/* =================================== */
+/* Mobile Menu Profile Section        */
+/* =================================== */
+.mobile-menu-profile {
+    display: flex;
+    align-items: center;
+    margin-top: 25px;
+    gap: 15px;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
     width: 100%;
 }
 
-/* הסתרת אלמנטים של מובייל בדסקטופ */
-.navbar-mobile-brand, .hamburger, .nav-links-mobile {
-    display: none;
+.profile-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    overflow: hidden;
+    flex-shrink: 0;
 }
 
+.profile-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
-/* --- Mobile Layout (up to 768px) --- */
-@media (max-width: 768px) {
-    /* הסתרת אלמנטים של דסקטופ */
-    .navbar-desktop-left, .navbar-desktop-center, .navbar-desktop-right {
-        display: none;
-    }
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
 
-    /* הצגת אלמנטים של מובייל */
-    .navbar-mobile-brand, .hamburger {
-        display: block;
-    }
-    
-    .hamburger {
-        /* order: -1;  <--  השורה הזאת הוסרה כדי לתקן את המיקום */
-        font-size: 1.8rem;
-        cursor: pointer;
-        z-index: 101; /* מעל שכבת התפריט */
-    }
+.profile-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
-    .nav-links-mobile {
-        position: fixed;
-        top: 0;
-        left: 0; /* פתיחה מצד שמאל */
-        height: 100vh;
-        width: 250px;
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 5rem 2rem;
-        box-shadow: 2px 0 15px rgba(0,0,0,0.1);
-        z-index: 100;
-        transform: translateX(-100%); /* מתחיל מחוץ למסך בצד שמאל */
-        transition: transform 0.3s ease-in-out;
-        display: flex;
-    }
+.profile-email {
+    font-size: 0.9rem;
+    color: var(--text-secondary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
-    .nav-links-mobile.open {
-        transform: translateX(0); /* מחליק פנימה */
-    }
+.mobile-menu-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
 
-    /* עיצוב הפריטים בתוך תפריט המובייל */
-    .nav-links-mobile > * {
-        margin: 1rem 0;
-        width: 100%;
-        font-size: 1.1rem;
-    }
-     .nav-links-mobile span {
-        cursor: pointer;
-     }
+.nav-links-mobile hr {
+    width: 100%;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1rem 0;
+}
+
+.nav-links-mobile .custom-select {
+    width: 100%;
+}
+
+/* =================================== */
+/* Desktop Profile Avatar             */
+/* =================================== */
+.desktop-profile {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    margin-right: -0.5rem;
+}
+
+.profile-avatar-desktop {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 2px solid var(--border-color);
+    transition: border-color 0.3s ease;
+}
+
+.desktop-profile:hover .profile-avatar-desktop {
+    border-color: var(--primary-color);
+}
+
+.profile-avatar-desktop img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }

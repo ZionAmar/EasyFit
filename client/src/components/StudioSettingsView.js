@@ -69,9 +69,6 @@ function StudioSettingsView({ initialDetails }) {
         <form onSubmit={handleSave} className="card-pro settings-form">
             <div className="form-header">
                 <h2>הגדרות סטודיו</h2>
-                <button type="submit" className="cta-button-pro" disabled={isLoading}>
-                    {isLoading ? 'שומר...' : 'שמור שינויים'}
-                </button>
             </div>
             
             <div className="settings-grid-container">
@@ -121,7 +118,9 @@ function StudioSettingsView({ initialDetails }) {
                     })}
                 </div>
             </div>
-
+                <button type="submit" className="cta-button-pro" disabled={isLoading}>
+                    {isLoading ? 'שומר...' : 'שמור שינויים'}
+                </button>
             <div className="form-footer">
                 {error && <p className="error">{error}</p>}
                 {success && <p className="success">{success}</p>}

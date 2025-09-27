@@ -25,14 +25,19 @@ function LoginPage() {
     };
 
     return (
-        <div className="form-container">
-            <h2>כניסת משתמש</h2>
-            <form onSubmit={handleSubmit}>
-                <input type="text" placeholder="שם משתמש" value={userName} onChange={(e) => setUserName(e.target.value)} required />
-                <input type="password" placeholder="סיסמה" value={pass} onChange={(e) => setPass(e.target.value)} required />
-                {error && <p className="error">{error}</p>}
-                <button type="submit">כניסה</button>
-            </form>
+        <div className="auth-page">
+            <div className="auth-form-side">
+                <div className="form-container">
+                    <h2>כניסת משתמש</h2>
+                    <form onSubmit={handleSubmit}>
+                        <input type="text" placeholder="שם משתמש" value={userName} onChange={(e) => setUserName(e.target.value)} required />
+                        <input type="password" placeholder="סיסמה" value={pass} onChange={(e) => setPass(e.target.value)} required />
+                        {error && <p className="error">{error}</p>}
+                        <button type="submit">כניסה</button>
+                    </form>
+                </div>
+            </div>
+            <div className="auth-visual-side" />
         </div>
     );
 }
