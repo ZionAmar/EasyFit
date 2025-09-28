@@ -129,7 +129,7 @@ const create = async (meetingData, participantIds) => {
             );
         }
         await connection.commit();
-        await syncParticipantCount(meetingId); 
+        await syncParticipantCount(meetingId);
         return { insertId: meetingId };
     } catch (err) {
         await connection.rollback();
@@ -218,7 +218,6 @@ const update = async (meetingId, meetingData, participantIds) => {
         connection.release();
     }
 };
-
 const remove = async (meetingId) => {
     const connection = await db.getConnection();
     try {

@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import MultiSelect from './MultiSelect';
-import '../styles/UserModal.css'; 
+import '../styles/UserModal.css';
 
 function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours }) {
     const isEditMode = Boolean(meeting);
     const [formData, setFormData] = useState({
-        name: '', date: '', start_time: '', end_time: '', 
+        name: '', date: '', start_time: '', end_time: '',
         trainer_id: '', room_id: '', participantIds: []
     });
     const [allTrainers, setAllTrainers] = useState([]);
@@ -26,7 +26,8 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
 
                 if (isEditMode) {
                     const meetingDetails = await api.get(`/api/meetings/${meeting.id}`);
-                    setFormData(meetingDetails);
+                    const participantIds = meetingDetails.participants ? meetingDetails.participants.map(p => p.id) : [];
+                    setFormData({ ...meetingDetails, participantIds });
                 } else if (initialData) {
                     const startTime = new Date(`${initialData.date}T${initialData.start_time}`);
                     if (!isNaN(startTime)) {
@@ -97,25 +98,25 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                 newFormData.end_time = startTime.toTimeString().slice(0, 5);
             }
         }
-        
+
         setFormData(newFormData);
     };
 
     const handleSave = async (e) => {
         e.preventDefault();
         setError('');
-        
+
         const now = new Date();
         const meetingStartDateTime = new Date(`${formData.date}T${formData.start_time}`);
-        now.setSeconds(0, 0); 
+        now.setSeconds(0, 0);
 
         if (meetingStartDateTime < now) {
             setError('לא ניתן לקבוע שיעור בזמן עבר.');
             return;
         }
 
-        const meetingDayJs = new Date(formData.date).getDay(); 
-        const meetingDayDB = (meetingDayJs + 1) % 7; 
+        const meetingDayJs = new Date(formData.date).getDay();
+        const meetingDayDB = (meetingDayJs + 1) % 7;
         const hoursForDay = operatingHours.find(h => h.day_of_week === meetingDayDB);
 
         if (!hoursForDay || (hoursForDay.open_time === hoursForDay.close_time)) {
@@ -124,10 +125,10 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
         }
 
         if (formData.start_time < hoursForDay.open_time || formData.end_time > hoursForDay.close_time) {
-            setError(`שעות הפעילות ביום זה הן בין ${hoursForDay.open_time.slice(0,5)} ל-${hoursForDay.close_time.slice(0,5)}.`);
+            setError(`שעות הפעילות ביום זה הן בין ${hoursForDay.open_time.slice(0, 5)} ל-${hoursForDay.close_time.slice(0, 5)}.`);
             return;
         }
-        
+
         setIsLoading(true);
         try {
             if (isEditMode) {
@@ -142,7 +143,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
             setIsLoading(false);
         }
     };
-    
+
     const handleDelete = async () => {
         if (window.confirm('האם אתה בטוח שברצונך למחוק את השיעור?')) {
             setIsLoading(true); setError('');
@@ -168,7 +169,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                     <div className="form-field"><label>שעת התחלה</label><input type="time" name="start_time" value={formData.start_time || ''} onChange={handleChange} required /></div>
                     <div className="form-field"><label>שעת סיום</label><input type="time" name="end_time" value={formData.end_time || ''} onChange={handleChange} required /></div>
                     <div className="form-field"><label>מאמן</label><select name="trainer_id" value={formData.trainer_id || ''} onChange={handleChange} required><option value="">בחר מאמן</option>{allTrainers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}</select></div>
-                    
+
                     <div className="form-field">
                         <label>חדר</label>
                         <select name="room_id" value={formData.room_id || ''} onChange={handleChange} required>
@@ -183,14 +184,14 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
 
                     <div className="form-field">
                         <label>משתתפים</label>
-                        <MultiSelect 
+                        <MultiSelect
                             options={allMembers.map(m => ({ value: m.id, label: m.full_name }))}
                             selected={formData.participantIds || []}
                             onChange={(selectedIds) => setFormData(prev => ({ ...prev, participantIds: selectedIds }))}
                             placeholder="בחר משתתפים..."
                         />
                     </div>
-                    
+
                     {error && <p className="error">{error}</p>}
 
                     <div className="modal-actions">

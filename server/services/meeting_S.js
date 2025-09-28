@@ -88,10 +88,10 @@ const getMeetingDetails = async (meetingId) => {
     if (!meeting) throw new Error('Meeting not found');
 
     const participants = await meetingModel.getActiveParticipants(meetingId);
-    
     const waitingList = await meetingModel.getWaitingParticipants(meetingId);
-
-    return { ...meeting, participants, waitingList };
+    const fullDetails = { ...meeting, participants, waitingList };
+    console.log('--- SERVER CHECK ---', JSON.stringify(fullDetails, null, 2));
+    return fullDetails;
 };
 
 
