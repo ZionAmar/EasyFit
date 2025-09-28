@@ -1,15 +1,15 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Navbar from './components/Navbar';
+import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import HomePage from './pages/HomePage';
+import DashboardPage from './pages/DashboardPage';
 import SchedulePage from './pages/SchedulePage'; 
 import HistoryPage from './pages/HistoryPage';
 import TrainerHistoryPage from './pages/TrainerHistoryPage';
-import DashboardPage from './pages/DashboardPage';
 import ManageSchedulePage from './pages/ManageSchedulePage'; 
 import BookingConfirmedPage from './pages/BookingConfirmedPage';
 import BookingErrorPage from './pages/BookingErrorPage';
@@ -33,7 +33,6 @@ const ProtectedRoute = ({ allowedRoles }) => {
         ? <Outlet /> 
         : <Navigate to="/unauthorized" replace />;
 };
-
 
 function AppRoutes() {
   return (
@@ -69,13 +68,28 @@ function AppRoutes() {
   );
 }
 
+function MainLayout() {
+    const location = useLocation();
+    
+    const publicPaths = ['/', '/login', '/register'];
+    
+    const isPublicPath = publicPaths.includes(location.pathname);
+
+    return (
+        <>
+            {!isPublicPath && <Navbar />}
+            {!isPublicPath && <Breadcrumbs />}
+            <AppRoutes />
+        </>
+    );
+}
+
+
 function App() {
   return (
     <AuthProvider>
       <Router>
-        <Navbar />
-        <Breadcrumbs />
-        <AppRoutes />
+        <MainLayout />
       </Router>
     </AuthProvider>
   );

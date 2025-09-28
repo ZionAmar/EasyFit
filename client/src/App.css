@@ -30,7 +30,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* --- 3. Basic Layout & Utility Classes --- */
 .container {
   max-width: 1200px;
   margin: 2rem auto;
@@ -63,7 +62,6 @@ body {
     margin-top: 5rem;
 }
 
-/* --- Authentication Page Styles --- */
 .auth-page {
   display: flex;
   min-height: 100vh;
@@ -83,7 +81,7 @@ body {
 
 .auth-visual-side {
   flex: 1.5;
-  background-image: url('../public/images/pilates-bg.jpg');
+  background-image: linear-gradient(to top, rgba(124, 154, 146, 0.8), rgba(61, 64, 91, 0.8)), url('../public/images/pilates-bg.jpg');
   background-size: cover;
   background-position: center;
 }
@@ -149,7 +147,6 @@ body {
   }
 }
 
-/* --- Polished Button Styles --- */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -171,14 +168,12 @@ body {
   box-shadow: 0 7px 20px rgba(0,0,0,0.15);
 }
 
-/* --- Primary Button --- */
 .btn.btn-primary {
   background-image: linear-gradient(to top, var(--primary-color) 0%, #8FB0A8 100%);
   color: white;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
-/* --- Secondary Button --- */
 .btn.btn-secondary {
   background-color: var(--card-bg-color);
   color: var(--dark-color);
@@ -191,8 +186,6 @@ body {
   color: var(--primary-color);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
-
-/* --- Polished Modal Animation --- */
 
 @keyframes fadeIn {
   from { opacity: 0; }

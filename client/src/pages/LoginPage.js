@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import LandingPageHeader from '../components/LandingPageHeader';
+import '../styles/auth.css';
+import { getQuoteOfTheDay } from '../utils/quotes';
 
 function LoginPage() {
     const [userName, setUserName] = useState('');
@@ -8,6 +11,7 @@ function LoginPage() {
     const [error, setError] = useState('');
     const { login } = useAuth();
     const navigate = useNavigate();
+    const quote = getQuoteOfTheDay();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -25,19 +29,29 @@ function LoginPage() {
     };
 
     return (
-        <div className="auth-page">
-            <div className="auth-form-side">
-                <div className="form-container">
-                    <h2>כניסת משתמש</h2>
-                    <form onSubmit={handleSubmit}>
-                        <input type="text" placeholder="שם משתמש" value={userName} onChange={(e) => setUserName(e.target.value)} required />
-                        <input type="password" placeholder="סיסמה" value={pass} onChange={(e) => setPass(e.target.value)} required />
-                        {error && <p className="error">{error}</p>}
-                        <button type="submit">כניסה</button>
-                    </form>
+        <div className="page-wrapper">
+            <LandingPageHeader simplified /> 
+            <main className="auth-page">
+                <div className="auth-form-side">
+                    <div className="form-container">
+                        <h2>כניסת משתמש</h2>
+                        <form onSubmit={handleSubmit}>
+                            <input type="text" placeholder="שם משתמש" value={userName} onChange={(e) => setUserName(e.target.value)} required />
+                            <input type="password" placeholder="סיסמה" value={pass} onChange={(e) => setPass(e.target.value)} required />
+                            {error && <p className="error">{error}</p>}
+                            <button type="submit">כניסה</button>
+                        </form>
+                        <p className="auth-switch">
+                            עדיין אין לך חשבון? <Link to="/register">הירשם</Link>
+                        </p>
+                    </div>
                 </div>
-            </div>
-            <div className="auth-visual-side" />
+                <div className="auth-visual-side">
+                    <div className="auth-quote-container">
+                        <p className="auth-quote">"{quote}"</p>
+                    </div>
+                </div>
+            </main>
         </div>
     );
 }

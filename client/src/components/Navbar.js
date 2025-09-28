@@ -22,7 +22,7 @@ function Navbar() {
     const { user, logout, isLoading, activeRole, activeStudio } = useAuth();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false); // 2. State חדש לשליטה במודאל
+    const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
     const menuRef = useRef(null);
     const hamburgerRef = useRef(null);
@@ -110,7 +110,7 @@ function Navbar() {
                             <DesktopProfile user={user} onClick={openProfileModal} />
                         </>
                     ) : (
-                        <NavLink to="/register" className="nav-link">הרשמה</NavLink>
+                        null
                     )}
                 </div>
 
@@ -121,7 +121,7 @@ function Navbar() {
                 </div>
                 <div className="navbar-mobile-brand">
                      <span className="navbar-brand" onClick={() => handleNav(user ? '/dashboard' : '/')}>
-                        {brandName}
+                         {brandName}
                      </span>
                 </div>
                 
@@ -154,7 +154,6 @@ function Navbar() {
                     ) : (
                         <>
                             <NavLink to="/login" className="nav-link" onClick={closeMenu}>כניסה</NavLink>
-                            <NavLink to="/register" className="nav-link" onClick={closeMenu}>הרשמה</NavLink>
                         </>
                     )}
                 </div>
