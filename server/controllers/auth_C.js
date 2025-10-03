@@ -9,7 +9,7 @@ const login = async (req, res, next) => {
         const tokenPayload = { id: userDetails.id };
         const token = jwt.sign(tokenPayload, jwtSecret, { expiresIn: '3h' });
         
-        res.cookie("jwt", token, { httpOnly: true, secure: true, sameSite: 'strict', maxAge: 3 * 60 * 60 * 1000 });
+        res.cookie("jwt", token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', maxAge: 3 * 60 * 60 * 1000 });
 
         res.json({ userDetails, studios });
     } catch (err) {

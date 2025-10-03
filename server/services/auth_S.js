@@ -1,5 +1,6 @@
 const { encWithSalt } = require('../middlewares/auth_Midd');
 const userModel = require('../models/user_M');
+const studioModel = require('../models/studio_M');
 
 const login = async ({ userName, pass }) => {
     const user = await userModel.getByUserName(userName);
@@ -8,13 +9,9 @@ const login = async ({ userName, pass }) => {
     }
 
     const [studiosAndRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
-
     const { password_hash, ...userDetails } = user;
     
-    return {
-        userDetails,
-        studios: studiosAndRoles
-    };
+    return { userDetails, studios: studiosAndRoles };
 };
 
 const verifyUserFromId = async (userId) => {
@@ -24,30 +21,41 @@ const verifyUserFromId = async (userId) => {
     }
 
     const [studiosAndRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
-    
     const { password_hash, ...userDetails } = user;
 
-    return {
-        userDetails,
-        studios: studiosAndRoles
-    };
+    return { userDetails, studios: studiosAndRoles };
 };
 
 const register = async (userData) => {
-    const { userName, pass, full_name, email, phone, studioId } = userData;
-    if (!studioId) throw new Error("לא ניתן להירשם ללא שיוך לסטודיו.");
+    const { studio_name, admin_full_name, email, password, userName } = userData;
+
+    if (!studio_name || !admin_full_name || !email || !password || !userName) {
+        throw new Error("All fields are required for studio registration.");
+    }
     
-    const existingUser = await userModel.getByUserName(userName);
-    if (existingUser) throw new Error("שם משתמש כבר קיים במערכת");
-
     const existingEmail = await userModel.getByEmail(email);
-    if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
+    if (existingEmail) {
+        throw new Error("האימייל שהוזן כבר קיים במערכת");
+    }
 
-    const password_hash = encWithSalt(pass);
-    const roles = ['member'];
+    const existingUserName = await userModel.getByUserName(userName);
+    if (existingUserName) {
+        throw new Error("שם המשתמש תפוס, נסה שם אחר.");
+    }
 
-    return userModel.create({
-        full_name, userName, password_hash, email, phone, roles, studioId
+    const existingStudio = await studioModel.getByName(studio_name);
+    if (existingStudio) {
+        throw new Error("סטודיו בשם זה כבר קיים במערכת");
+    }
+
+    const password_hash = encWithSalt(password);
+    
+    return studioModel.createStudioAndAdmin({
+        studio_name,
+        admin_full_name,
+        email,
+        password_hash,
+        userName
     });
 };
 

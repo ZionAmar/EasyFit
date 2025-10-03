@@ -102,11 +102,51 @@ const updateSettings = async (studioId, details, hours) => {
     }
 };
 
+const getByName = async (name) => {
+    const [[studio]] = await db.query('SELECT id FROM studios WHERE name = ?', [name]);
+    return studio;
+};
+
+const createStudioAndAdmin = async ({ studio_name, admin_full_name, email, password_hash, userName }) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [studioResult] = await connection.query(
+            'INSERT INTO studios (name, subscription_status, trial_ends_at) VALUES (?, "trialing", DATE_ADD(NOW(), INTERVAL 14 DAY))',
+            [studio_name]
+        );
+        const studioId = studioResult.insertId;
+
+        const [userResult] = await connection.query(
+            'INSERT INTO users (full_name, email, password_hash, userName) VALUES (?, ?, ?, ?)',
+            [admin_full_name, email, password_hash, userName]
+        );
+        const userId = userResult.insertId;
+        
+        // Assuming role_id for 'admin' is 3
+        await connection.query(
+            'INSERT INTO user_roles (user_id, studio_id, role_id) VALUES (?, ?, 3)',
+            [userId, studioId] 
+        );
+
+        await connection.commit();
+        return { studioId, userId, studioName: studio_name };
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     getStudioByManagerId,
     getDashboardStats,
     getTodaysScheduleByStudio, 
     getDetailsById,
     getOperatingHours,
-    updateSettings
+    updateSettings,
+    getByName,
+    createStudioAndAdmin,
 };
