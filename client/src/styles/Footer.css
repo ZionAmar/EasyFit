@@ -1,0 +1,79 @@
+.main-app-footer {
+    width: 100%;
+    padding: 1rem 2.5rem; /* Increased padding */
+    background-color: var(--card-bg-color);
+    border-top: 1px solid var(--border-color);
+    margin-top: auto;
+    box-sizing: border-box; /* Ensures padding is included in the width */
+}
+
+.main-app-footer .main-footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.footer-credits {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem; /* Space between copyright and credit */
+}
+
+.copyright-text {
+    font-size: 0.9rem;
+    color: var(--dark-color);
+    opacity: 0.6;
+}
+
+.aztodev-credit {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    font-weight: 500;
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.aztodev-credit:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+.footer-logo {
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.footer-logo:hover {
+    opacity: 1;
+}
+
+.footer-logo img {
+    height: 30px;
+    display: block;
+}
+
+/* --- Responsive for Mobile --- */
+@media (max-width: 768px) {
+    .main-app-footer {
+        padding: 1rem;
+    }
+
+    .main-app-footer .main-footer-content {
+        flex-direction: column-reverse; /* Stack elements on mobile */
+        gap: 1rem;
+    }
+
+    .footer-logo {
+        order: 1; /* Logo first */
+    }
+
+    .footer-credits {
+        order: 2; /* Credits second */
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}

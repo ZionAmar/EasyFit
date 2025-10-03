@@ -20,7 +20,7 @@ function HomePage() {
           <div className="hero-content animate-on-load">
             <h1 className="hero-title">הסטודיו שלך, בשיא הזרימה</h1>
             <p className="hero-subtitle">
-              EasyFit היא מערכת הניהול האינטואיטיבית שמחזירה לך את השקט הנפשי, מעצימה את המותג שלך ומפנה לך זמן להתמקד במה שאתה עושה הכי טוב: לאמן.
+              FiTime היא מערכת הניהול האינטואיטיבית שמחזירה לך את השקט הנפשי, מעצימה את המותג שלך ומפנה לך זמן להתמקד במה שאתה עושה הכי טוב: לאמן.
             </p>
             <TypeAnimation
               sequence={[
@@ -63,7 +63,7 @@ function HomePage() {
               </ul>
             </div>
             <div className="persona-image-container">
-              <img src="/images/owner-dashboard.png" alt="דאשבורד ניהול של EasyFit" />
+              <img src="/images/owner-dashboard.png" alt="דאשבורד ניהול של FiTime" />
             </div>
           </div>
         </section>
@@ -89,7 +89,7 @@ function HomePage() {
                 <h2 className="section-title">מסלול אחד. פשוט ושקוף.</h2>
                 <div className="pricing-card-wrapper">
                     <div className="pricing-card">
-                        <h3 className="pricing-title">EasyFit Pro</h3>
+                        <h3 className="pricing-title">FiTime Pro</h3>
                         <div className="price">₪99<span className="price-term">/ לחודש</span></div>
                         <p className="pricing-subtitle">לאחר 14 יום ניסיון חינם. ללא התחייבות.</p>
                         <ul className="pricing-features">
@@ -108,7 +108,7 @@ function HomePage() {
 
         <footer className="lp-footer">
           <div className="footer-bottom">
-            © {new Date().getFullYear()} EasyFit. כל הזכויות שמורות.
+            © {new Date().getFullYear()} FiTime. כל הזכויות שמורות.
           </div>
         </footer>
       </div>

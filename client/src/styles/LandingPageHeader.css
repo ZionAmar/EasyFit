@@ -66,3 +66,8 @@
 .lp-header--simplified .lp-header-content {
     justify-content: center;
 }
+
+.lp-logo img {
+    height: 40px; /* You can adjust this size */
+    display: block;
+}

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation }
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Navbar from './components/Navbar';
+import Footer from './components/Footer'; // 1. ייבוא הפוטר החדש
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -76,11 +77,16 @@ function MainLayout() {
     const isPublicPath = publicPaths.includes(location.pathname);
 
     return (
-        <>
+        // 2. עטיפת הכל ב-div חדש
+        <div className="layout-wrapper"> 
             {!isPublicPath && <Navbar />}
             {!isPublicPath && <Breadcrumbs />}
+            
             <AppRoutes />
-        </>
+            
+            {/* 3. הצגת הפוטר רק בדפים הפנימיים */}
+            {!isPublicPath && <Footer />}
+        </div>
     );
 }
 

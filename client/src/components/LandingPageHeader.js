@@ -9,7 +9,7 @@ function LandingPageHeader({ simplified = false }) {
         <header className={`lp-header ${simplified ? 'lp-header--simplified' : ''}`}>
             <div className="lp-header-content">
                 <div className="lp-logo" onClick={() => navigate('/')}>
-                    EasyFit
+                    <img src="/images/logo.png" alt="FiTime Logo" />
                 </div>
 
                 {!simplified && (
