@@ -11,5 +11,6 @@ router.get("/:id", isLoggedIn, requireRole('admin'), controller.getUserById);
 router.post('/', isLoggedIn, requireRole('admin'), controller.createUser);
 router.put("/:id", isLoggedIn, requireRole('admin'), controller.updateUser);
 router.delete("/:id", isLoggedIn, requireRole('admin'), controller.deleteUser);
+router.get('/by-studio/:studioId', isLoggedIn, requireRole('owner'), controller.getUsersByStudio);
 
 module.exports = router;

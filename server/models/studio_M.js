@@ -140,6 +140,87 @@ const createStudioAndAdmin = async ({ studio_name, admin_full_name, email, passw
     }
 };
 
+
+const findAll = async () => {
+    const query = `
+        SELECT 
+            s.*, 
+            u.id as admin_user_id, 
+            u.full_name as admin_full_name
+        FROM studios s
+        LEFT JOIN user_roles ur ON s.id = ur.studio_id AND ur.role_id = 3
+        LEFT JOIN users u ON ur.user_id = u.id
+        ORDER BY s.created_at DESC
+    `;
+    const [studios] = await db.query(query);
+    return studios;
+};
+
+const create = async (studioData) => {
+    const { name, address, phone_number } = studioData;
+    // You can add more fields here as needed
+    const [result] = await db.query(
+        'INSERT INTO studios (name, address, phone_number) VALUES (?, ?, ?)',
+        [name, address, phone_number]
+    );
+    const [[newStudio]] = await db.query('SELECT * FROM studios WHERE id = ?', [result.insertId]);
+    return newStudio;
+};
+
+const update = async (id, studioData) => {
+    const { name, address, phone_number, subscription_status, trial_ends_at } = studioData;
+    await db.query(
+        'UPDATE studios SET name = ?, address = ?, phone_number = ?, subscription_status = ?, trial_ends_at = ? WHERE id = ?',
+        [name, address, phone_number, subscription_status, trial_ends_at, id]
+    );
+    const [[updatedStudio]] = await db.query('SELECT * FROM studios WHERE id = ?', [id]);
+    return updatedStudio;
+};
+
+const remove = async (id) => {
+    await db.query('DELETE FROM studios WHERE id = ?', [id]);
+    return { message: 'Studio deleted successfully' };
+};
+
+const reassignAdmin = async (studioId, newAdminId) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        // 1. Find the current admin of the studio
+        const [currentAdmins] = await connection.query(
+            `SELECT user_id FROM user_roles WHERE studio_id = ? AND role_id = 3`, // Assuming 3 is admin
+            [studioId]
+        );
+
+        // 2. Remove the 'admin' role from all current admins for this studio
+        if (currentAdmins.length > 0) {
+            const currentAdminIds = currentAdmins.map(a => a.user_id);
+            await connection.query(
+                `DELETE FROM user_roles WHERE studio_id = ? AND role_id = 3 AND user_id IN (?)`,
+                [studioId, currentAdminIds]
+            );
+        }
+        
+        // 3. Assign the 'admin' role to the new user for this studio
+        // This query will add the admin role. If the user already has another role (like trainer),
+        // it will now have both. If they have no role, it will be their first.
+        // We use INSERT IGNORE to prevent errors if the user is already an admin (edge case).
+        await connection.query(
+            `INSERT IGNORE INTO user_roles (user_id, studio_id, role_id) VALUES (?, ?, 3)`,
+            [newAdminId, studioId]
+        );
+
+        await connection.commit();
+        return { success: true, message: 'Admin reassigned successfully.' };
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+};
+
 module.exports = {
     getStudioByManagerId,
     getDashboardStats,
@@ -149,4 +230,9 @@ module.exports = {
     updateSettings,
     getByName,
     createStudioAndAdmin,
+    findAll,
+    create,
+    update,
+    remove,
+    reassignAdmin
 };

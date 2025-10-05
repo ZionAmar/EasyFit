@@ -1,0 +1,154 @@
+/* --- Owner Dashboard Styles --- */
+
+.pro-dashboard {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+.dashboard-header-pro {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2.5rem;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.header-text h1 {
+    font-size: 2.2rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--dark-color);
+}
+
+.header-text p {
+    font-size: 1.1rem;
+    color: var(--dark-color);
+    opacity: 0.7;
+    max-width: 500px;
+}
+
+.card-pro {
+    background-color: var(--card-bg-color);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card-header h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.card-icon {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+}
+
+.table-responsive {
+    overflow-x: auto;
+}
+
+.studios-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.studios-table th,
+.studios-table td {
+    padding: 12px 15px;
+    text-align: right;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.studios-table thead th {
+    background-color: var(--bg-color);
+    font-weight: 500;
+    font-size: 0.9rem;
+    color: var(--dark-color);
+    opacity: 0.6;
+}
+
+.studios-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.studios-table tbody tr:hover {
+    background-color: var(--light-color);
+}
+
+.actions-cell {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.empty-state {
+    padding: 2rem;
+    text-align: center;
+    color: var(--dark-color);
+    opacity: 0.6;
+    font-style: italic;
+}
+
+/* Status badge styles */
+.status-badge {
+    padding: 0.3rem 0.8rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.status-badge.trialing {
+    background-color: #e0f2fe; /* Light Blue */
+    color: #0284c7; /* Blue */
+}
+.status-badge.active {
+    background-color: #f0fdf4; /* Light Green */
+    color: #16a34a; /* Green */
+}
+.status-badge.past_due {
+    background-color: #fffbeb; /* Light Yellow */
+    color: #f59e0b; /* Yellow */
+}
+.status-badge.canceled {
+    background-color: #fee2e2; /* Light Red */
+    color: #dc2626; /* Red */
+}
+/* --- Search Bar Styles --- */
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.search-input {
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 50px; /* Pill shape */
+    width: 250px;
+    font-family: var(--font-family);
+    font-size: 1rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(124, 154, 146, 0.2);
+}

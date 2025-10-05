@@ -82,6 +82,17 @@ async function updateProfile(req, res, next) {
     }
 }
 
+const getUsersByStudio = async (req, res, next) => {
+    try {
+        const { studioId } = req.params;
+        // We pass the studioId to the service/model to get users for that specific studio
+        const users = await userService.getAll({ studioId });
+        res.json(users);
+    } catch (err) {
+        next(err);
+    }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -89,5 +100,6 @@ module.exports = {
   updateUser,
   deleteUser,
   getAvailableTrainers,
-  updateProfile
+  updateProfile,
+  getUsersByStudio
 };

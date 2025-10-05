@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation }
 import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Navbar from './components/Navbar';
-import Footer from './components/Footer'; // 1. ייבוא הפוטר החדש
+import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -15,6 +15,7 @@ import ManageSchedulePage from './pages/ManageSchedulePage';
 import BookingConfirmedPage from './pages/BookingConfirmedPage';
 import BookingErrorPage from './pages/BookingErrorPage';
 import Breadcrumbs from './components/Breadcrumbs';
+import OwnerDashboardPage from './pages/OwnerDashboardPage';
 
 import './App.css';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -45,6 +46,10 @@ function AppRoutes() {
         <Route path="/booking-confirmed" element={<BookingConfirmedPage status="confirmed" />} />
         <Route path="/booking-declined" element={<BookingConfirmedPage status="declined" />} />
         <Route path="/booking-error" element={<BookingErrorPage />} />
+
+        <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
+            <Route path="/owner-dashboard" element={<OwnerDashboardPage />} />
+        </Route>
 
         <Route element={<ProtectedRoute allowedRoles={['admin', 'trainer', 'member']} />}>
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -77,14 +82,12 @@ function MainLayout() {
     const isPublicPath = publicPaths.includes(location.pathname);
 
     return (
-        // 2. עטיפת הכל ב-div חדש
         <div className="layout-wrapper"> 
             {!isPublicPath && <Navbar />}
             {!isPublicPath && <Breadcrumbs />}
             
             <AppRoutes />
             
-            {/* 3. הצגת הפוטר רק בדפים הפנימיים */}
             {!isPublicPath && <Footer />}
         </div>
     );
@@ -93,11 +96,11 @@ function MainLayout() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <MainLayout />
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 

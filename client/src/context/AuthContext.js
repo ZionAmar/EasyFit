@@ -1,4 +1,5 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as authService from '../services/auth.service';
 import api from '../services/api';
 
@@ -10,11 +11,23 @@ export function AuthProvider({ children }) {
     const [activeStudio, setActiveStudio] = useState(null);
     const [activeRole, setActiveRole] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const navigate = useNavigate();
 
-    const setupSession = (data) => {
+    const setupSession = useCallback((data) => {
+        if (!data || !data.userDetails) return null;
+
         const { userDetails, studios: userStudios } = data;
         setUser(userDetails);
 
+        const isOwner = userStudios.some(studioRole => studioRole.role_name === 'owner');
+        if (isOwner) {
+            setStudios([]);
+            setActiveStudio(null);
+            setActiveRole('owner');
+            api.setStudioId(null);
+            return 'owner';
+        }
+        
         const studiosMap = new Map();
         userStudios.forEach(({ studio_id, studio_name, role_name }) => {
             if (!studiosMap.has(studio_id)) {
@@ -31,30 +44,42 @@ export function AuthProvider({ children }) {
             
             setActiveStudio(defaultStudio);
             api.setStudioId(defaultStudio.studio_id);
+            localStorage.setItem('activeStudioId', defaultStudio.studio_id);
             
             const preferredRole = ['admin', 'trainer', 'member'].find(r => defaultStudio.roles.includes(r));
             setActiveRole(preferredRole);
+            localStorage.setItem('activeRole', preferredRole);
+            return 'user';
         }
-    };
+        return null;
+    }, []);
 
     useEffect(() => {
-        async function verifyUser() {
+        const verifyUser = async () => {
             try {
                 const data = await authService.verify();
                 if (data && data.userDetails) {
                     setupSession(data);
                 }
             } catch (error) {
+                // User is not logged in, this is expected
             } finally {
                 setIsLoading(false);
             }
-        }
+        };
         verifyUser();
-    }, []);
+    }, [setupSession]);
 
     const login = async (userName, pass) => {
         const data = await authService.login(userName, pass);
-        setupSession(data);
+        const roleType = setupSession(data);
+        
+        // This navigation now happens reliably AFTER state has been set
+        if (roleType === 'owner') {
+            navigate('/owner-dashboard');
+        } else if (roleType === 'user') {
+            navigate('/dashboard');
+        }
         return data;
     };
  
@@ -69,31 +94,18 @@ export function AuthProvider({ children }) {
             setActiveStudio(null);
             setActiveRole(null);
             api.setStudioId(null);
+            localStorage.removeItem('activeStudioId');
+            localStorage.removeItem('activeRole');
+            navigate('/');
         }
-    };
-    
-    const refreshUser = async () => {
-        try {
-            const data = await authService.verify();
-            if (data && data.userDetails) {
-                setupSession(data);
-            }
-        } catch (error) {
-            console.error("Failed to refresh user data, logging out.", error);
-            logout();
-        }
-    };
-
-    const register = async (userData) => {
-        const dataToRegister = { ...userData, studioId: 1 }; 
-        return await authService.register(dataToRegister);
     };
 
     const switchStudio = (studioId) => {
         const newActiveStudio = studios.find(s => s.studio_id === parseInt(studioId));
         if (newActiveStudio) {
-            setActiveStudio(newActiveStudio);
-            api.setStudioId(newActiveStudio.studio_id);
+            localStorage.setItem('activeStudioId', newActiveStudio.studio_id);
+            const preferredRole = ['admin', 'trainer', 'member'].find(r => newActiveStudio.roles.includes(r));
+            localStorage.setItem('activeRole', preferredRole);
             window.location.reload();
         }
     };
@@ -101,10 +113,11 @@ export function AuthProvider({ children }) {
     const switchRole = (newRole) => {
         if (activeStudio && activeStudio.roles.includes(newRole)) {
             setActiveRole(newRole);
+            localStorage.setItem('activeRole', newRole);
         }
     };
  
-    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, register, refreshUser };
+    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, setupSession };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
@@ -112,4 +125,3 @@ export function AuthProvider({ children }) {
 export function useAuth() {
     return useContext(AuthContext);
 }
-

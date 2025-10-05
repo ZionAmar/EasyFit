@@ -60,7 +60,7 @@ function Navbar() {
 
     if (isLoading) return null;
 
-    const brandName = activeStudio?.studio_name || 'EasyFit';
+    const brandName = activeStudio?.studio_name || 'FiTime';
 
     const renderNavLinks = () => {
         switch (activeRole) {

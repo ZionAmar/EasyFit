@@ -311,3 +311,12 @@
 .live-session .btn.btn-success .checkmark-icon {
     font-weight: bold;
 }
+
+.admin-management-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+.admin-management-section h4 {
+    margin-bottom: 1rem;
+}
