@@ -1,21 +1,45 @@
-.breadcrumbs {
-  padding: 1rem 1.5rem;
-  background-color: var(--bg-color);
-  border-bottom: 1px solid var(--border-color);
-  font-size: 0.9rem;
+.breadcrumbs-container {
+    padding: 0.75rem 2rem;
+    background-color: var(--light-color);
+    border-bottom: 1px solid var(--border-color);
 }
-.breadcrumbs a {
-  color: var(--primary-color);
-  text-decoration: none;
+
+.breadcrumbs-list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.9rem;
 }
-.breadcrumbs a:hover {
-  text-decoration: underline;
+
+.breadcrumb-item {
+    display: flex;
+    align-items: center;
 }
-.breadcrumbs span {
-  margin: 0 0.5rem;
-  color: #999;
+
+.breadcrumb-item a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
 }
-.breadcrumbs .current-page {
-  color: var(--dark-color);
-  font-weight: 500;
+
+.breadcrumb-item a:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+.breadcrumb-item.active {
+    color: var(--dark-color);
+    opacity: 0.7;
+    font-weight: 500;
+}
+
+/* --- The separator between items --- */
+.breadcrumb-item:not(:last-child)::after {
+    content: '/'; /* You can use '>' or any other separator */
+    margin: 0 0.75rem;
+    color: var(--dark-color);
+    opacity: 0.4;
 }

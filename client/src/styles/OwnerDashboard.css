@@ -1,5 +1,4 @@
-/* --- Owner Dashboard Styles --- */
-
+/* Owner Dashboard Styles */
 .pro-dashboard {
     max-width: 1200px;
     margin: 2rem auto;
@@ -40,10 +39,18 @@
 .card-header {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: space-between;
+    gap: 1.5rem;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.card-header-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .card-header h2 {
@@ -85,7 +92,7 @@
 }
 
 .studios-table tbody tr {
-    transition: background-color 0.2s ease;
+    background-color: 0.2s ease;
 }
 
 .studios-table tbody tr:hover {
@@ -105,7 +112,6 @@
     font-style: italic;
 }
 
-/* Status badge styles */
 .status-badge {
     padding: 0.3rem 0.8rem;
     border-radius: 50px;
@@ -115,35 +121,30 @@
 }
 
 .status-badge.trialing {
-    background-color: #e0f2fe; /* Light Blue */
-    color: #0284c7; /* Blue */
+    background-color: #e0f2fe;
+    color: #0284c7;
 }
 .status-badge.active {
-    background-color: #f0fdf4; /* Light Green */
-    color: #16a34a; /* Green */
+    background-color: #f0fdf4;
+    color: #16a34a;
 }
 .status-badge.past_due {
-    background-color: #fffbeb; /* Light Yellow */
-    color: #f59e0b; /* Yellow */
+    background-color: #fffbeb;
+    color: #f59e0b;
 }
 .status-badge.canceled {
-    background-color: #fee2e2; /* Light Red */
-    color: #dc2626; /* Red */
-}
-/* --- Search Bar Styles --- */
-.search-container {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    background-color: #fee2e2;
+    color: #dc2626;
 }
 
 .search-input {
-    padding: 10px 15px;
+    padding: 8px 15px;
     border: 1px solid var(--border-color);
-    border-radius: 50px; /* Pill shape */
-    width: 250px;
+    border-radius: 50px;
+    margin-left: 0;
+    width: 220px;
     font-family: var(--font-family);
-    font-size: 1rem;
+    font-size: 0.9rem;
     transition: all 0.2s ease-in-out;
 }
 

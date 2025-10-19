@@ -107,14 +107,14 @@ const getByName = async (name) => {
     return studio;
 };
 
-const createStudioAndAdmin = async ({ studio_name, admin_full_name, email, password_hash, userName }) => {
+const createStudioWithNewAdmin = async ({ studio_name, address, phone_number, admin_full_name, email, password_hash, userName }) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
         const [studioResult] = await connection.query(
-            'INSERT INTO studios (name, subscription_status, trial_ends_at) VALUES (?, "trialing", DATE_ADD(NOW(), INTERVAL 14 DAY))',
-            [studio_name]
+            'INSERT INTO studios (name, address, phone_number, subscription_status, trial_ends_at) VALUES (?, ?, ?, "trialing", DATE_ADD(NOW(), INTERVAL 14 DAY))',
+            [studio_name, address, phone_number]
         );
         const studioId = studioResult.insertId;
 
@@ -124,7 +124,6 @@ const createStudioAndAdmin = async ({ studio_name, admin_full_name, email, passw
         );
         const userId = userResult.insertId;
         
-        // Assuming role_id for 'admin' is 3
         await connection.query(
             'INSERT INTO user_roles (user_id, studio_id, role_id) VALUES (?, ?, 3)',
             [userId, studioId] 
@@ -140,6 +139,31 @@ const createStudioAndAdmin = async ({ studio_name, admin_full_name, email, passw
     }
 };
 
+const createStudioWithExistingAdmin = async ({ studio_name, address, phone_number, adminId }) => {
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [studioResult] = await connection.query(
+            'INSERT INTO studios (name, address, phone_number, subscription_status, trial_ends_at) VALUES (?, ?, ?, "trialing", DATE_ADD(NOW(), INTERVAL 14 DAY))',
+            [studio_name, address, phone_number]
+        );
+        const studioId = studioResult.insertId;
+
+        await connection.query(
+            'INSERT INTO user_roles (user_id, studio_id, role_id) VALUES (?, ?, 3)',
+            [adminId, studioId] 
+        );
+
+        await connection.commit();
+        return { studioId, userId: adminId, studioName: studio_name };
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+};
 
 const findAll = async () => {
     const query = `
@@ -229,10 +253,11 @@ module.exports = {
     getOperatingHours,
     updateSettings,
     getByName,
-    createStudioAndAdmin,
+    createStudioWithNewAdmin,
     findAll,
     create,
     update,
     remove,
-    reassignAdmin
+    reassignAdmin,
+    createStudioWithExistingAdmin
 };

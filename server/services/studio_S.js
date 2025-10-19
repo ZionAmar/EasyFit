@@ -53,35 +53,41 @@ const getAllStudios = async () => {
 };
 
 const createStudio = async (studioData) => {
-    const { 
-        name, address, phone_number,
-        admin_full_name, admin_email, admin_userName, admin_password
-    } = studioData;
+    const { createMode, existingAdminId, name, address, phone_number, ...adminData } = studioData;
 
-    if (!name || !admin_full_name || !admin_email || !admin_userName || !admin_password) {
-        throw new Error('All fields for studio and admin are required.');
-    }
-
-    const existingEmail = await userModel.getByEmail(admin_email);
-    if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
-
-    const existingUserName = await userModel.getByUserName(admin_userName);
-    if (existingUserName) throw new Error("שם המשתמש תפוס, נסה שם אחר.");
+    if (!name) throw new Error('Studio name is required.');
 
     const existingStudio = await studioModel.getByName(name);
     if (existingStudio) throw new Error("סטודיו בשם זה כבר קיים במערכת");
-    
-    const password_hash = encWithSalt(admin_password);
 
-    return studioModel.createStudioAndAdmin({
-        studio_name: name,
-        admin_full_name,
-        email: admin_email,
-        password_hash,
-        userName: admin_userName,
-        address,
-        phone_number
-    });
+    if (createMode === 'newAdmin') {
+        const { admin_full_name, admin_email, admin_userName, admin_password } = adminData;
+        if (!admin_full_name || !admin_email || !admin_userName || !admin_password) {
+            throw new Error('All fields for a new admin are required.');
+        }
+
+        const existingEmail = await userModel.getByEmail(admin_email);
+        if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
+
+        const existingUserName = await userModel.getByUserName(admin_userName);
+        if (existingUserName) throw new Error("שם המשתמש תפוס, נסה שם אחר.");
+        
+        const password_hash = encWithSalt(admin_password);
+
+        return studioModel.createStudioWithNewAdmin({
+            studio_name: name, address, phone_number,
+            admin_full_name, email: admin_email, password_hash, userName: admin_userName
+        });
+    } else if (createMode === 'existingUser') {
+        if (!existingAdminId) throw new Error('Please select an existing user to be the admin.');
+        
+        return studioModel.createStudioWithExistingAdmin({
+            studio_name: name, address, phone_number,
+            adminId: existingAdminId
+        });
+    } else {
+        throw new Error('Invalid studio creation mode.');
+    }
 };
 
 const updateStudio = async (id, studioData) => {

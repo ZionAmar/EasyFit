@@ -8,6 +8,7 @@ router.get('/dashboard/stats', isLoggedIn, requireRole('admin'), studioControlle
 router.get('/daily-schedule', isLoggedIn, requireRole('admin'), studioController.getTodaysSchedule);
 router.get('/settings', isLoggedIn, requireRole('admin'), studioController.getStudioSettings);
 router.put('/settings', isLoggedIn, requireRole('admin'), studioController.updateStudioSettings);
+router.post('/register', studioController.registerStudio); // Public registration
 router.get('/all', isLoggedIn, requireRole('owner'), studioController.getAllStudios);
 router.post('/', isLoggedIn, requireRole('owner'), studioController.createStudio);
 router.put('/:id', isLoggedIn, requireRole('owner'), studioController.updateStudio);

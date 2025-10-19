@@ -13,7 +13,7 @@ function Footer() {
                         © {new Date().getFullYear()} FiTime. כל הזכויות שמורות.
                     </span>
                     <a 
-                        href="https://zion.aztodev.com/" 
+                        href="https://aztodev.com/" 
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="aztodev-credit"
@@ -21,7 +21,7 @@ function Footer() {
                         נבנה ע"י AzToDev
                     </a>
                 </div>
-                <div className="footer-logo" onClick={() => navigate('/dashboard')}>
+                <div className="footer-logo" onClick={() => navigate('/')}>
                     <img src="/images/logo.png" alt="FiTime Logo" />
                 </div>
             </div>

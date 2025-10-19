@@ -64,6 +64,12 @@ function Navbar() {
 
     const renderNavLinks = () => {
         switch (activeRole) {
+            case 'owner':
+                return (
+                    <NavLink to="/owner-dashboard" className="nav-link" onClick={closeMenu}>
+                        ניהול מערכת
+                    </NavLink>
+                );
             case 'admin':
                 return (
                     <>

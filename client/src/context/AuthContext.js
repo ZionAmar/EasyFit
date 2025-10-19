@@ -15,7 +15,6 @@ export function AuthProvider({ children }) {
 
     const setupSession = useCallback((data) => {
         if (!data || !data.userDetails) return null;
-
         const { userDetails, studios: userStudios } = data;
         setUser(userDetails);
 
@@ -94,8 +93,7 @@ export function AuthProvider({ children }) {
             setActiveStudio(null);
             setActiveRole(null);
             api.setStudioId(null);
-            localStorage.removeItem('activeStudioId');
-            localStorage.removeItem('activeRole');
+            localStorage.clear();
             navigate('/');
         }
     };

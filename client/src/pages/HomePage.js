@@ -40,7 +40,7 @@ function HomePage() {
           </div>
         </header>
 
-        <section className="trusted-by-section fade-in">
+        {/* <section className="trusted-by-section fade-in">
           <p>השותפים שלנו להצלחה</p>
           <div className="logos-container">
             <span>סטודיו פילאטיס ת"א</span>
@@ -48,7 +48,7 @@ function HomePage() {
             <span>CrossFit הרצליה</span>
             <span>סטודיו גוף ונפש</span>
           </div>
-        </section>
+        </section> */}
 
         <section id="features" className="persona-section owner-section fade-in">
           <div className="persona-content container">

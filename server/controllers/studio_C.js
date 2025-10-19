@@ -46,6 +46,15 @@ const updateStudioSettings = async (req, res, next) => {
     }
 };
 
+const registerStudio = async (req, res, next) => {
+    try {
+        const result = await studioService.registerNewStudio(req.body);
+        res.status(201).json({ message: "Studio registered successfully", data: result });
+    } catch (err) {
+        next(err);
+    }
+};
+
 const getAllStudios = async (req, res, next) => {
     try {
         const studios = await studioService.getAllStudios();
@@ -99,6 +108,7 @@ module.exports = {
     getTodaysSchedule, 
     getStudioSettings,   
     updateStudioSettings,
+    registerStudio,
     getAllStudios,
     createStudio,
     updateStudio,

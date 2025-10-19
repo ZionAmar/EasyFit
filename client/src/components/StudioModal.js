@@ -9,11 +9,25 @@ function StudioModal({ studio, onClose, onSave }) {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-    const [studioUsers, setStudioUsers] = useState([]);
+    
+    const [createMode, setCreateMode] = useState('newAdmin');
+    const [allUsers, setAllUsers] = useState([]);
+    const [userSearchTerm, setUserSearchTerm] = useState('');
+    const [selectedExistingAdminId, setSelectedExistingAdminId] = useState('');
     const [currentAdmin, setCurrentAdmin] = useState(null);
     const [selectedNewAdminId, setSelectedNewAdminId] = useState('');
 
     useEffect(() => {
+        const fetchAllUsers = async () => {
+            try {
+                const users = await api.get('/api/users/all'); 
+                setAllUsers(users || []);
+            } catch (err) { console.error("Failed to fetch all users", err); }
+        };
+        
+        // Fetch all users for both Create and Edit modes
+        fetchAllUsers();
+
         if (isEditMode && studio) {
             setFormData({
                 name: studio.name || '',
@@ -22,23 +36,22 @@ function StudioModal({ studio, onClose, onSave }) {
                 subscription_status: studio.subscription_status || 'trialing',
             });
 
-            const fetchStudioUsers = async () => {
+            const fetchStudioAdmin = async () => {
                 try {
-                    const users = await api.get(`/api/users/by-studio/${studio.id}`);
-                    setStudioUsers(users || []);
-                    const adminUser = users.find(u => 
+                    const usersInStudio = await api.get(`/api/users/by-studio/${studio.id}`);
+                    const adminUser = usersInStudio.find(u => 
                         u.roles && JSON.parse(u.roles).some(r => r.studio_id === studio.id && r.role === 'admin')
                     );
                     setCurrentAdmin(adminUser);
-                } catch (err) { console.error("Failed to fetch studio users", err); }
+                } catch (err) { console.error("Failed to fetch studio admin", err); }
             };
-            fetchStudioUsers();
+            fetchStudioAdmin();
         }
     }, [studio, isEditMode]);
 
     const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-    const handleStudioDetailsSubmit = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
         setError('');
@@ -47,7 +60,22 @@ function StudioModal({ studio, onClose, onSave }) {
                 const { name, address, phone_number, subscription_status } = formData;
                 await api.put(`/api/studio/${studio.id}`, { name, address, phone_number, subscription_status });
             } else {
-                await api.post('/api/studio', formData);
+                const payload = {
+                    createMode,
+                    name: formData.name,
+                    address: formData.address,
+                    phone_number: formData.phone_number,
+                };
+                if (createMode === 'newAdmin') {
+                    payload.admin_full_name = formData.admin_full_name;
+                    payload.admin_email = formData.admin_email;
+                    payload.admin_userName = formData.admin_userName;
+                    payload.admin_password = formData.admin_password;
+                } else {
+                    if (!selectedExistingAdminId) throw new Error("אנא בחר משתמש קיים מהרשימה.");
+                    payload.existingAdminId = selectedExistingAdminId;
+                }
+                await api.post('/api/studio', payload);
             }
             onSave();
         } catch (err) {
@@ -72,27 +100,23 @@ function StudioModal({ studio, onClose, onSave }) {
         }
     };
 
+    const filteredUsers = allUsers.filter(user =>
+        user.full_name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(userSearchTerm.toLowerCase())
+    );
+
     return (
         <div className="modal-overlay">
             <div className="modal-content">
                 <button className="modal-close-btn" onClick={onClose}>&times;</button>
-                <h2>{isEditMode ? `עריכת סטודיו: ${studio.name}` : 'הוספת סטודיו ומנהל ראשי'}</h2>
+                <h2>{isEditMode ? `עריכת סטודיו: ${studio.name}` : 'הוספת סטודיו חדש'}</h2>
                 
-                <form onSubmit={handleStudioDetailsSubmit} className="settings-form">
+                <form onSubmit={handleSubmit} className="settings-form">
                     <fieldset>
                         <legend>פרטי הסטודיו</legend>
-                        <div className="form-field">
-                            <label>שם הסטודיו</label>
-                            <input name="name" value={formData.name} onChange={handleChange} required disabled={isLoading} />
-                        </div>
-                        <div className="form-field">
-                            <label>כתובת</label>
-                            <input name="address" value={formData.address} onChange={handleChange} disabled={isLoading} />
-                        </div>
-                        <div className="form-field">
-                            <label>מספר טלפון</label>
-                            <input name="phone_number" value={formData.phone_number} onChange={handleChange} disabled={isLoading} />
-                        </div>
+                        <div className="form-field"><label>שם הסטודיו</label><input name="name" value={formData.name} onChange={handleChange} required disabled={isLoading}/></div>
+                        <div className="form-field"><label>כתובת</label><input name="address" value={formData.address} onChange={handleChange} disabled={isLoading}/></div>
+                        <div className="form-field"><label>מספר טלפון</label><input name="phone_number" value={formData.phone_number} onChange={handleChange} disabled={isLoading}/></div>
                         {isEditMode && (
                             <div className="form-field">
                                 <label>סטטוס מנוי</label>
@@ -107,37 +131,50 @@ function StudioModal({ studio, onClose, onSave }) {
                     </fieldset>
 
                     {!isEditMode && (
-                        <fieldset>
-                            <legend>פרטי מנהל הסטודיו</legend>
-                            <div className="form-field">
-                                <label>שם מלא</label>
-                                <input name="admin_full_name" value={formData.admin_full_name} onChange={handleChange} required disabled={isLoading} />
+                        <>
+                            <div className="create-mode-toggle" style={{ display: 'flex', gap: '10px', margin: '1.5rem 0' }}>
+                                <button type="button" className={`btn ${createMode === 'newAdmin' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCreateMode('newAdmin')}>צור מנהל חדש</button>
+                                <button type="button" className={`btn ${createMode === 'existingUser' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCreateMode('existingUser')}>בחר משתמש קיים</button>
                             </div>
-                            <div className="form-field">
-                                <label>שם משתמש (באנגלית)</label>
-                                <input name="admin_userName" value={formData.admin_userName} onChange={handleChange} required disabled={isLoading} />
-                            </div>
-                            <div className="form-field">
-                                <label>אימייל</label>
-                                <input name="admin_email" type="email" value={formData.admin_email} onChange={handleChange} required disabled={isLoading} />
-                            </div>
-                            <div className="form-field">
-                                <label>סיסמה</label>
-                                <input name="admin_password" type="password" value={formData.admin_password} onChange={handleChange} required disabled={isLoading} />
-                            </div>
-                        </fieldset>
+
+                            {createMode === 'newAdmin' && (
+                                <fieldset>
+                                    <legend>פרטי מנהל חדש</legend>
+                                    <div className="form-field"><label>שם מלא</label><input name="admin_full_name" value={formData.admin_full_name} onChange={handleChange} required={createMode === 'newAdmin'} disabled={isLoading}/></div>
+                                    <div className="form-field"><label>שם משתמש</label><input name="admin_userName" value={formData.admin_userName} onChange={handleChange} required={createMode === 'newAdmin'} disabled={isLoading}/></div>
+                                    <div className="form-field"><label>אימייל</label><input name="admin_email" type="email" value={formData.admin_email} onChange={handleChange} required={createMode === 'newAdmin'} disabled={isLoading}/></div>
+                                    <div className="form-field"><label>סיסמה</label><input name="admin_password" type="password" value={formData.admin_password} onChange={handleChange} required={createMode === 'newAdmin'} disabled={isLoading}/></div>
+                                </fieldset>
+                            )}
+
+                            {createMode === 'existingUser' && (
+                                <fieldset>
+                                    <legend>בחר מנהל מהרשימה</legend>
+                                    <div className="form-field">
+                                        <input type="text" placeholder="חפש משתמש..." className="search-input-modal" value={userSearchTerm} onChange={(e) => setUserSearchTerm(e.target.value)} />
+                                    </div>
+                                    <div className="form-field">
+                                        <label>בחר משתמש</label>
+                                        <select value={selectedExistingAdminId} onChange={(e) => setSelectedExistingAdminId(e.target.value)} required={createMode === 'existingUser'} disabled={isLoading}>
+                                            <option value="">בחר...</option>
+                                            {filteredUsers.map(user => (
+                                                <option key={user.id} value={user.id}>{user.full_name} ({user.email})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </fieldset>
+                            )}
+                        </>
                     )}
                     
-                    {error && !isEditMode && <p className="error">{error}</p>}
+                    {error && <p className="error">{error}</p>}
                     <div className="modal-actions">
-                         <button type="submit" className="btn btn-primary" disabled={isLoading}>
-                            {isLoading ? 'שומר...' : (isEditMode ? 'שמור פרטי סטודיו' : 'צור סטודיו ומנהל')}
-                        </button>
+                         <button type="submit" className="btn btn-primary" disabled={isLoading}>{isLoading ? 'שומר...' : 'שמור'}</button>
                     </div>
                 </form>
 
                 {isEditMode && (
-                    <div className="admin-management-section">
+                     <div className="admin-management-section">
                         <hr />
                         <h4>ניהול מנהל הסטודיו</h4>
                         <p><strong>מנהל נוכחי:</strong> {currentAdmin ? `${currentAdmin.full_name} (${currentAdmin.email})` : 'טוען...'}</p>
@@ -145,12 +182,11 @@ function StudioModal({ studio, onClose, onSave }) {
                             <label>החלף מנהל למשתמש קיים:</label>
                             <select value={selectedNewAdminId} onChange={(e) => setSelectedNewAdminId(e.target.value)} disabled={isLoading}>
                                 <option value="">בחר משתמש...</option>
-                                {studioUsers.filter(u => u.id !== currentAdmin?.id).map(user => (
-                                    <option key={user.id} value={user.id}>{user.full_name}</option>
+                                {allUsers.filter(u => u.id !== currentAdmin?.id).map(user => (
+                                    <option key={user.id} value={user.id}>{user.full_name} ({user.email})</option>
                                 ))}
                             </select>
                         </div>
-                        {error && <p className="error">{error}</p>}
                         <div className="modal-actions">
                             <button className="btn btn-secondary" onClick={handleAssignNewAdmin} disabled={!selectedNewAdminId || isLoading}>
                                 {isLoading ? 'מעדכן...' : 'הפוך למנהל'}

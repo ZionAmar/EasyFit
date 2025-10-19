@@ -9,7 +9,7 @@ function OwnerDashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedStudio, setSelectedStudio] = useState(null);
-    const [searchTerm, setSearchTerm] = useState(''); // 1. State for the search term
+    const [searchTerm, setSearchTerm] = useState('');
     const { setupSession } = useAuth();
 
     const fetchStudios = useCallback(async () => {
@@ -55,13 +55,13 @@ function OwnerDashboardPage() {
         }
     };
 
-    const handleImpersonate = async (adminUserId, adminFullName) => {
-        if (!adminUserId) {
+    const handleImpersonate = async (studio) => {
+        if (!studio.admin_user_id) {
             return alert('לסטודיו זה לא משויך מנהל.');
         }
-        if (window.confirm(`האם להתחבר למערכת בתור ${adminFullName}?`)) {
+        if (window.confirm(`האם להתחבר למערכת בתור ${studio.admin_full_name}?`)) {
             try {
-                const data = await api.post(`/api/auth/impersonate/${adminUserId}`);
+                const data = await api.post(`/api/auth/impersonate/${studio.admin_user_id}`);
                 const roleType = setupSession(data);
                 if (roleType === 'user') {
                     window.location.href = '/dashboard';
@@ -72,7 +72,6 @@ function OwnerDashboardPage() {
         }
     };
 
-    // 2. Filter the studios based on the search term
     const filteredStudios = studios.filter(studio =>
         studio.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (studio.admin_full_name && studio.admin_full_name.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -89,23 +88,24 @@ function OwnerDashboardPage() {
                     <h1>דשבורד ניהול ראשי</h1>
                     <p>מכאן תוכל לנהל את כל הסטודיואים הרשומים במערכת FiTime.</p>
                 </div>
-                {/* 3. Add the search bar container */}
-                <div className="search-and-add-container">
-                    <input
-                        type="text"
-                        placeholder="חפש לפי שם סטודיו או מנהל..."
-                        className="search-input"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                <div className="header-actions">
                     <button className="btn btn-primary" onClick={() => handleOpenModal()}>הוסף סטודיו חדש</button>
                 </div>
             </div>
 
             <div className="card-pro">
                 <div className="card-header">
-                    <span className="card-icon">🏢</span>
-                    <h2>רשימת סטודיואים ({filteredStudios.length})</h2>
+                    <div className="card-header-title">
+                        <span className="card-icon">🏢</span>
+                        <h2>רשימת סטודיואים ({filteredStudios.length})</h2>
+                    </div>
+                    <input
+                        type="text"
+                        placeholder="חפש..."
+                        className="search-input"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                 </div>
                 <div className="table-responsive">
                     <table className="studios-table">
@@ -119,22 +119,17 @@ function OwnerDashboardPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {/* 4. Map over the filtered list */}
                             {filteredStudios.length > 0 ? (
                                 filteredStudios.map(studio => (
                                     <tr key={studio.id}>
                                         <td>{studio.id}</td>
                                         <td>{studio.name}</td>
                                         <td>{studio.admin_full_name || <span style={{opacity: 0.5}}>אין מנהל</span>}</td>
-                                        <td>
-                                            <span className={`status-badge ${studio.subscription_status}`}>
-                                                {studio.subscription_status}
-                                            </span>
-                                        </td>
+                                        <td><span className={`status-badge ${studio.subscription_status}`}>{studio.subscription_status}</span></td>
                                         <td className="actions-cell">
                                             <button className="btn btn-secondary" onClick={() => handleOpenModal(studio)}>ערוך</button>
                                             <button className="btn btn-danger" onClick={() => handleDelete(studio.id)}>מחק</button>
-                                            <button className="btn" onClick={() => handleImpersonate(studio.admin_user_id, studio.admin_full_name)} disabled={!studio.admin_user_id}>התחבר כמנהל</button>
+                                            <button className="btn" onClick={() => handleImpersonate(studio)} disabled={!studio.admin_user_id}>התחבר כמנהל</button>
                                         </td>
                                     </tr>
                                 ))
