@@ -90,14 +90,39 @@ async function remove(userId, studioId) {
 
 async function updateProfile(id, data) {
     const currentUser = await getById(id);
-    if (currentUser.profile_picture_url && data.profile_picture_url) {
+    
+    // בודקים אם הגיע דגל מחיקה
+    const shouldDeleteImage = data.delete_image === 'true';
+
+    // אם צריך למחוק את התמונה הקיימת
+    if (shouldDeleteImage && currentUser.profile_picture_url) {
         const oldImageName = path.basename(currentUser.profile_picture_url);
         const oldImagePath = path.join(__dirname, '..', 'public', 'avatars', oldImageName);
-        fs.unlink(oldImagePath, (err) => {
-            if (err) console.error(`Failed to delete old avatar: ${oldImagePath}`, err);
-            else console.log(`Successfully deleted old avatar: ${oldImagePath}`);
-        });
+        
+        // נסה למחוק את הקובץ הפיזי אם הוא קיים
+        if (fs.existsSync(oldImagePath)) {
+            fs.unlink(oldImagePath, (err) => {
+                if (err) console.error(`Failed to delete old avatar: ${oldImagePath}`, err);
+                else console.log(`Successfully deleted old avatar: ${oldImagePath}`);
+            });
+        }
+        // הגדר את הכתובת ל-NULL כדי לעדכן במסד הנתונים
+        data.profile_picture_url = null;
+
+    } else if (currentUser.profile_picture_url && data.profile_picture_url) {
+        // אם הועלתה תמונה חדשה (והתמונה הקודמת אינה למחיקה), מחק את הישנה
+        const oldImageName = path.basename(currentUser.profile_picture_url);
+        const oldImagePath = path.join(__dirname, '..', 'public', 'avatars', oldImageName);
+        if (fs.existsSync(oldImagePath)) {
+            fs.unlink(oldImagePath, (err) => {
+                if (err) console.error(`Failed to delete old avatar: ${oldImagePath}`, err);
+            });
+        }
     }
+    
+    // הסר את המאפיין הזמני לפני השליחה למודל
+    delete data.delete_image;
+    
     await userModel.updateProfile(id, data);
     const [[updatedUser]] = await userModel.getById(id);
     return updatedUser;
@@ -144,5 +169,5 @@ module.exports = {
   updateProfile,
   getAvailableTrainers,
   removeRole,
-ownerCreate,
+  ownerCreate,
 };

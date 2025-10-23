@@ -11,6 +11,7 @@ function ProfileModal({ isOpen, onClose }) {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
     const fileInputRef = useRef();
+    const [isImageDeleted, setIsImageDeleted] = useState(false);
 
     useEffect(() => {
         if (user && isOpen) {
@@ -19,35 +20,41 @@ function ProfileModal({ isOpen, onClose }) {
                 phone: user.phone || '',
             });
             setPreview(user.profile_picture_url || null);
-            setSelectedFile(null); 
+            setSelectedFile(null);
+            setIsImageDeleted(false);
         }
     }, [user, isOpen]);
 
     useEffect(() => {
+        if (isImageDeleted) {
+            setPreview(null);
+            return;
+        }
         if (!selectedFile) {
-            // When a file is removed or on initial load, show the existing picture
             setPreview(user?.profile_picture_url || null);
             return;
         }
-        // Create a temporary URL for the new file preview
         const objectUrl = URL.createObjectURL(selectedFile);
         setPreview(objectUrl);
-
-        // Cleanup function to avoid memory leaks
         return () => URL.revokeObjectURL(objectUrl);
-    }, [selectedFile, user]);
+    }, [selectedFile, user, isImageDeleted]);
 
     if (!isOpen) return null;
 
     const handleFileChange = (e) => {
         if (e.target.files && e.target.files.length > 0) {
             setSelectedFile(e.target.files[0]);
+            setIsImageDeleted(false);
         }
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const handleRemoveImage = () => {
+        setSelectedFile(null);
+        setIsImageDeleted(true);
     };
 
     const handleSave = async (e) => {
@@ -61,13 +68,11 @@ function ProfileModal({ isOpen, onClose }) {
         if (selectedFile) {
             data.append('profile_picture', selectedFile);
         }
+        data.append('delete_image', isImageDeleted);
 
         try {
             await api.put('/api/users/profile', data);
-
-            // This will now work correctly because refreshUser is exported from context
             await refreshUser();
-            
             onClose();
         } catch (err) {
             setError(err.message || 'שגיאה בעדכון הפרופיל.');
@@ -84,22 +89,44 @@ function ProfileModal({ isOpen, onClose }) {
                 <form onSubmit={handleSave} className="settings-form">
                     <div className="form-field profile-picture-field">
                         <label>תמונת פרופיל</label>
-                        <div className="profile-picture-preview" onClick={() => fileInputRef.current.click()}>
+                        <div className="profile-picture-preview">
                             {preview ? (
                                 <img src={preview} alt="תצוגה מקדימה" />
                             ) : (
                                 <div className="placeholder-avatar">{user?.full_name?.charAt(0)}</div>
                             )}
-                            <div className="upload-overlay">לחץ לשינוי</div>
+                            
+                            {/* --- ⬇️ כפתור המחיקה גלוי תמיד כשיש תמונה ⬇️ --- */}
+                            {preview && !isLoading && (
+                                <button
+                                    type="button"
+                                    className="remove-image-btn"
+                                    title="הסר תמונה"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleRemoveImage();
+                                    }}
+                                >
+                                    🗑️
+                                </button>
+                            )}
+
+                             {/* --- ⬇️ כפתור העריכה גלוי תמיד ⬇️ --- */}
+                            <button
+                                type="button"
+                                className="edit-image-btn"
+                                title="שנה תמונה"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    fileInputRef.current.click();
+                                }}
+                            >
+                                ✏️
+                            </button>
                         </div>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleFileChange}
-                            style={{ display: 'none' }}
-                            accept="image/*"
-                        />
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} accept="image/*" />
                     </div>
+
                     <div className="form-field">
                         <label>שם מלא</label>
                         <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} required />
@@ -108,6 +135,7 @@ function ProfileModal({ isOpen, onClose }) {
                         <label>טלפון</label>
                         <input type="tel" name="phone" value={formData.phone} onChange={handleChange} />
                     </div>
+                    
                     {error && <p className="error">{error}</p>}
                     <div className="modal-actions">
                         <button type="submit" className="btn register-btn" disabled={isLoading}>

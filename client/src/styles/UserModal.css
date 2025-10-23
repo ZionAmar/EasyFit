@@ -185,3 +185,55 @@
 .profile-picture-preview:hover .upload-overlay {
     transform: translateY(0);
 }
+
+/* ========================================= */
+/* Profile Picture Buttons (Always Visible)  */
+/* ========================================= */
+
+/* Delete Button */
+.remove-image-btn {
+    position: absolute;
+    bottom: 8px;
+    left: 8px; /* For RTL layout */
+    width: 32px;
+    height: 32px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 16px;
+    line-height: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 1; /* Always visible */
+}
+
+.remove-image-btn:hover {
+    background-color: var(--danger-color);
+    transform: scale(1.1);
+}
+
+/* Edit Button */
+.edit-image-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 8px; /* For RTL layout */
+    width: 32px;
+    height: 32px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 16px; /* For the pencil emoji */
+    line-height: 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 1; /* Always visible */
+}
+
+.edit-image-btn:hover {
+    background-color: var(--primary-color);
+    transform: scale(1.1);
+}
