@@ -1,25 +1,62 @@
 const db = require('../config/db_config');
 
-const getAll = ({ role, studioId }) => {
-    let query = `
+// --- Owner Model Functions ---
+const findAllWithRoles = async () => {
+    const query = `
         SELECT 
-            u.id, u.full_name, u.email, u.userName, u.phone, u.profile_picture_url,
-            CONCAT('[', GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)), ']') as roles
+            u.id, u.full_name, u.email, u.userName, u.status,
+            CONCAT('[', IFNULL(GROUP_CONCAT(DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role_name', r.name)), ''), ']') as roles
         FROM users u
         LEFT JOIN user_roles ur ON u.id = ur.user_id
         LEFT JOIN roles r ON ur.role_id = r.id
         LEFT JOIN studios s ON ur.studio_id = s.id
+        GROUP BY u.id
+        ORDER BY u.created_at DESC;
+    `;
+    const [users] = await db.query(query);
+    return users;
+};
+
+const addRole = async ({ userId, studioId, roleName }) => {
+    const query = `
+        INSERT INTO user_roles (user_id, studio_id, role_id) 
+        SELECT ?, ?, (SELECT id FROM roles WHERE name = ?)
+        ON DUPLICATE KEY UPDATE user_id=user_id;
+    `;
+    await db.query(query, [userId, studioId, roleName]);
+    return { success: true };
+};
+
+const removeRole = async ({ userId, studioId, roleName }) => {
+    const query = `
+        DELETE FROM user_roles 
+        WHERE user_id = ? AND studio_id = ? AND role_id = (SELECT id FROM roles WHERE name = ?);
+    `;
+    await db.query(query, [userId, studioId, roleName]);
+    return { success: true };
+};
+
+// --- Admin/General Model Functions ---
+const getAll = ({ role, studioId }) => {
+    let query = `
+        SELECT 
+            u.id, u.full_name, u.email, u.userName, u.phone, u.profile_picture_url,
+            JSON_ARRAYAGG(JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)) as roles
+        FROM users u
+        JOIN user_roles ur ON u.id = ur.user_id
+        JOIN roles r ON ur.role_id = r.id
+        JOIN studios s ON ur.studio_id = s.id
     `;
     const params = [];
-
     const whereClauses = [];
+
     if (studioId) {
-        whereClauses.push(`u.id IN (SELECT user_id FROM user_roles WHERE studio_id = ?)`);
+        whereClauses.push(`ur.studio_id = ?`);
         params.push(studioId);
     }
     if (role) {
-        whereClauses.push(`u.id IN (SELECT user_id FROM user_roles ur_filter JOIN roles r_filter ON ur_filter.role_id = r_filter.id WHERE ur_filter.studio_id = ? AND r_filter.name = ?)`);
-        params.push(studioId, role);
+        whereClauses.push(`r.name = ?`);
+        params.push(role);
     }
 
     if (whereClauses.length > 0) {
@@ -27,17 +64,11 @@ const getAll = ({ role, studioId }) => {
     }
 
     query += ' GROUP BY u.id';
-    
     return db.query(query, params);
 };
 
 const getById = (id) => {
-    const query = `
-        SELECT 
-            u.id, u.full_name, u.email, u.userName, u.phone, u.profile_picture_url
-        FROM users u
-        WHERE u.id = ?
-    `;
+    const query = `SELECT * FROM users WHERE id = ?`;
     return db.query(query, [id]);
 };
 
@@ -51,29 +82,15 @@ const getByEmail = (email) => {
     return db.query(query, [email]).then(([rows]) => rows[0] || null);
 };
 
-
 const findStudiosAndRolesByUserId = (userId) => {
     const query = `
-        SELECT 
-            s.id as studio_id,
-            s.name as studio_name,
-            r.name as role_name
+        SELECT s.id as studio_id, s.name as studio_name, r.name as role_name
         FROM user_roles ur
         JOIN studios s ON ur.studio_id = s.id
         JOIN roles r ON ur.role_id = r.id
         WHERE ur.user_id = ?
     `;
     return db.query(query, [userId]);
-};
-
-const findRolesByStudio = (userId, studioId) => {
-    const query = `
-        SELECT r.name 
-        FROM user_roles ur
-        JOIN roles r ON ur.role_id = r.id
-        WHERE ur.user_id = ? AND ur.studio_id = ?
-    `;
-    return db.query(query, [userId, studioId]);
 };
 
 const create = async ({ full_name, email, userName, password_hash, phone, roles, studioId }) => {
@@ -100,15 +117,32 @@ const create = async ({ full_name, email, userName, password_hash, phone, roles,
     }
 };
 
-const update = async (id, { full_name, email, phone, roles, studioId }) => {
+const update = async (id, data) => {
     const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
 
-        const userQuery = 'UPDATE users SET full_name = ?, email = ?, phone = ? WHERE id = ?';
-        await connection.query(userQuery, [full_name, email, phone, id]);
+        // Dynamically build the update query for the 'users' table
+        const userFields = ['full_name', 'email', 'phone', 'status'];
+        const fieldsToUpdate = [];
+        const values = [];
+        
+        userFields.forEach(field => {
+            if (data[field] !== undefined) {
+                fieldsToUpdate.push(`${field} = ?`);
+                values.push(data[field]);
+            }
+        });
 
-        if (roles && studioId) {
+        if (fieldsToUpdate.length > 0) {
+            values.push(id);
+            const userQuery = `UPDATE users SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
+            await connection.query(userQuery, values);
+        }
+
+        // Handle roles update if provided
+        if (data.roles && data.studioId) {
+            const { roles, studioId } = data;
             const deleteQuery = 'DELETE FROM user_roles WHERE user_id = ? AND studio_id = ?';
             await connection.query(deleteQuery, [id, studioId]);
 
@@ -119,7 +153,8 @@ const update = async (id, { full_name, email, phone, roles, studioId }) => {
         }
 
         await connection.commit();
-        return { id, full_name, email };
+        const [[updatedUser]] = await getById(id);
+        return updatedUser;
     } catch (err) {
         await connection.rollback();
         throw err;
@@ -132,6 +167,10 @@ const remove = (id) => {
     return db.query('DELETE FROM users WHERE id = ?', [id]);
 };
 
+const removeUserFromStudio = (userId, studioId) => {
+    return db.query('DELETE FROM user_roles WHERE user_id = ? AND studio_id = ?', [userId, studioId]);
+};
+
 const findAvailableTrainers = ({ studioId, date, start_time, end_time, excludeMeetingId }) => {
     let query = `
         SELECT u.id, u.full_name
@@ -141,61 +180,45 @@ const findAvailableTrainers = ({ studioId, date, start_time, end_time, excludeMe
         WHERE ur.studio_id = ? AND r.name = 'trainer'
         AND u.id NOT IN (
             SELECT trainer_id FROM meetings
-            WHERE date = ? 
-            AND start_time < ? 
-            AND end_time > ?
+            WHERE date = ? AND start_time < ? AND end_time > ?
     `;
     const params = [studioId, date, end_time, start_time];
-
     if (excludeMeetingId) {
         query += ` AND id != ?`;
         params.push(excludeMeetingId);
     }
-
     query += `)`;
-    
     return db.query(query, params);
 };
 
 const updateProfile = (id, data) => {
-    const { full_name, phone, profile_picture_url } = data;
     const fieldsToUpdate = [];
     const values = [];
-
-    if (full_name !== undefined) {
-        fieldsToUpdate.push('full_name = ?');
-        values.push(full_name);
-    }
-    if (phone !== undefined) {
-        fieldsToUpdate.push('phone = ?');
-        values.push(phone);
-    }
-    if (profile_picture_url !== undefined) {
-        fieldsToUpdate.push('profile_picture_url = ?');
-        values.push(profile_picture_url);
-    }
-
-    if (fieldsToUpdate.length === 0) {
-        return Promise.resolve();
-    }
-
+    ['full_name', 'phone', 'profile_picture_url'].forEach(field => {
+        if (data[field] !== undefined) {
+            fieldsToUpdate.push(`${field} = ?`);
+            values.push(data[field]);
+        }
+    });
+    if (fieldsToUpdate.length === 0) return Promise.resolve();
     const query = `UPDATE users SET ${fieldsToUpdate.join(', ')} WHERE id = ?`;
     values.push(id);
-    
     return db.query(query, values);
 };
 
-
 module.exports = {
+    findAllWithRoles,
+    addRole,
+    removeRole,
     getAll,
     getById,
     getByUserName,
     getByEmail,
     findStudiosAndRolesByUserId,
-    findRolesByStudio,
     create,
     update,
     remove,
+    removeUserFromStudio,
     findAvailableTrainers,
     updateProfile
 };

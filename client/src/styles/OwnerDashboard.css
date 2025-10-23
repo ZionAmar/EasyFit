@@ -153,3 +153,164 @@
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(124, 154, 146, 0.2);
 }
+
+/* Owner Dashboard Navigation Styles */
+.dashboard-nav {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-family);
+    font-weight: 600;
+    padding: 10px 24px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-size: 1rem;
+    text-decoration: none;
+    background-color: var(--card-bg-color);
+    color: var(--dark-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* Hover state for inactive button */
+.nav-btn:not(.active):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+/* Active state - styled like .btn-primary */
+.nav-btn.active {
+    background-image: linear-gradient(to top, var(--primary-color) 0%, #8FB0A8 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Hover state for the active button (keeps the primary style) */
+.nav-btn.active:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(0,0,0,0.15);
+}
+
+/* ========================================= */
+/* Professional Table Style Refresh */
+/* ========================================= */
+
+.studios-table {
+    border-collapse: separate; /* Required for border-radius on rows */
+    border-spacing: 0 8px; /* Creates vertical space between rows */
+    margin-top: -8px; /* Compensates for the top spacing on the first row */
+}
+
+/* Removing all borders from cells for a modern look */
+.studios-table th,
+.studios-table td {
+    border: none;
+    padding: 16px 20px; /* Increased padding for better readability */
+    text-align: right;
+    white-space: nowrap;
+    vertical-align: middle; /* Ensures content is vertically centered */
+}
+
+/* Styling the table header */
+.studios-table thead th {
+    background-color: transparent; /* No background for the header itself */
+    font-weight: 600; /* Bolder header text */
+    font-size: 0.9rem;
+    color: var(--dark-color);
+    opacity: 0.7;
+    text-transform: uppercase; /* Professional touch */
+    letter-spacing: 0.5px; /* Adds a bit of air between letters */
+}
+
+/* Styling the table rows */
+.studios-table tbody tr {
+    background-color: var(--card-bg-color);
+    border-radius: 8px; /* Slightly rounded rows */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04); /* Subtle shadow for depth */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.studios-table tbody tr:hover {
+    transform: translateY(-3px); /* Lifts the row on hover */
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08); /* Stronger shadow on hover */
+    background-color: var(--card-bg-color); /* Keep background white on hover */
+}
+
+/* Styling cells within the row */
+.studios-table tbody td {
+    color: var(--dark-color);
+}
+
+/* First and last cells get rounded corners to match the row */
+.studios-table td:first-child, .studios-table th:first-child {
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+.studios-table td:last-child, .studios-table th:last-child {
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+}
+
+/* Make primary text (like names) stand out */
+.studios-table td:nth-child(2) {
+    font-weight: 600;
+}
+
+/* ========================================= */
+/* Clean & Simple Pagination Controls */
+/* ========================================= */
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem; /* Space between elements */
+}
+
+.page-indicator {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--dark-color);
+    opacity: 0.8;
+}
+
+.pagination-btn {
+    /* Inherits from .btn but with specific tweaks */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-family);
+    font-weight: 600;
+    padding: 8px 20px;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    font-size: 0.9rem;
+    background-color: var(--card-bg-color);
+    color: var(--dark-color);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+.pagination-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
+.pagination-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
