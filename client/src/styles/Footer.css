@@ -7,7 +7,7 @@
     box-sizing: border-box; /* Ensures padding is included in the width */
 }
 
-.main-app-footer .main-footer-content {
+.main-footer-content {
     max-width: 1200px;
     margin: 0 auto;
     display: flex;

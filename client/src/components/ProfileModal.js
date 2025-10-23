@@ -25,14 +25,17 @@ function ProfileModal({ isOpen, onClose }) {
 
     useEffect(() => {
         if (!selectedFile) {
+            // When a file is removed or on initial load, show the existing picture
             setPreview(user?.profile_picture_url || null);
             return;
         }
+        // Create a temporary URL for the new file preview
         const objectUrl = URL.createObjectURL(selectedFile);
         setPreview(objectUrl);
+
+        // Cleanup function to avoid memory leaks
         return () => URL.revokeObjectURL(objectUrl);
     }, [selectedFile, user]);
-
 
     if (!isOpen) return null;
 
@@ -62,9 +65,9 @@ function ProfileModal({ isOpen, onClose }) {
         try {
             await api.put('/api/users/profile', data);
 
-            if (refreshUser) {
-                await refreshUser();
-            }
+            // This will now work correctly because refreshUser is exported from context
+            await refreshUser();
+            
             onClose();
         } catch (err) {
             setError(err.message || 'שגיאה בעדכון הפרופיל.');

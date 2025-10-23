@@ -53,27 +53,31 @@ export function AuthProvider({ children }) {
         return null;
     }, []);
 
-    useEffect(() => {
-        const verifyUser = async () => {
-            try {
-                const data = await authService.verify();
-                if (data && data.userDetails) {
-                    setupSession(data);
-                }
-            } catch (error) {
-                // User is not logged in, this is expected
-            } finally {
-                setIsLoading(false);
+    const verifyAndSetupUser = useCallback(async () => {
+        try {
+            const data = await authService.verify();
+            if (data && data.userDetails) {
+                return setupSession(data);
             }
-        };
-        verifyUser();
+        } catch (error) {
+            // Not logged in
+        }
+        return null;
     }, [setupSession]);
+
+
+    useEffect(() => {
+        const initialLoad = async () => {
+            await verifyAndSetupUser();
+            setIsLoading(false);
+        }
+        initialLoad();
+    }, [verifyAndSetupUser]);
 
     const login = async (userName, pass) => {
         const data = await authService.login(userName, pass);
         const roleType = setupSession(data);
         
-        // This navigation now happens reliably AFTER state has been set
         if (roleType === 'owner') {
             navigate('/owner-dashboard');
         } else if (roleType === 'user') {
@@ -97,6 +101,13 @@ export function AuthProvider({ children }) {
             navigate('/');
         }
     };
+    
+    const refreshUser = async () => {
+        setIsLoading(true);
+        const roleType = await verifyAndSetupUser();
+        setIsLoading(false);
+        return roleType;
+    };
 
     const switchStudio = (studioId) => {
         const newActiveStudio = studios.find(s => s.studio_id === parseInt(studioId));
@@ -115,7 +126,8 @@ export function AuthProvider({ children }) {
         }
     };
  
-    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, setupSession };
+    // --- התיקון נמצא כאן ---
+    const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, setupSession, refreshUser };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

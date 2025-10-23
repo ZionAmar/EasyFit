@@ -17,9 +17,8 @@ const DesktopProfile = ({ user, onClick }) => (
     </div>
 );
 
-
 function Navbar() {
-    const { user, logout, isLoading, activeRole, activeStudio } = useAuth();
+    const { user, logout, isLoading, activeRole } = useAuth();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -60,8 +59,6 @@ function Navbar() {
 
     if (isLoading) return null;
 
-    const brandName = activeStudio?.studio_name || 'FiTime';
-
     const renderNavLinks = () => {
         switch (activeRole) {
             case 'owner':
@@ -97,6 +94,15 @@ function Navbar() {
         }
     };
 
+    const handleBrandClick = () => {
+        if (!user) {
+            handleNav('/'); 
+            return;
+        }
+        const homePath = activeRole === 'owner' ? '/owner-dashboard' : '/dashboard';
+        handleNav(homePath);
+    };
+
     return (
         <>
             <nav className="navbar">
@@ -104,31 +110,29 @@ function Navbar() {
                     {user ? renderNavLinks() : <NavLink to="/login" className="nav-link">כניסה</NavLink>}
                 </div>
                 <div className="navbar-desktop-center">
-                    <span className="navbar-brand" onClick={() => handleNav(user ? '/dashboard' : '/')}>
-                        {brandName}
-                    </span>
+                    <div className="navbar-brand" onClick={handleBrandClick}>
+                        <img src="/images/logo.png" alt="FiTime Logo" />
+                    </div>
                 </div>
                 <div className="navbar-desktop-right">
-                    {user ? (
+                    {user && (
                         <>
-                            <RoleSwitcher />
+                            {activeRole !== 'owner' && <RoleSwitcher />}
                             <span className="nav-link" onClick={handleLogout}>התנתק</span>
                             <DesktopProfile user={user} onClick={openProfileModal} />
                         </>
-                    ) : (
-                        null
                     )}
                 </div>
-
+                
                 <div className={`hamburger ${menuOpen ? 'open' : ''}`} ref={hamburgerRef} onClick={() => setMenuOpen(!menuOpen)}>
                     <span className="hamburger-bar"></span>
                     <span className="hamburger-bar"></span>
                     <span className="hamburger-bar"></span>
                 </div>
                 <div className="navbar-mobile-brand">
-                     <span className="navbar-brand" onClick={() => handleNav(user ? '/dashboard' : '/')}>
-                         {brandName}
-                     </span>
+                     <div className="navbar-brand" onClick={handleBrandClick}>
+                        <img src="/images/logo.png" alt="FiTime Logo" />
+                     </div>
                 </div>
                 
                 <div ref={menuRef} className={`nav-links-mobile ${menuOpen ? 'open' : ''}`}>
@@ -147,9 +151,11 @@ function Navbar() {
                                     <span className="profile-email">{user.email}</span>
                                 </div>
                             </div>
-                            <div className="mobile-menu-section">
-                                <RoleSwitcher />
-                            </div>
+                            {activeRole !== 'owner' && (
+                                <div className="mobile-menu-section">
+                                    <RoleSwitcher />
+                                </div>
+                            )}
                             <hr/>
                             <div className="mobile-menu-section">
                                 {renderNavLinks()}

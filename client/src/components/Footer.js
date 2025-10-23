@@ -9,9 +9,6 @@ function Footer() {
         <footer className="main-app-footer">
             <div className="main-footer-content">
                 <div className="footer-credits">
-                    <span className="copyright-text">
-                        © {new Date().getFullYear()} FiTime. כל הזכויות שמורות.
-                    </span>
                     <a 
                         href="https://aztodev.com/" 
                         target="_blank" 
@@ -21,6 +18,9 @@ function Footer() {
                         נבנה ע"י AzToDev
                     </a>
                 </div>
+                <span className="copyright-text">
+                        © {new Date().getFullYear()} FiTime. כל הזכויות שמורות.
+                </span>
                 <div className="footer-logo" onClick={() => navigate('/')}>
                     <img src="/images/logo.png" alt="FiTime Logo" />
                 </div>
