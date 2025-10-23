@@ -6,19 +6,18 @@ import { useAuth } from '../context/AuthContext';
 // רכיב הדפדוף מוגדר כאן, בתוך הקובץ
 const Pagination = ({ currentPage, totalPages, onNext, onPrev }) => {
     if (totalPages <= 1) {
-        return null; // Don't show anything if there's only one page
+        return null;
     }
-
     return (
         <div className="pagination-controls">
-            <button onClick={onNext} disabled={currentPage === totalPages} className="pagination-btn">
-                הבא ←
+            <button onClick={onPrev} disabled={currentPage === 1} className="pagination-btn">
+                → הקודם
             </button>
             <span className="page-indicator">
                 עמוד {currentPage} מתוך {totalPages}
             </span>
-            <button onClick={onPrev} disabled={currentPage === 1} className="pagination-btn">
-                → הקודם
+            <button onClick={onNext} disabled={currentPage === totalPages} className="pagination-btn">
+                הבא ←
             </button>
         </div>
     );
@@ -30,9 +29,10 @@ function StudiosManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedStudio, setSelectedStudio] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    
+    // אנחנו לא צריכים את useNavigate או refreshUser כאן
     const { setupSession } = useAuth();
 
-    // --- Pagination State ---
     const [currentPage, setCurrentPage] = useState(1);
     const [studiosPerPage] = useState(5);
 
@@ -43,7 +43,6 @@ function StudiosManagement() {
             setStudios(studiosData || []);
         } catch (error) {
             console.error("Failed to fetch studios:", error);
-            setStudios([]);
         } finally {
             setIsLoading(false);
         }
@@ -53,7 +52,6 @@ function StudiosManagement() {
         fetchStudios();
     }, [fetchStudios]);
 
-    // Reset page to 1 when search term changes
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm]);
@@ -84,17 +82,30 @@ function StudiosManagement() {
         }
     };
 
+    // --- ⬇️ הפונקציה המעודכנת והסופית ⬇️ ---
     const handleImpersonate = async (studio) => {
         if (!studio.admin_user_id) {
             return alert('לסטודיו זה לא משויך מנהל.');
         }
         if (window.confirm(`האם להתחבר למערכת בתור ${studio.admin_full_name}?`)) {
             try {
+                // שלב 1: קבלת הטוקן החדש וגם את רשימת הסטודיואים של המנהל
                 const data = await api.post(`/api/auth/impersonate/${studio.admin_user_id}`);
-                const roleType = setupSession(data);
-                if (roleType === 'user') {
-                    window.location.href = '/dashboard';
+                
+                // שלב 2: בדוק אם למנהל יש סטודיואים משויכים
+                if (data && data.studios && data.studios.length > 0) {
+                    // שלב 3: שמור את ה-ID של הסטודיו הראשון שלו ב-localStorage
+                    const firstStudioId = data.studios[0].studio_id;
+                    localStorage.setItem('activeStudioId', firstStudioId);
+                } else {
+                    // אם למנהל אין סטודיו, נקה את המזהה הקודם למקרה שקיים
+                    localStorage.removeItem('activeStudioId');
                 }
+                
+                // שלב 4: רק עכשיו, כפה ריענון מלא של הדף.
+                // כשהאפליקציה תיטען מחדש, היא תקרא את ה-ID הנכון מה-localStorage.
+                window.location.href = '/dashboard';
+
             } catch (error) {
                 alert(`שגיאה בהתחזות: ${error.message}`);
             }
@@ -106,7 +117,6 @@ function StudiosManagement() {
         (studio.admin_full_name && studio.admin_full_name.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    // --- Pagination Logic ---
     const totalPages = Math.ceil(filteredStudios.length / studiosPerPage);
     const indexOfLastStudio = currentPage * studiosPerPage;
     const indexOfFirstStudio = indexOfLastStudio - studiosPerPage;
@@ -114,7 +124,6 @@ function StudiosManagement() {
 
     const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
     const handlePrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
-
 
     if (isLoading) {
         return <div className="loading">טוען רשימת סטודיואים...</div>;
@@ -160,7 +169,7 @@ function StudiosManagement() {
                                         <td className="actions-cell">
                                             <button className="btn btn-secondary" onClick={() => handleOpenModal(studio)}>ערוך</button>
                                             <button className="btn btn-danger" onClick={() => handleDelete(studio.id)}>מחק</button>
-                                            <button className="btn" onClick={() => handleImpersonate(studio)} disabled={!studio.admin_user_id}>התחבר כמנהל הסטודיו</button>
+                                            <button className="btn" onClick={() => handleImpersonate(studio)} disabled={!studio.admin_user_id}>התחבר כמנהל</button>
                                         </td>
                                     </tr>
                                 ))

@@ -1,9 +1,12 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
+// ייבוא כל הרכיבים והדפים שלך
+import ProtectedRoute from './components/ProtectedRoute'; 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import Breadcrumbs from './components/Breadcrumbs';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -14,91 +17,75 @@ import TrainerHistoryPage from './pages/TrainerHistoryPage';
 import ManageSchedulePage from './pages/ManageSchedulePage'; 
 import BookingConfirmedPage from './pages/BookingConfirmedPage';
 import BookingErrorPage from './pages/BookingErrorPage';
-import Breadcrumbs from './components/Breadcrumbs';
 import OwnerDashboardPage from './pages/OwnerDashboardPage';
 
 import './App.css';
 import 'react-datepicker/dist/react-datepicker.css';
 
-const ProtectedRoute = ({ allowedRoles }) => {
-    const { user, activeRole, isLoading } = useAuth();
+// --- ⬇️ זה הרכיב החדש והחשוב ⬇️ ---
+// רכיב זה עוטף את כל הראוטים ובודק אם המערכת עדיין טוענת את פרטי המשתמש
+const AppRoutes = () => {
+    const { isLoading } = useAuth();
 
     if (isLoading) {
-        return <div className="loading">טוען...</div>;
+        return <div className="loading">טוען...</div>; // מציג מסך טעינה גלובלי
     }
 
-    if (!user) {
-        return <Navigate to="/login" replace />;
-    }
-    
-    return allowedRoles.includes(activeRole) 
-        ? <Outlet /> 
-        : <Navigate to="/unauthorized" replace />;
+    // רק אחרי שהטעינה הסתיימה, הוא מציג את הראוטים
+    return (
+        <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/booking-confirmed" element={<BookingConfirmedPage status="confirmed" />} />
+            <Route path="/booking-declined" element={<BookingConfirmedPage status="declined" />} />
+            <Route path="/booking-error" element={<BookingErrorPage />} />
+
+            <Route element={<MainLayout />}>
+                <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
+                    <Route path="/owner-dashboard" element={<OwnerDashboardPage />} />
+                </Route>
+                <Route element={<ProtectedRoute allowedRoles={['admin', 'trainer', 'member']} />}>
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/schedule" element={<SchedulePage />} />
+                    <Route path="/history" element={<HistoryPage />} />
+                    <Route path="/trainer-history" element={<TrainerHistoryPage />} />
+                </Route>
+                <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+                    <Route path="/manage/schedule" element={<ManageSchedulePage />} />
+                </Route>
+            </Route>
+
+            <Route path="/unauthorized" element={
+                <div style={{textAlign: 'center', marginTop: '50px'}}>
+                    <h1>403 - אין הרשאה</h1>
+                    <p>אין לך הרשאה לגשת לדף המבוקש.</p>
+                </div>
+            } />
+            <Route path="*" element={<Navigate to="/" replace />} /> 
+        </Routes>
+    );
 };
 
-function AppRoutes() {
-  return (
-    <main className="main-content">
-      <Routes>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/booking-confirmed" element={<BookingConfirmedPage status="confirmed" />} />
-        <Route path="/booking-declined" element={<BookingConfirmedPage status="declined" />} />
-        <Route path="/booking-error" element={<BookingErrorPage />} />
-
-        <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
-            <Route path="/owner-dashboard" element={<OwnerDashboardPage />} />
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['admin', 'trainer', 'member']} />}>
-            <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/schedule" element={<SchedulePage />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/trainer-history" element={<TrainerHistoryPage />} />
-        </Route>
-
-        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
-            <Route path="/manage/schedule" element={<ManageSchedulePage />} />
-        </Route>
-        
-        <Route path="/unauthorized" element={
-            <div style={{textAlign: 'center', marginTop: '50px'}}>
-                <h1>403 - אין הרשאה</h1>
-                <p>אין לך הרשאה לגשת לדף המבוקש.</p>
-            </div>
-        } />
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
-    </main>
-  );
-}
-
-function MainLayout() {
-    const location = useLocation();
-    
-    const publicPaths = ['/', '/login', '/register'];
-    
-    const isPublicPath = publicPaths.includes(location.pathname);
-
+// רכיב הפריסה (Layout) שמכיל את החלקים המשותפים
+const MainLayout = () => {
     return (
         <div className="layout-wrapper"> 
-            {!isPublicPath && <Navbar />}
-            {!isPublicPath && <Breadcrumbs />}
-            
-            <AppRoutes />
-            
-            {!isPublicPath && <Footer />}
+            <Navbar />
+            <Breadcrumbs />
+            <main className="main-content">
+                <Outlet />
+            </main>
+            <Footer />
         </div>
     );
-}
-
+};
 
 function App() {
   return (
     <Router>
       <AuthProvider>
-        <MainLayout />
+        <AppRoutes /> {/* קוראים לרכיב החדש שעוטף את כל הלוגיקה */}
       </AuthProvider>
     </Router>
   );

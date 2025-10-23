@@ -14,7 +14,15 @@ export function AuthProvider({ children }) {
     const navigate = useNavigate();
 
     const setupSession = useCallback((data) => {
-        if (!data || !data.userDetails) return null;
+        if (!data || !data.userDetails) {
+            setUser(null);
+            setStudios([]);
+            setActiveStudio(null);
+            setActiveRole(null);
+            api.setStudioId(null);
+            return null;
+        }
+
         const { userDetails, studios: userStudios } = data;
         setUser(userDetails);
 
@@ -126,7 +134,6 @@ export function AuthProvider({ children }) {
         }
     };
  
-    // --- התיקון נמצא כאן ---
     const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, setupSession, refreshUser };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
