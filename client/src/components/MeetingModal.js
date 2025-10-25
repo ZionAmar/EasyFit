@@ -10,7 +10,6 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
         trainer_id: '', room_id: '', participantIds: []
     });
     
-    // States to hold the options for the dropdowns
     const [allMembers, setAllMembers] = useState([]);
     const [availableTrainers, setAvailableTrainers] = useState([]);
     const [availableRooms, setAvailableRooms] = useState([]);
@@ -20,18 +19,15 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
 
     const today = new Date().toISOString().split('T')[0];
 
-    // Single, powerful useEffect to handle all data loading
     useEffect(() => {
         const loadModalData = async () => {
             setIsLoading(true);
             setError('');
             try {
-                // Step 1: Establish the base data (especially date and time)
                 let baseData = {};
                 if (isEditMode && meeting?.id) {
                     const meetingDetails = await api.get(`/api/meetings/${meeting.id}`);
                     const participantIds = meetingDetails.participants ? meetingDetails.participants.map(p => p.id) : [];
-                    // Format date correctly for input[type=date]
                     if (meetingDetails.date) {
                         meetingDetails.date = meetingDetails.date.split('T')[0];
                     }
@@ -48,7 +44,6 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                 }
                 setFormData(prev => ({ ...prev, ...baseData }));
 
-                // Step 2: Now that we have a date and time, fetch available resources
                 const { date, start_time, end_time } = baseData;
                 if (date && start_time && end_time) {
                     let roomsUrl = `/api/rooms/available?date=${date}&start_time=${start_time}&end_time=${end_time}`;
@@ -58,7 +53,6 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                         trainersUrl += `&meetingId=${meeting.id}`;
                     }
                     
-                    // Step 3: Fetch all remaining prerequisites in parallel
                     const [membersRes, roomsRes, trainersRes] = await Promise.all([
                         api.get('/api/users/all?role=member'),
                         api.get(roomsUrl),
@@ -69,7 +63,6 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                     setAvailableRooms(roomsRes || []);
                     setAvailableTrainers(trainersRes || []);
                 } else {
-                    // Fallback if no date/time is set yet, just load members
                     const membersRes = await api.get('/api/users/all?role=member');
                     setAllMembers(membersRes || []);
                 }
@@ -83,7 +76,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
         };
 
         loadModalData();
-    }, [meeting, isEditMode, initialData]); // This effect runs only once when the modal opens
+    }, [meeting, isEditMode, initialData]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -112,7 +105,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
         }
 
         const meetingDayJs = new Date(formData.date).getDay();
-        const meetingDayDB = meetingDayJs; // Assuming JS getDay (0=Sun, 6=Sat) matches your logic. Adjust if needed.
+        const meetingDayDB = meetingDayJs; 
         const hoursForDay = operatingHours.find(h => h.day_of_week === meetingDayDB);
 
         if (!hoursForDay || (hoursForDay.open_time === hoursForDay.close_time)) {
@@ -175,7 +168,6 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                         <label>מאמן</label>
                         <select name="trainer_id" value={formData.trainer_id || ''} onChange={handleChange} required>
                             <option value="">בחר מאמן</option>
-                            {/* Improvement: If current trainer is not in available list, still show them */}
                             {isEditMode && formData.trainer && !availableTrainers.some(t => t.id === formData.trainer_id) &&
                                 <option key={formData.trainer_id} value={formData.trainer_id}>{formData.trainer.full_name} (לא זמין)</option>
                             }
@@ -187,7 +179,6 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                         <label>חדר</label>
                         <select name="room_id" value={formData.room_id || ''} onChange={handleChange} required>
                             <option value="">בחר חדר</option>
-                             {/* Improvement: If current room is not in available list, still show it */}
                             {isEditMode && formData.room && !availableRooms.some(r => r.id === formData.room_id) &&
                                 <option key={formData.room_id} value={formData.room_id}>{formData.room.name} (לא זמין)</option>
                             }

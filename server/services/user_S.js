@@ -6,17 +6,14 @@ const fs = require('fs');
 
 const encWithSalt = (str) => md5(Salt + str);
 
-// --- Owner Service Functions ---
 async function getAllSystemUsers() {
     const users = await userModel.findAllWithRoles();
-    // The query now returns a valid JSON string, so we might not need to parse it
-    // depending on the DB driver. If it's a string, parsing is needed.
     return users.map(user => {
         if (typeof user.roles === 'string') {
             try {
                 user.roles = JSON.parse(user.roles);
             } catch (e) {
-                user.roles = []; // Handle potential malformed JSON
+                user.roles = []; 
             }
         }
         return user;
@@ -24,15 +21,14 @@ async function getAllSystemUsers() {
 }
 
 async function ownerUpdate(id, data) {
-    // Owner can update core details and status
     const { full_name, email, phone, status } = data;
-    await getById(id); // Ensure user exists
+    await getById(id); 
     return userModel.update(id, { full_name, email, phone, status });
 }
 
 async function ownerDelete(id) {
-    await getById(id); // Ensure user exists
-    return userModel.remove(id); // This is a hard delete from the 'users' table
+    await getById(id); 
+    return userModel.remove(id); 
 }
 
 async function assignRole({ userId, studioId, roleName }) {
@@ -45,7 +41,6 @@ async function removeRole({ userId, studioId, roleName }) {
 }
 
 
-// --- Admin/General Service Functions ---
 async function getAll(filters) {
   const [rows] = await userModel.getAll(filters);
   return rows;
@@ -83,7 +78,6 @@ async function update(id, data) {
   return userModel.update(id, data);
 }
 
-// Admin can only remove a user from their studio, not a hard delete.
 async function remove(userId, studioId) {
   await getById(userId);
   return userModel.removeUserFromStudio(userId, studioId);
@@ -92,26 +86,21 @@ async function remove(userId, studioId) {
 async function updateProfile(id, data) {
     const currentUser = await getById(id);
     
-    // בודקים אם הגיע דגל מחיקה
     const shouldDeleteImage = data.delete_image === 'true';
 
-    // אם צריך למחוק את התמונה הקיימת
     if (shouldDeleteImage && currentUser.profile_picture_url) {
         const oldImageName = path.basename(currentUser.profile_picture_url);
         const oldImagePath = path.join(__dirname, '..', 'public', 'avatars', oldImageName);
         
-        // נסה למחוק את הקובץ הפיזי אם הוא קיים
         if (fs.existsSync(oldImagePath)) {
             fs.unlink(oldImagePath, (err) => {
                 if (err) console.error(`Failed to delete old avatar: ${oldImagePath}`, err);
                 else console.log(`Successfully deleted old avatar: ${oldImagePath}`);
             });
         }
-        // הגדר את הכתובת ל-NULL כדי לעדכן במסד הנתונים
         data.profile_picture_url = null;
 
     } else if (currentUser.profile_picture_url && data.profile_picture_url) {
-        // אם הועלתה תמונה חדשה (והתמונה הקודמת אינה למחיקה), מחק את הישנה
         const oldImageName = path.basename(currentUser.profile_picture_url);
         const oldImagePath = path.join(__dirname, '..', 'public', 'avatars', oldImageName);
         if (fs.existsSync(oldImagePath)) {
@@ -121,7 +110,6 @@ async function updateProfile(id, data) {
         }
     }
     
-    // הסר את המאפיין הזמני לפני השליחה למודל
     delete data.delete_image;
     
     await userModel.updateProfile(id, data);
@@ -134,11 +122,9 @@ async function getAvailableTrainers(filters) {
     return trainers;
 }
 
-// --- הוספה חדשה ---
 async function ownerCreate(data) {
     const { pass, userName, email, full_name, phone } = data;
 
-    // ולידציות חשובות
     if (!pass || !userName || !email || !full_name) {
         throw new Error("שם מלא, אימייל, שם משתמש וסיסמה הם שדות חובה.");
     }
@@ -150,7 +136,6 @@ async function ownerCreate(data) {
     if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
 
     const password_hash = encWithSalt(pass);
-    // אנו קוראים לפונקציית המודל הבסיסית ליצירה
     return userModel.create({ full_name, email, userName, password_hash, phone });
 }
 

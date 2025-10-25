@@ -5,8 +5,6 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
-// --- ⬇️ הוספנו פונקציית עזר קטנה ונקייה ⬇️ ---
-// פונקציה זו מחזירה את דף הבית המתאים לכל תפקיד
 const getDashboardPathForRole = (role) => {
     switch (role) {
         case 'owner':
@@ -16,7 +14,7 @@ const getDashboardPathForRole = (role) => {
         case 'member':
             return '/dashboard';
         default:
-            return '/'; // במקרה שלא נמצא תפקיד, חזור לדף הבית
+            return '/';
     }
 };
 
@@ -68,7 +66,6 @@ export function AuthProvider({ children }) {
             api.setStudioId(defaultStudio.studio_id);
             localStorage.setItem('activeStudioId', defaultStudio.studio_id);
             
-            // On initial load, try to keep the stored role if it's still valid
             const storedRole = localStorage.getItem('activeRole');
             const preferredRole = defaultStudio.roles.includes(storedRole) 
                 ? storedRole 
@@ -84,9 +81,9 @@ export function AuthProvider({ children }) {
     const verifyAndSetupUser = useCallback(async () => {
         try {
             const data = await authService.verify();
-            setupSession(data); // setupSession will handle null data correctly
+            setupSession(data);
         } catch (error) {
-            setupSession(null); // Clear session on any verification error
+            setupSession(null);
         }
     }, [setupSession]);
 
@@ -140,22 +137,40 @@ export function AuthProvider({ children }) {
             localStorage.setItem('activeStudioId', newActiveStudio.studio_id);
             const preferredRole = ['admin', 'trainer', 'member'].find(r => newActiveStudio.roles.includes(r));
             localStorage.setItem('activeRole', preferredRole);
-            window.location.reload();
+            window.location.reload(); // רענון מלא כדי להבטיח שכל הקומפוננטות יקבלו את המידע החדש
         }
     };
     
-    // --- ⬇️ הנה הפונקציה המתוקנת ⬇️ ---
+    // --- ⬇️ פונקציית switchRole המשודרגת ⬇️ ---
     const switchRole = (newRole) => {
-        if (activeStudio && activeStudio.roles.includes(newRole)) {
-            // שלב 1: עדכן את התפקיד בזיכרון ובאחסון המקומי
+        if (!studios || !activeStudio) return;
+
+        // בדיקה 1: האם התפקיד החדש קיים בסטודיו הנוכחי? (המקרה הפשוט)
+        const currentStudioHasRole = activeStudio.roles.includes(newRole);
+
+        if (currentStudioHasRole) {
             setActiveRole(newRole);
             localStorage.setItem('activeRole', newRole);
+            navigate(getDashboardPathForRole(newRole));
+        } else {
+            // בדיקה 2: אם לא, נחפש סטודיו אחר שיש בו את התפקיד (המקרה החכם)
+            const targetStudio = studios.find(studio => studio.roles.includes(newRole));
 
-            // שלב 2: מצא את דף הבית המתאים לתפקיד החדש
-            const destinationPath = getDashboardPathForRole(newRole);
-
-            // שלב 3: נווט את המשתמש לדף הבטוח הזה
-            navigate(destinationPath);
+            if (targetStudio) {
+                // בצע החלפה מלאה: גם סטודיו וגם תפקיד
+                setActiveStudio(targetStudio);
+                setActiveRole(newRole);
+                api.setStudioId(targetStudio.studio_id); // עדכון קריטי לשירות ה-API
+                
+                // שמור את הבחירה החדשה באחסון המקומי
+                localStorage.setItem('activeStudioId', targetStudio.studio_id);
+                localStorage.setItem('activeRole', newRole);
+                
+                // נווט את המשתמש לדשבורד הבטוח כדי למנוע בלבול
+                navigate(getDashboardPathForRole(newRole));
+            } else {
+                console.error(`Attempted to switch to role '${newRole}', but no studio was found for this role.`);
+            }
         }
     };
  

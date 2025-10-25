@@ -1,6 +1,5 @@
 const userService = require('../services/user_S');
 
-// --- Owner Controller Functions ---
 async function getAllSystemUsers(req, res, next) {
     try {
         const users = await userService.getAllSystemUsers();
@@ -43,7 +42,6 @@ async function ownerRemoveRole(req, res, next) {
     try {
         console.log('--- EXECUTION REACHED ownerRemoveRole CONTROLLER ---');
 
-        // --- הוסף את 2 השורות הבאות ---
         console.log('Inspecting userService object:', userService);
         console.log('Is removeRole a function?', typeof userService.removeRole);
 
@@ -56,7 +54,6 @@ async function ownerRemoveRole(req, res, next) {
     }
 }
 
-// --- Admin/General Controller Functions ---
 async function getUsersForStudio(req, res, next) {
   try {
     const { role } = req.query;
@@ -99,7 +96,6 @@ async function updateUser(req, res, next) {
 
 async function deleteUser(req, res, next) {
   try {
-    // This is a studio-specific removal by an admin
     await userService.delete(req.params.id, req.user.studioId);
     res.status(204).end();
   } catch (err) {
@@ -142,7 +138,6 @@ const getUsersByStudio = async (req, res, next) => {
     }
 };
 
-// --- הוספה חדשה ---
 async function ownerCreateUser(req, res, next) {
     try {
         const newUser = await userService.ownerCreate(req.body);

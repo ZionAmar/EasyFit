@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 
 function StudioModal({ studio, onClose, onSave }) {
-    // State management
     const isEditMode = Boolean(studio);
     const [formData, setFormData] = useState({
         name: '', address: '', phone_number: '', subscription_status: 'trialing',
@@ -20,7 +19,6 @@ function StudioModal({ studio, onClose, onSave }) {
     const [currentAdmin, setCurrentAdmin] = useState(null);
     const [selectedNewAdminId, setSelectedNewAdminId] = useState('');
 
-    // Data fetching and initialization on component mount
     useEffect(() => {
         const initializeModal = async () => {
             setIsLoading(true);
@@ -57,9 +55,8 @@ function StudioModal({ studio, onClose, onSave }) {
         initializeModal();
     }, [studio, isEditMode]);
 
-    // Handlers
     const handleChange = (e) => {
-        if (error) setError(''); // Reset error on input change
+        if (error) setError(''); 
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
@@ -68,7 +65,7 @@ function StudioModal({ studio, onClose, onSave }) {
             setError("שם הסטודיו הוא שדה חובה.");
             return false;
         }
-        if (!isEditMode) { // Validation for create mode only
+        if (!isEditMode) { 
             if (createMode === 'newAdmin') {
                 if (!formData.admin_full_name.trim() || !formData.admin_userName.trim() || !formData.admin_email.trim() || !formData.admin_password) {
                     setError("אנא מלא את כל פרטי המנהל החדש.");
@@ -132,13 +129,11 @@ function StudioModal({ studio, onClose, onSave }) {
         }
     };
 
-    // Filtered users for selection
     const filteredUsers = allUsers.filter(user =>
         user.full_name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(userSearchTerm.toLowerCase())
     );
 
-    // Render logic
     if (initializationError) {
         return (
             <div className="modal-overlay">

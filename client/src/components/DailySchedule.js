@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import '../styles/DailySchedule.css'; // נייבא קובץ עיצוב שניצור ense
+import '../styles/DailySchedule.css'; 
 
 const ScheduleRow = ({ session }) => (
     <div className="schedule-row">

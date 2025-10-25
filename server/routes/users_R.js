@@ -5,16 +5,9 @@ const { isLoggedIn, requireRole } = require('../middlewares/auth_Midd');
 const upload = require('../middlewares/upload_Midd'); 
 
 // --- Owner-Specific User Management Routes ---
-// מחזיר את כל המשתמשים בכל המערכת, לשימוש בדאשבורד הראשי של הבעלים
 router.get('/system/all', isLoggedIn, requireRole('owner'), controller.getAllSystemUsers);
-
-// מאפשר לבעלים לעדכן פרטי משתמש (כולל סטטוס)
 router.put('/system/update/:id', isLoggedIn, requireRole('owner'), controller.ownerUpdateUser);
-
-// מאפשר לבעלים למחוק משתמש לחלוטין מהמערכת
 router.delete('/system/delete/:id', isLoggedIn, requireRole('owner'), controller.ownerDeleteUser);
-
-// מאפשר לבעלים לשייך/להסיר תפקידים ממשתמש בסטודיו ספציפי
 router.post('/system/roles/:userId', isLoggedIn, requireRole('owner'), controller.ownerAssignRole);
 router.delete('/system/roles/:userId/:studioId/:roleName', isLoggedIn, requireRole('owner'), controller.ownerRemoveRole);
 
@@ -22,7 +15,6 @@ router.delete('/system/roles/:userId/:studioId/:roleName', isLoggedIn, requireRo
 // --- Admin & General User Routes ---
 router.put('/profile', isLoggedIn, upload.single('profile_picture'), controller.updateProfile);
 
-// מחזיר למנהל את המשתמשים רק בסטודיו שלו
 router.get('/all', isLoggedIn, requireRole('admin'), controller.getUsersForStudio); 
 router.get('/available-trainers', isLoggedIn, requireRole('admin'), controller.getAvailableTrainers);
 router.get("/:id", isLoggedIn, requireRole('admin'), controller.getUserById);

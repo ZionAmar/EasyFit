@@ -24,7 +24,6 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
         }
     }, [user]);
     
-    // --- ⬇️ התיקון נמצא כאן ⬇️ ---
     const handleRemoveRole = async (studioId, roleName) => {
         console.log(`Attempting to remove role. User ID: ${user.id}, Studio ID: ${studioId}, Role Name: '${roleName}'`);
         if (!window.confirm(`האם להסיר את התפקיד '${roleName}' מהמשתמש בסטודיו זה?`)) return;
@@ -34,10 +33,8 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
         try {
             await api.delete(`/api/users/system/roles/${user.id}/${studioId}/${roleName}`);
             
-            // 1. עדכן את התצוגה הפנימית במודאל
             setRoles(currentRoles => currentRoles.filter(r => !(r.studio_id === studioId && r.role_name === roleName)));
             
-            // 2. קרא לפונקציית הרענון של הדף הראשי!
             onSave();
             
         } catch (err) {
@@ -47,7 +44,6 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
         }
     };
     
-    // --- ⬇️ עדכון קטן גם כאן ⬇️ ---
     const handleAddRole = async () => {
         if (!newRoleStudioId) {
             setError('אנא בחר סטודיו.');
@@ -61,7 +57,7 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
                     await api.put(`/api/studio/${newRoleStudioId}/assign-admin`, { newAdminId: user.id });
                 } else {
                     setIsLoading(false);
-                    return; // המשתמש ביטל את הפעולה
+                    return;
                 }
             } else {
                 await api.post(`/api/users/system/roles/${user.id}`, {
@@ -69,11 +65,11 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
                     roleName: newRoleName
                 });
             }
-            onSave(); // קריאה לרענון
-            onClose(); // סגירת המודאל
+            onSave(); 
+            onClose();
         } catch (err) {
             setError(err.message || "שגיאה בהוספת התפקיד.");
-            setIsLoading(false); // ודא שזה יורד גם במקרה של שגיאה
+            setIsLoading(false); 
         } 
     };
     
