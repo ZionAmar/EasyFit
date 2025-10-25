@@ -40,6 +40,7 @@ async function assignRole({ userId, studioId, roleName }) {
 }
 
 async function removeRole({ userId, studioId, roleName }) {
+    console.log(`--- EXECUTION REACHED removeRole SERVICE with params:`, { userId, studioId, roleName });
     return userModel.removeRole({ userId, studioId, roleName });
 }
 
@@ -133,8 +134,6 @@ async function getAvailableTrainers(filters) {
     return trainers;
 }
 
-async function removeRole({ userId, studioId, roleName }) { /* ... */ }
-
 // --- הוספה חדשה ---
 async function ownerCreate(data) {
     const { pass, userName, email, full_name, phone } = data;
@@ -168,6 +167,5 @@ module.exports = {
   delete: remove,
   updateProfile,
   getAvailableTrainers,
-  removeRole,
   ownerCreate,
 };

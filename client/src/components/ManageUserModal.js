@@ -10,8 +10,6 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
     const [roles, setRoles] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
-
-    // State for adding a new role
     const [newRoleStudioId, setNewRoleStudioId] = useState('');
     const [newRoleName, setNewRoleName] = useState('member');
 
@@ -25,6 +23,76 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
             setRoles(user.roles || []);
         }
     }, [user]);
+    
+    // --- ⬇️ התיקון נמצא כאן ⬇️ ---
+    const handleRemoveRole = async (studioId, roleName) => {
+        console.log(`Attempting to remove role. User ID: ${user.id}, Studio ID: ${studioId}, Role Name: '${roleName}'`);
+        if (!window.confirm(`האם להסיר את התפקיד '${roleName}' מהמשתמש בסטודיו זה?`)) return;
+        
+        setIsLoading(true);
+        setError('');
+        try {
+            await api.delete(`/api/users/system/roles/${user.id}/${studioId}/${roleName}`);
+            
+            // 1. עדכן את התצוגה הפנימית במודאל
+            setRoles(currentRoles => currentRoles.filter(r => !(r.studio_id === studioId && r.role_name === roleName)));
+            
+            // 2. קרא לפונקציית הרענון של הדף הראשי!
+            onSave();
+            
+        } catch (err) {
+            setError(err.message || "שגיאה בהסרת התפקיד.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    // --- ⬇️ עדכון קטן גם כאן ⬇️ ---
+    const handleAddRole = async () => {
+        if (!newRoleStudioId) {
+            setError('אנא בחר סטודיו.');
+            return;
+        }
+        setIsLoading(true);
+        setError('');
+        try {
+            if (newRoleName === 'admin') {
+                if (window.confirm(`פעולה זו תהפוך את ${user.full_name} למנהל/ת היחיד/ה של הסטודיו. כל מנהל אחר יוסר. האם להמשיך?`)) {
+                    await api.put(`/api/studio/${newRoleStudioId}/assign-admin`, { newAdminId: user.id });
+                } else {
+                    setIsLoading(false);
+                    return; // המשתמש ביטל את הפעולה
+                }
+            } else {
+                await api.post(`/api/users/system/roles/${user.id}`, {
+                    studioId: newRoleStudioId,
+                    roleName: newRoleName
+                });
+            }
+            onSave(); // קריאה לרענון
+            onClose(); // סגירת המודאל
+        } catch (err) {
+            setError(err.message || "שגיאה בהוספת התפקיד.");
+            setIsLoading(false); // ודא שזה יורד גם במקרה של שגיאה
+        } 
+    };
+    
+    const handleDeleteUser = async () => {
+        const confirm1 = window.confirm(`האם אתה בטוח שברצונך למחוק את ${user.full_name}?`);
+        if (!confirm1) return;
+        const confirm2 = window.confirm("פעולה זו תסיר את המשתמש לצמיתות מהמערכת. האם להמשיך?");
+        if (!confirm2) return;
+        setIsLoading(true);
+        setError('');
+        try {
+            await api.delete(`/api/users/system/delete/${user.id}`);
+            onSave();
+            onClose();
+        } catch (err) {
+            setError(err.message || "שגיאה במחיקת המשתמש.");
+            setIsLoading(false);
+        }
+    };
 
     const handleChange = (e) => {
         setError('');
@@ -45,73 +113,11 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
         }
     };
 
-    const handleAddRole = async () => {
-        if (!newRoleStudioId) {
-            setError('אנא בחר סטודיו.');
-            return;
-        }
-        setIsLoading(true);
-        setError('');
-        try {
-            await api.post(`/api/users/system/roles/${user.id}`, {
-                studioId: newRoleStudioId,
-                roleName: newRoleName
-            });
-            // To get the updated roles, we refetch the user's data.
-            // A more optimized approach would be an API endpoint that returns the updated user.
-            const updatedUsers = await api.get('/api/users/system/all');
-            const refreshedUser = updatedUsers.find(u => u.id === user.id);
-            if (refreshedUser) {
-                setRoles(refreshedUser.roles || []);
-            }
-            setNewRoleStudioId('');
-        } catch (err) {
-            setError(err.message || "שגיאה בהוספת התפקיד.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    const handleRemoveRole = async (studioId, roleName) => {
-        if (!window.confirm(`האם להסיר את התפקיד '${roleName}' מהמשתמש בסטודיו זה?`)) return;
-        
-        setIsLoading(true);
-        setError('');
-        try {
-            await api.delete(`/api/users/system/roles/${user.id}/${studioId}/${roleName}`);
-            setRoles(currentRoles => currentRoles.filter(r => !(r.studio_id === studioId && r.role_name === roleName)));
-        } catch (err) {
-            setError(err.message || "שגיאה בהסרת התפקיד.");
-        } finally {
-            setIsLoading(false);
-        }
-    };
-    
-    const handleDeleteUser = async () => {
-        const confirm1 = window.confirm(`האם אתה בטוח שברצונך למחוק את ${user.full_name}?`);
-        if (!confirm1) return;
-
-        const confirm2 = window.confirm("פעולה זו תסיר את המשתמש לצמיתות מהמערכת ואין דרך לשחזר זאת. האם להמשיך?");
-        if (!confirm2) return;
-
-        setIsLoading(true);
-        setError('');
-        try {
-            await api.delete(`/api/users/system/delete/${user.id}`);
-            onSave();
-            onClose();
-        } catch (err) {
-            setError(err.message || "שגיאה במחיקת המשתמש.");
-            setIsLoading(false); // Only set loading to false on error
-        }
-    };
-
     return (
         <div className="modal-overlay">
             <div className="modal-content" style={{maxWidth: '600px'}}>
                 <button className="modal-close-btn" onClick={onClose} disabled={isLoading}>&times;</button>
                 <h2>ניהול משתמש: {user.full_name}</h2>
-                
                 <form onSubmit={handleSaveChanges} className="settings-form">
                     <fieldset disabled={isLoading}>
                         <legend>פרטים אישיים</legend>
@@ -152,9 +158,9 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
                             {allStudios.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                         </select>
                         <select value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} disabled={isLoading} style={{flex: 1}}>
-                            <option value="member">Member</option>
-                            <option value="trainer">Trainer</option>
-                            <option value="admin">Admin</option>
+                            <option value="member">מתאמן</option>
+                            <option value="trainer">מאמן</option>
+                            <option value="admin">מנהל (ראשי)</option>
                         </select>
                         <button className="btn btn-secondary" onClick={handleAddRole} disabled={isLoading || !newRoleStudioId}>הוסף</button>
                     </div>

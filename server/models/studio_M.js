@@ -169,12 +169,15 @@ const findAll = async () => {
     const query = `
         SELECT 
             s.*, 
-            u.id as admin_user_id, 
-            u.full_name as admin_full_name
+            -- יצירת מערך JSON של אובייקטים (מנהלים), או מערך ריק אם אין
+            IFNULL(JSON_ARRAYAGG(
+                JSON_OBJECT('id', u.id, 'full_name', u.full_name)
+            ), '[]') as admins
         FROM studios s
-        LEFT JOIN user_roles ur ON s.id = ur.studio_id AND ur.role_id = 3
+        LEFT JOIN user_roles ur ON s.id = ur.studio_id AND ur.role_id = 3 -- ID 3 for 'admin'
         LEFT JOIN users u ON ur.user_id = u.id
-        ORDER BY s.created_at DESC
+        GROUP BY s.id
+        ORDER BY s.created_at DESC;
     `;
     const [studios] = await db.query(query);
     return studios;

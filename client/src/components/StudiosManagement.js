@@ -29,18 +29,30 @@ function StudiosManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedStudio, setSelectedStudio] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    
-    // אנחנו לא צריכים את useNavigate או refreshUser כאן
-    const { setupSession } = useAuth();
-
     const [currentPage, setCurrentPage] = useState(1);
-    const [studiosPerPage] = useState(5);
+    const [studiosPerPage] = useState(10);
+    const [openDropdownId, setOpenDropdownId] = useState(null);
 
     const fetchStudios = useCallback(async () => {
         setIsLoading(true);
         try {
             const studiosData = await api.get('/api/studio/all');
-            setStudios(studiosData || []);
+            const parsedStudios = studiosData.map(studio => {
+                let adminsArray = [];
+                // Defensive parsing to handle both stringified JSON and actual arrays
+                if (typeof studio.admins === 'string') {
+                    try {
+                        adminsArray = JSON.parse(studio.admins);
+                    } catch (e) {
+                        console.error("Failed to parse admins JSON for studio:", studio.id, e);
+                    }
+                } else if (Array.isArray(studio.admins)) {
+                    adminsArray = studio.admins;
+                }
+                // Filter out any potential null entries that might come from the LEFT JOIN
+                return { ...studio, admins: adminsArray.filter(admin => admin && admin.id != null) };
+            });
+            setStudios(parsedStudios || []);
         } catch (error) {
             console.error("Failed to fetch studios:", error);
         } finally {
@@ -82,40 +94,25 @@ function StudiosManagement() {
         }
     };
 
-    // --- ⬇️ הפונקציה המעודכנת והסופית ⬇️ ---
-    const handleImpersonate = async (studio) => {
-        if (!studio.admin_user_id) {
-            return alert('לסטודיו זה לא משויך מנהל.');
-        }
-        if (window.confirm(`האם להתחבר למערכת בתור ${studio.admin_full_name}?`)) {
+    const handleImpersonate = async (studioId, adminId, adminName) => {
+        if (window.confirm(`האם להתחבר למערכת בתור ${adminName}?`)) {
             try {
-                // שלב 1: קבלת הטוקן החדש וגם את רשימת הסטודיואים של המנהל
-                const data = await api.post(`/api/auth/impersonate/${studio.admin_user_id}`);
-                
-                // שלב 2: בדוק אם למנהל יש סטודיואים משויכים
-                if (data && data.studios && data.studios.length > 0) {
-                    // שלב 3: שמור את ה-ID של הסטודיו הראשון שלו ב-localStorage
-                    const firstStudioId = data.studios[0].studio_id;
-                    localStorage.setItem('activeStudioId', firstStudioId);
-                } else {
-                    // אם למנהל אין סטודיו, נקה את המזהה הקודם למקרה שקיים
-                    localStorage.removeItem('activeStudioId');
-                }
-                
-                // שלב 4: רק עכשיו, כפה ריענון מלא של הדף.
-                // כשהאפליקציה תיטען מחדש, היא תקרא את ה-ID הנכון מה-localStorage.
+                await api.post(`/api/auth/impersonate/${adminId}`);
+                // Set the target studio ID in localStorage before reloading
+                localStorage.setItem('activeStudioId', studioId);
+                // Force a full reload to ensure the app re-initializes with the new identity
                 window.location.href = '/dashboard';
-
             } catch (error) {
                 alert(`שגיאה בהתחזות: ${error.message}`);
             }
         }
     };
 
-    const filteredStudios = studios.filter(studio =>
-        studio.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (studio.admin_full_name && studio.admin_full_name.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filteredStudios = studios.filter(studio => {
+        const adminNames = studio.admins.map(a => a.full_name).join(' ').toLowerCase();
+        return studio.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+               adminNames.includes(searchTerm.toLowerCase());
+    });
 
     const totalPages = Math.ceil(filteredStudios.length / studiosPerPage);
     const indexOfLastStudio = currentPage * studiosPerPage;
@@ -153,7 +150,7 @@ function StudiosManagement() {
                             <tr>
                                 <th>ID</th>
                                 <th>שם הסטודיו</th>
-                                <th>שם המנהל</th>
+                                <th>מנהלים</th>
                                 <th>סטטוס מנוי</th>
                                 <th>פעולות</th>
                             </tr>
@@ -164,12 +161,41 @@ function StudiosManagement() {
                                     <tr key={studio.id}>
                                         <td>{studio.id}</td>
                                         <td>{studio.name}</td>
-                                        <td>{studio.admin_full_name || <span style={{opacity: 0.5}}>אין מנהל</span>}</td>
+                                        <td>
+                                            {studio.admins && studio.admins.length > 0 ? (
+                                                <ul className="admin-list">
+                                                    {studio.admins.map(admin => <li key={admin.id}>{admin.full_name}</li>)}
+                                                </ul>
+                                            ) : (
+                                                <span style={{opacity: 0.5}}>אין מנהל</span>
+                                            )}
+                                        </td>
                                         <td><span className={`status-badge ${studio.subscription_status}`}>{studio.subscription_status}</span></td>
                                         <td className="actions-cell">
                                             <button className="btn btn-secondary" onClick={() => handleOpenModal(studio)}>ערוך</button>
                                             <button className="btn btn-danger" onClick={() => handleDelete(studio.id)}>מחק</button>
-                                            <button className="btn" onClick={() => handleImpersonate(studio)} disabled={!studio.admin_user_id}>התחבר כמנהל</button>
+                                            
+                                            {studio.admins && studio.admins.length === 1 && (
+                                                <button className="btn" onClick={() => handleImpersonate(studio.id, studio.admins[0].id, studio.admins[0].full_name)}>
+                                                    התחבר כמנהל
+                                                </button>
+                                            )}
+                                            {studio.admins && studio.admins.length > 1 && (
+                                                <div className="dropdown">
+                                                    <button className="btn" onClick={() => setOpenDropdownId(openDropdownId === studio.id ? null : studio.id)}>
+                                                        התחבר בתור...
+                                                    </button>
+                                                    {openDropdownId === studio.id && (
+                                                        <div className="dropdown-menu">
+                                                            {studio.admins.map(admin => (
+                                                                <div key={admin.id} className="dropdown-item" onClick={() => handleImpersonate(studio.id, admin.id, admin.full_name)}>
+                                                                    {admin.full_name}
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </td>
                                     </tr>
                                 ))

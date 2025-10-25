@@ -41,10 +41,17 @@ async function ownerAssignRole(req, res, next) {
 
 async function ownerRemoveRole(req, res, next) {
     try {
+        console.log('--- EXECUTION REACHED ownerRemoveRole CONTROLLER ---');
+
+        // --- הוסף את 2 השורות הבאות ---
+        console.log('Inspecting userService object:', userService);
+        console.log('Is removeRole a function?', typeof userService.removeRole);
+
         const { userId, studioId, roleName } = req.params;
         await userService.removeRole({ userId, studioId, roleName });
         res.status(204).end();
     } catch (err) {
+        console.error('!!! ERROR in ownerRemoveRole Controller:', err);
         next(err);
     }
 }
@@ -135,8 +142,6 @@ const getUsersByStudio = async (req, res, next) => {
     }
 };
 
-async function ownerRemoveRole(req, res, next) { /* ... */ }
-
 // --- הוספה חדשה ---
 async function ownerCreateUser(req, res, next) {
     try {
@@ -161,6 +166,5 @@ module.exports = {
   getAvailableTrainers,
   updateProfile,
   getUsersByStudio,
-  ownerRemoveRole,
   ownerCreateUser, 
 };

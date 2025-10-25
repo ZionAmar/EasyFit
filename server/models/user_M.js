@@ -32,7 +32,19 @@ const removeRole = async ({ userId, studioId, roleName }) => {
         DELETE FROM user_roles 
         WHERE user_id = ? AND studio_id = ? AND role_id = (SELECT id FROM roles WHERE name = ?);
     `;
-    await db.query(query, [userId, studioId, roleName]);
+    
+    // 1. קלוט את התוצאה מהשאילתה
+    const [result] = await db.query(query, [userId, studioId, roleName]);
+
+    // 2. הדפס את התוצאה כדי לראות מה קרה
+    console.log('Database delete result:', result);
+
+    // 3. ודא שלפחות שורה אחת נמחקה
+    if (result.affectedRows === 0) {
+        // אם שום דבר לא נמחק, זה אומר שהשילוב לא נמצא!
+        throw new Error(`Role '${roleName}' for user '${userId}' in studio '${studioId}' not found. Nothing deleted.`);
+    }
+
     return { success: true };
 };
 
