@@ -147,6 +147,20 @@ async function ownerCreateUser(req, res, next) {
     }
 }
 
+async function getAssignableRoles(req, res, next) {
+    try {
+        // מנהל יכול להקצות רק תפקידים פחותים ממנו.
+        // ודא שה-id תואם למה שיש לך ב-DB
+        const assignableRoles = [
+            { id: 2, name: 'trainer' },
+            { id: 1, name: 'member' }
+        ];
+        res.json(assignableRoles);
+    } catch (err) {
+        next(err);
+    }
+}
+
 module.exports = {
   getAllSystemUsers,
   ownerUpdateUser,
@@ -162,4 +176,5 @@ module.exports = {
   updateProfile,
   getUsersByStudio,
   ownerCreateUser, 
+  getAssignableRoles,
 };

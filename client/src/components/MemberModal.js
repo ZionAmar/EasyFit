@@ -7,33 +7,31 @@ function MemberModal({ member, onSave, onClose }) {
     const [formData, setFormData] = useState({
         full_name: '', email: '', phone: '', userName: '', pass: '', roles: []
     });
-    const [allRoles, setAllRoles] = useState([]);
+    // שינינו את שם המשתנה כדי שיהיה ברור יותר
+    const [assignableRoles, setAssignableRoles] = useState([]); 
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const fetchRoles = async () => {
             try {
-                const rolesData = await api.get('/api/roles');
-                setAllRoles(rolesData);
+                // --- ⬇️ שינוי 1: פנייה לכתובת ה-API הנכונה והמאובטחת ⬇️ ---
+                const rolesData = await api.get('/api/users/assignable-roles');
+                setAssignableRoles(rolesData);
             } catch (err) {
-                console.error("Failed to fetch roles", err);
+                console.error("Failed to fetch assignable roles", err);
             }
         };
         fetchRoles();
 
-        if (isEditMode) {
-            let rolesNames = [];
-            if (member.roles) {
-                try {
-                    const parsedRoles = JSON.parse(member.roles);
-                    if (Array.isArray(parsedRoles)) {
-                        rolesNames = parsedRoles.map(r => r.role);
-                    }
-                } catch (e) {
-                    console.error("Failed to parse roles JSON", e);
-                }
-            }
+        if (isEditMode && member) {
+            // הקוד כאן כבר היה תקין (בלי JSON.parse)
+            const rolesArray = member.roles || [];
+            
+            const rolesNames = Array.isArray(rolesArray) 
+                ? rolesArray.map(r => r && r.role).filter(Boolean)
+                : [];
+
             setFormData({ ...member, pass: '', roles: rolesNames });
         }
     }, [member, isEditMode]);
@@ -116,7 +114,8 @@ function MemberModal({ member, onSave, onClose }) {
                         <div className="form-field">
                             <label>תפקידים</label>
                             <div className="roles-checkbox-group">
-                                {allRoles.map(role => (
+                                {/* --- ⬇️ שינוי 2: שימוש במשתנה המעודכן ⬇️ --- */}
+                                {assignableRoles.map(role => (
                                     <div key={role.id} className="checkbox-item">
                                         <input type="checkbox" id={`role-${role.name}-${member.id}`} checked={(formData.roles || []).includes(role.name)} onChange={() => handleRoleChange(role.name)} />
                                         <label htmlFor={`role-${role.name}-${member.id}`}>{role.name}</label>
@@ -130,7 +129,7 @@ function MemberModal({ member, onSave, onClose }) {
                     
                     {isEditMode && (
                         <div className="danger-zone">
-                            <h4>אזור סכנה</h4>
+                            <h4>אזהרה</h4>
                             <p>מחיקת משתמש היא פעולה קבועה. הפעולה תסיר את הפרופיל וכל המידע המשויך אליו.</p>
                             <button type="button" className="delete-btn" onClick={handleDelete} disabled={isLoading}>
                                 מחק מתאמן

@@ -163,7 +163,7 @@ function ManageUserModal({ user, allStudios, onClose, onSave }) {
                 </div>
 
                 <div className="danger-zone" style={{marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--danger-color)'}}>
-                    <h4>אזור סכנה</h4>
+                    <h4>אזהרה</h4>
                     <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
                         <p style={{opacity: 0.8, margin: 0}}>מחיקת המשתמש היא פעולה סופית.</p>
                         <button className="btn btn-danger" onClick={handleDeleteUser} disabled={isLoading}>מחק משתמש</button>

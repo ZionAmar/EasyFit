@@ -5,35 +5,31 @@ import '../styles/UserModal.css';
 function TrainerModal({ trainer, onSave, onClose }) {
     const isEditMode = Boolean(trainer);
     const [formData, setFormData] = useState({
-        full_name: '', email: '', phone: '', userName: '', pass: '', roles: [] 
+        full_name: '', email: '', phone: '', userName: '', pass: '', roles: []
     });
-    const [allRoles, setAllRoles] = useState([]);
+    const [assignableRoles, setAssignableRoles] = useState([]);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const fetchRoles = async () => {
             try {
-                const rolesData = await api.get('/api/roles');
-                setAllRoles(rolesData);
+                const rolesData = await api.get('/api/users/assignable-roles'); 
+                setAssignableRoles(rolesData);
             } catch (err) {
-                console.error("Failed to fetch roles", err);
+                console.error("Failed to fetch assignable roles", err);
             }
         };
         fetchRoles();
 
-        if (isEditMode) {
-            let rolesNames = [];
-            if (trainer.roles) {
-                try {
-                    const parsedRoles = JSON.parse(trainer.roles);
-                    if (Array.isArray(parsedRoles)) {
-                        rolesNames = parsedRoles.map(r => r.role);
-                    }
-                } catch (e) {
-                    console.error("Failed to parse roles JSON", e);
-                }
-            }
+        if (isEditMode && trainer) {
+
+            const rolesArray = trainer.roles || [];
+            
+            const rolesNames = Array.isArray(rolesArray)
+                ? rolesArray.map(r => r && r.role).filter(Boolean)
+                : [];
+
             setFormData({ ...trainer, pass: '', roles: rolesNames });
         }
     }, [trainer, isEditMode]);
@@ -111,12 +107,12 @@ function TrainerModal({ trainer, onSave, onClose }) {
                         <label>{isEditMode ? 'סיסמה חדשה (אופציונלי)' : 'סיסמה'}</label>
                         <input type="password" name="pass" value={formData.pass || ''} onChange={handleChange} required={!isEditMode} />
                     </div>
-                    
+
                     {isEditMode && (
                         <div className="form-field">
                             <label>תפקידים</label>
                             <div className="roles-checkbox-group">
-                                {allRoles.map(role => (
+                                {assignableRoles.map(role => (
                                     <div key={role.id} className="checkbox-item">
                                         <input type="checkbox" id={`role-${role.name}-${trainer.id}`} checked={(formData.roles || []).includes(role.name)} onChange={() => handleRoleChange(role.name)} />
                                         <label htmlFor={`role-${role.name}-${trainer.id}`}>{role.name}</label>
@@ -130,7 +126,7 @@ function TrainerModal({ trainer, onSave, onClose }) {
 
                     {isEditMode && (
                         <div className="danger-zone">
-                            <h4>אזור סכנה</h4>
+                            <h4>אזהרה</h4>
                             <p>מחיקת משתמש היא פעולה קבועה. הפעולה תסיר את הפרופיל וכל המידע המשויך אליו.</p>
                             <button type="button" className="delete-btn" onClick={handleDelete} disabled={isLoading}>
                                 מחק מאמן

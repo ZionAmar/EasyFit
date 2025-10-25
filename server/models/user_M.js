@@ -1,6 +1,5 @@
 const db = require('../config/db_config');
 
-// --- Owner Model Functions ---
 const findAllWithRoles = async () => {
     const query = `
         SELECT 
@@ -33,22 +32,17 @@ const removeRole = async ({ userId, studioId, roleName }) => {
         WHERE user_id = ? AND studio_id = ? AND role_id = (SELECT id FROM roles WHERE name = ?);
     `;
     
-    // 1. קלוט את התוצאה מהשאילתה
     const [result] = await db.query(query, [userId, studioId, roleName]);
 
-    // 2. הדפס את התוצאה כדי לראות מה קרה
     console.log('Database delete result:', result);
 
-    // 3. ודא שלפחות שורה אחת נמחקה
     if (result.affectedRows === 0) {
-        // אם שום דבר לא נמחק, זה אומר שהשילוב לא נמצא!
         throw new Error(`Role '${roleName}' for user '${userId}' in studio '${studioId}' not found. Nothing deleted.`);
     }
 
     return { success: true };
 };
 
-// --- Admin/General Model Functions ---
 const getAll = ({ role, studioId }) => {
     let query = `
         SELECT 
@@ -66,9 +60,15 @@ const getAll = ({ role, studioId }) => {
         whereClauses.push(`ur.studio_id = ?`);
         params.push(studioId);
     }
+    
     if (role) {
-        whereClauses.push(`r.name = ?`);
-        params.push(role);
+        whereClauses.push(`u.id IN (
+            SELECT DISTINCT user_id 
+            FROM user_roles ur_sub
+            JOIN roles r_sub ON ur_sub.role_id = r_sub.id
+            WHERE ur_sub.studio_id = ? AND r_sub.name = ?
+        )`);
+        params.push(studioId, role); // הוסף את הפרמטרים לתת-השאילתה
     }
 
     if (whereClauses.length > 0) {

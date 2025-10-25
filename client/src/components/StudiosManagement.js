@@ -3,7 +3,6 @@ import api from '../services/api';
 import StudioModal from './StudioModal';
 import { useAuth } from '../context/AuthContext';
 
-// רכיב הדפדוף מוגדר כאן, בתוך הקובץ
 const Pagination = ({ currentPage, totalPages, onNext, onPrev }) => {
     if (totalPages <= 1) {
         return null;

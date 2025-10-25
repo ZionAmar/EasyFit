@@ -26,7 +26,7 @@ function MultiSelect({ options, selected, onChange, placeholder = "בחר..." })
                         <span key={item.value} className="selected-item-tag">
                             {item.label}
                             <button className="remove-tag-btn" onClick={(e) => {
-                                e.stopPropagation(); // Prevent dropdown from opening
+                                e.stopPropagation(); 
                                 handleSelect(item.value);
                             }}>&times;</button>
                         </span>
