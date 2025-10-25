@@ -2,9 +2,15 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import '../styles/StudioSettingsView.css'; 
 
+// --- ⬇️ התיקון נמצא כאן: תיקנו את המספור והסדר ⬇️ ---
 const DAYS_OF_WEEK = [
-    { id: 1, name: 'ראשון' }, { id: 2, name: 'שני' }, { id: 3, name: 'שלישי' },
-    { id: 4, name: 'רביעי' }, { id: 5, name: 'חמישי' }, { id: 6, name: 'שישי' }, { id: 0, name: 'שבת' }
+    { id: 0, name: 'ראשון' },
+    { id: 1, name: 'שני' },
+    { id: 2, name: 'שלישי' },
+    { id: 3, name: 'רביעי' },
+    { id: 4, name: 'חמישי' },
+    { id: 5, name: 'שישי' },
+    { id: 6, name: 'שבת' }
 ];
 
 function StudioSettingsView({ initialDetails }) {
@@ -22,7 +28,8 @@ function StudioSettingsView({ initialDetails }) {
 
                 const fullHours = DAYS_OF_WEEK.map(day => {
                     const existing = settingsData.hours.find(h => h.day_of_week === day.id);
-                    return existing || { day_of_week: day.id, open_time: '00:00', close_time: '00:00' };
+                    // אם לא נמצאו שעות שמורות ליום מסוים, נייצר רשומה ריקה עבורו
+                    return existing || { day_of_week: day.id, open_time: '00:00:00', close_time: '00:00:00' };
                 });
                 setHours(fullHours);
 
@@ -65,6 +72,14 @@ function StudioSettingsView({ initialDetails }) {
         return <div className="loading">טוען הגדרות...</div>;
     }
 
+    // פונקציית עזר להמרת פורמט הזמן אם הוא מגיע עם שניות
+    const formatTimeForInput = (timeString) => {
+        if (typeof timeString === 'string' && timeString.length === 8) { // בודק אם הפורמט הוא HH:mm:ss
+            return timeString.substring(0, 5); // מחזיר רק HH:mm
+        }
+        return timeString || '00:00';
+    };
+
     return (
         <form onSubmit={handleSave} className="card-pro settings-form">
             <div className="form-header">
@@ -103,14 +118,14 @@ function StudioSettingsView({ initialDetails }) {
                                 <div className="time-inputs-container">
                                     <div className="time-input-pair">
                                         <label className="mobile-only-label">פתיחה</label>
-                                        <input type="time" value={hourData.open_time || '00:00'} onChange={e => handleHourChange(day.id, 'open_time', e.target.value)} />
+                                        <input type="time" value={formatTimeForInput(hourData.open_time)} onChange={e => handleHourChange(day.id, 'open_time', e.target.value)} />
                                     </div>
                                     
                                     <span className="desktop-only-dash">-</span>
 
                                     <div className="time-input-pair">
                                         <label className="mobile-only-label">סגירה</label>
-                                        <input type="time" value={hourData.close_time || '00:00'} onChange={e => handleHourChange(day.id, 'close_time', e.target.value)} />
+                                        <input type="time" value={formatTimeForInput(hourData.close_time)} onChange={e => handleHourChange(day.id, 'close_time', e.target.value)} />
                                     </div>
                                 </div>
                             </div>
@@ -118,9 +133,10 @@ function StudioSettingsView({ initialDetails }) {
                     })}
                 </div>
             </div>
-                <button type="submit" className="cta-button-pro" disabled={isLoading}>
-                    {isLoading ? 'שומר...' : 'שמור שינויים'}
-                </button>
+            
+            <button type="submit" className="cta-button-pro" disabled={isLoading}>
+                {isLoading ? 'שומר...' : 'שמור שינויים'}
+            </button>
             <div className="form-footer">
                 {error && <p className="error">{error}</p>}
                 {success && <p className="success">{success}</p>}

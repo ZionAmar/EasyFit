@@ -52,8 +52,11 @@ function ManageSchedulePage() {
                     const activeHours = settingsRes.hours.filter(h => h.open_time !== h.close_time);
                     setOperatingHours(activeHours); 
 
+                    // --- ⬇️ התיקון נמצא כאן ⬇️ ---
+                    // הסרנו את ההמרה המיותרת. עכשיו, יום ראשון (0) מהשרת
+                    // יתאים ליום ראשון (0) בלוח השנה.
                     const calendarHours = activeHours.map(h => ({
-                        daysOfWeek: [ (h.day_of_week === 0 ? 6 : h.day_of_week - 1) ],
+                        daysOfWeek: [ h.day_of_week ], // פשוט להשתמש בערך כפי שהוא
                         startTime: h.open_time,
                         endTime: h.close_time
                     }));
@@ -84,15 +87,20 @@ function ManageSchedulePage() {
         }
         
         const clickedDate = arg.date;
-        const clickedDay = clickedDate.getDay(); 
+        const clickedDay = clickedDate.getDay(); // ראשון = 0, שני = 1 וכו'
+        
+        // עכשיו, כשהערכים תואמים, הפונקציה find תצליח
         const hoursForDay = businessHours.find(bh => bh.daysOfWeek.includes(clickedDay));
 
         if (!hoursForDay) {
+            // אם לא נמצאו שעות, הצג הודעה למשתמש והפסק את הפעולה
+            alert('הסטודיו סגור ביום זה.');
             return;
         }
 
         const clickedTime = clickedDate.toTimeString().slice(0, 8);
         if (clickedTime < hoursForDay.startTime || clickedTime >= hoursForDay.endTime) {
+            // אל תעשה כלום אם הלחיצה היא מחוץ לשעות הפעילות
             return; 
         }
 
@@ -114,6 +122,7 @@ function ManageSchedulePage() {
                     calendarApi.setOption('slotMinTime', dayHours.startTime);
                     calendarApi.setOption('slotMaxTime', dayHours.endTime);
                 } else {
+                    // במקרה שהיום סגור, נציג שעות ברירת מחדל כדי שהלוח לא יקרוס
                     calendarApi.setOption('slotMinTime', '08:00:00');
                     calendarApi.setOption('slotMaxTime', '20:00:00');
                 }
@@ -137,6 +146,7 @@ function ManageSchedulePage() {
         handleModalClose();
         fetchEvents();
     };
+
 
     const filteredEvents = events.filter(event => 
         selectedTrainer === 'all' || event.trainer_id == selectedTrainer
