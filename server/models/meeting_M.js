@@ -75,7 +75,7 @@ const getByMemberId = (memberId, studioId, date) => {
         params.push(date);
     }
 
-    query += ' GROUP BY m.id';
+    // query += ' GROUP BY m.id'; // ❌ השורה הבעייתית שהסרנו
     
     return db.query(query, params).then(result => result[0]);
 };
