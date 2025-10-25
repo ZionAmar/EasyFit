@@ -5,6 +5,21 @@ import api from '../services/api';
 
 const AuthContext = createContext(null);
 
+// --- ⬇️ הוספנו פונקציית עזר קטנה ונקייה ⬇️ ---
+// פונקציה זו מחזירה את דף הבית המתאים לכל תפקיד
+const getDashboardPathForRole = (role) => {
+    switch (role) {
+        case 'owner':
+            return '/owner-dashboard';
+        case 'admin':
+        case 'trainer':
+        case 'member':
+            return '/dashboard';
+        default:
+            return '/'; // במקרה שלא נמצא תפקיד, חזור לדף הבית
+    }
+};
+
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [studios, setStudios] = useState([]);
@@ -53,7 +68,12 @@ export function AuthProvider({ children }) {
             api.setStudioId(defaultStudio.studio_id);
             localStorage.setItem('activeStudioId', defaultStudio.studio_id);
             
-            const preferredRole = ['admin', 'trainer', 'member'].find(r => defaultStudio.roles.includes(r));
+            // On initial load, try to keep the stored role if it's still valid
+            const storedRole = localStorage.getItem('activeRole');
+            const preferredRole = defaultStudio.roles.includes(storedRole) 
+                ? storedRole 
+                : ['admin', 'trainer', 'member'].find(r => defaultStudio.roles.includes(r));
+
             setActiveRole(preferredRole);
             localStorage.setItem('activeRole', preferredRole);
             return 'user';
@@ -64,13 +84,10 @@ export function AuthProvider({ children }) {
     const verifyAndSetupUser = useCallback(async () => {
         try {
             const data = await authService.verify();
-            if (data && data.userDetails) {
-                return setupSession(data);
-            }
+            setupSession(data); // setupSession will handle null data correctly
         } catch (error) {
-            // Not logged in
+            setupSession(null); // Clear session on any verification error
         }
-        return null;
     }, [setupSession]);
 
 
@@ -127,10 +144,18 @@ export function AuthProvider({ children }) {
         }
     };
     
+    // --- ⬇️ הנה הפונקציה המתוקנת ⬇️ ---
     const switchRole = (newRole) => {
         if (activeStudio && activeStudio.roles.includes(newRole)) {
+            // שלב 1: עדכן את התפקיד בזיכרון ובאחסון המקומי
             setActiveRole(newRole);
             localStorage.setItem('activeRole', newRole);
+
+            // שלב 2: מצא את דף הבית המתאים לתפקיד החדש
+            const destinationPath = getDashboardPathForRole(newRole);
+
+            // שלב 3: נווט את המשתמש לדף הבטוח הזה
+            navigate(destinationPath);
         }
     };
  

@@ -1,0 +1,9 @@
+/* Style for the disabled switcher */
+.custom-select.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.custom-select.disabled .select-selected {
+  pointer-events: none; /* Make sure the select itself is not clickable */
+}
