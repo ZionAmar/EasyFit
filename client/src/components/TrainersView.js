@@ -15,7 +15,7 @@ function TrainersView() {
     const fetchTrainers = async () => {
         setIsLoading(true);
         try {
-            const data = await api.get('/api/users?role=trainer');
+            const data = await api.get('/api/users/all?role=trainer');
             setTrainers(data);
         } catch (err) {
             setError('שגיאה בטעינת המאמנים');

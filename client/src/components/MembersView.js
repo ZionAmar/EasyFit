@@ -15,7 +15,7 @@ function MembersView() {
     const fetchMembers = async () => {
         setIsLoading(true);
         try {
-            const data = await api.get('/api/users?role=member');
+            const data = await api.get('/api/users/all?role=member');
             setMembers(data);
         } catch (err) {
             setError('שגיאה בטעינת המתאמנים');

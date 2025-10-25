@@ -40,7 +40,7 @@ function ManageSchedulePage() {
             fetchEvents();
             try {
                 const [trainersRes, settingsRes] = await Promise.all([
-                    api.get('/api/users?role=trainer'),
+                    api.get('/api/users/all?role=trainer'),
                     api.get('/api/studio/settings')
                 ]);
 
