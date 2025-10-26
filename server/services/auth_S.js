@@ -52,7 +52,7 @@ const register = async (userData) => {
 
     const password_hash = encWithSalt(password);
     
-    return studioModel.createStudioAndAdmin({
+    return studioModel.createStudioWithNewAdmin({
         studio_name,
         admin_full_name,
         email,

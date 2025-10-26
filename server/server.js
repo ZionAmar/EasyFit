@@ -11,7 +11,7 @@ const app = express();
 const PORT = process.env.PORT || 4060;
 
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: ["http://localhost:3000","https://fitime.co.il"],
   credentials: true
 }));
 
