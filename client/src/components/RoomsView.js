@@ -9,16 +9,17 @@ function RoomsView() {
     const [error, setError] = useState('');
     const [editingRoom, setEditingRoom] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    
     const [searchTerm, setSearchTerm] = useState('');
+    const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
     const fetchRooms = async () => {
         setIsLoading(true);
+        setError('');
         try {
             const data = await api.get('/api/rooms');
             setRooms(data);
         } catch (err) {
-            setError('שגיאה בטעינת החדרים');
+            setError(err.message || 'שגיאה בטעינת החדרים');
         } finally {
             setIsLoading(false);
         }
@@ -35,41 +36,78 @@ function RoomsView() {
     };
 
     const handleDelete = async (roomId, roomName) => {
-        if (window.confirm(`האם למחוק את חדר "${roomName}"? לא ניתן למחוק חדר אם יש לו שיעורים עתידיים.`)) {
-            try {
-                await api.delete(`/api/rooms/${roomId}`);
-                fetchRooms();
-            } catch (err) {
-                setError(err.message || 'שגיאה במחיקת החדר.');
-            }
+        if (confirmingDeleteId !== roomId) {
+            setConfirmingDeleteId(roomId);
+            setError(`האם למחוק את "${roomName}"? לחץ שוב לאישור.`);
+            return;
         }
+
+        setError('');
+        setIsLoading(true);
+        try {
+            await api.delete(`/api/rooms/${roomId}`);
+            fetchRooms();
+            setConfirmingDeleteId(null);
+        } catch (err) {
+            setError(err.message || 'שגיאה במחיקת החדר.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+        setConfirmingDeleteId(null);
+        setError('');
+    };
+
+    const openAddModal = () => {
+        setEditingRoom(null);
+        setIsAddModalOpen(true);
+        setConfirmingDeleteId(null);
+        setError('');
+    };
+
+    const openEditModal = (room) => {
+        setIsAddModalOpen(false);
+        setEditingRoom(room);
+        setConfirmingDeleteId(null);
+        setError('');
+    };
+
+    const closeModal = () => {
+        setEditingRoom(null);
+        setIsAddModalOpen(false);
+        setConfirmingDeleteId(null);
+        setError('');
     };
 
     const filteredRooms = rooms.filter(room => 
         room.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (isLoading) return <div className="loading">טוען חדרים...</div>;
-    if (error) return <div className="error">{error}</div>;
+    if (isLoading && rooms.length === 0) return <div className="loading">טוען חדרים...</div>;
 
     return (
         <div className="trainers-view-container">
             <div className="view-header">
-                <h3>רשימת חדרים</h3>
+                <h3>רשימת חדרים ({rooms.length})</h3>
                 
                 <input 
                     type="text"
                     placeholder="חפש לפי שם חדר..."
                     className="search-input"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                 />
 
-                <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
+                <button className="btn btn-primary" onClick={openAddModal}>
                     + הוסף חדר
                 </button>
             </div>
             
+            {error && <p className={`error ${confirmingDeleteId ? 'confirm-message' : ''}`}>{error}</p>}
+
             <div className="trainers-grid">
                 {filteredRooms.map(room => (
                     <div key={room.id} className="trainer-card">
@@ -77,8 +115,14 @@ function RoomsView() {
                         <p>קיבולת: {room.capacity} אנשים</p>
                         <p>{room.has_equipment ? 'כולל ציוד' : 'ללא ציוד'}</p>
                         <div className="card-actions">
-                            <button className="btn btn-secondary" onClick={() => setEditingRoom(room)}>ערוך</button>
-                            <button className="btn btn-danger" onClick={() => handleDelete(room.id, room.name)}>מחק</button>
+                            <button className="btn btn-secondary" onClick={() => openEditModal(room)}>ערוך</button>
+                            <button 
+                                className={`btn ${confirmingDeleteId === room.id ? 'btn-danger-confirm' : 'btn-danger'}`} 
+                                onClick={() => handleDelete(room.id, room.name)}
+                                disabled={isLoading && confirmingDeleteId === room.id}
+                            >
+                                {confirmingDeleteId === room.id ? 'לחץ לאישור' : 'מחק'}
+                            </button>
                         </div>
                     </div>
                 ))}
@@ -87,12 +131,12 @@ function RoomsView() {
             {(isAddModalOpen || editingRoom) && (
                 <RoomModal 
                     room={editingRoom}
-                    onClose={() => { setEditingRoom(null); setIsAddModalOpen(false); }}
+                    onClose={closeModal}
                     onSave={handleSave}
                 />
             )}
 
-            <button className="fab" onClick={() => setIsAddModalOpen(true)}>+</button>
+            <button className="fab" onClick={openAddModal}>+</button>
         </div>
     );
 }

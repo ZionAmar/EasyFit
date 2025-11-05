@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import '../styles/StudioSettingsView.css'; 
 
-// --- ⬇️ התיקון נמצא כאן: תיקנו את המספור והסדר ⬇️ ---
 const DAYS_OF_WEEK = [
     { id: 0, name: 'ראשון' },
     { id: 1, name: 'שני' },
@@ -18,6 +17,7 @@ function StudioSettingsView({ initialDetails }) {
     const [hours, setHours] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [success, setSuccess] = useState('');
 
     useEffect(() => {
@@ -28,13 +28,12 @@ function StudioSettingsView({ initialDetails }) {
 
                 const fullHours = DAYS_OF_WEEK.map(day => {
                     const existing = settingsData.hours.find(h => h.day_of_week === day.id);
-                    // אם לא נמצאו שעות שמורות ליום מסוים, נייצר רשומה ריקה עבורו
                     return existing || { day_of_week: day.id, open_time: '00:00:00', close_time: '00:00:00' };
                 });
                 setHours(fullHours);
 
             } catch (err) {
-                setError('שגיאה בטעינת הגדרות הסטודיו.');
+                setError(err.message || 'שגיאה בטעינת הגדרות הסטודיו.');
             } finally {
                 setIsLoading(false);
             }
@@ -42,11 +41,22 @@ function StudioSettingsView({ initialDetails }) {
         fetchSettings();
     }, []);
 
+    const resetMessages = () => {
+        setError('');
+        setSuccess('');
+        setFieldErrors({});
+    };
+
     const handleDetailChange = (e) => {
+        resetMessages();
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors(prev => ({ ...prev, [e.target.name]: null }));
+        }
         setDetails({ ...details, [e.target.name]: e.target.value });
     };
 
     const handleHourChange = (dayId, field, value) => {
+        resetMessages();
         const updatedHours = hours.map(h => 
             h.day_of_week === dayId ? { ...h, [field]: value } : h
         );
@@ -55,14 +65,18 @@ function StudioSettingsView({ initialDetails }) {
 
     const handleSave = async (e) => {
         e.preventDefault();
-        setError('');
-        setSuccess('');
+        resetMessages();
         setIsLoading(true);
         try {
             await api.put('/api/studio/settings', { details, hours });
             setSuccess('ההגדרות נשמרו בהצלחה!');
         } catch (err) {
-            setError(err.message || 'שגיאה בשמירת ההגדרות.');
+            const serverResponse = err.response?.data;
+            if (serverResponse && serverResponse.field) {
+                setFieldErrors({ [serverResponse.field]: serverResponse.message });
+            } else {
+                setError(err.message || 'שגיאה בשמירת ההגדרות.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -72,10 +86,9 @@ function StudioSettingsView({ initialDetails }) {
         return <div className="loading">טוען הגדרות...</div>;
     }
 
-    // פונקציית עזר להמרת פורמט הזמן אם הוא מגיע עם שניות
     const formatTimeForInput = (timeString) => {
-        if (typeof timeString === 'string' && timeString.length === 8) { // בודק אם הפורמט הוא HH:mm:ss
-            return timeString.substring(0, 5); // מחזיר רק HH:mm
+        if (typeof timeString === 'string' && timeString.length === 8) { 
+            return timeString.substring(0, 5); 
         }
         return timeString || '00:00';
     };
@@ -92,18 +105,22 @@ function StudioSettingsView({ initialDetails }) {
                     <div className="form-field">
                         <label>שם הסטודיו</label>
                         <input name="name" value={details.name || ''} onChange={handleDetailChange} />
+                        {fieldErrors.name && <p className="error field-error">{fieldErrors.name}</p>}
                     </div>
                     <div className="form-field">
                         <label>מספר טלפון</label>
                         <input name="phone_number" value={details.phone_number || ''} onChange={handleDetailChange} />
+                        {fieldErrors.phone_number && <p className="error field-error">{fieldErrors.phone_number}</p>}
                     </div>
                     <div className="form-field">
                         <label>כתובת</label>
                         <input name="address" value={details.address || ''} onChange={handleDetailChange} />
+                        {fieldErrors.address && <p className="error field-error">{fieldErrors.address}</p>}
                     </div>
                     <div className="form-field">
                         <label>סלוגן (Tagline)</label>
                         <input name="tagline" value={details.tagline || ''} onChange={handleDetailChange} />
+                        {fieldErrors.tagline && <p className="error field-error">{fieldErrors.tagline}</p>}
                     </div>
                 </div>
 
@@ -138,7 +155,7 @@ function StudioSettingsView({ initialDetails }) {
                 {isLoading ? 'שומר...' : 'שמור שינויים'}
             </button>
             <div className="form-footer">
-                {error && <p className="error">{error}</p>}
+                {error && !Object.values(fieldErrors).some(e => e) && <p className="error">{error}</p>}
                 {success && <p className="success">{success}</p>}
             </div>
         </form>

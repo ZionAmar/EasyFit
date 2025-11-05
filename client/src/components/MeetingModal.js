@@ -15,14 +15,17 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
     const [availableRooms, setAvailableRooms] = useState([]);
 
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [fetchError, setFetchError] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
         const loadModalData = async () => {
             setIsLoading(true);
-            setError('');
+            setFetchError('');
             try {
                 let baseData = {};
                 if (isEditMode && meeting?.id) {
@@ -68,8 +71,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                 }
 
             } catch (err) {
-                setError("שגיאה בטעינת נתוני הטופס. אנא סגור ונסה שוב.");
-                console.error(err);
+                setFetchError(err.message || "שגיאה בטעינת נתוני הטופס. אנא סגור ונסה שוב.");
             } finally {
                 setIsLoading(false);
             }
@@ -78,7 +80,14 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
         loadModalData();
     }, [meeting, isEditMode, initialData]);
 
+    const resetErrors = () => {
+        setError('');
+        setFieldErrors({});
+        setIsConfirmingDelete(false);
+    };
+
     const handleChange = (e) => {
+        resetErrors();
         const { name, value } = e.target;
         const newFormData = { ...formData, [name]: value };
 
@@ -94,7 +103,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
 
     const handleSave = async (e) => {
         e.preventDefault();
-        setError('');
+        resetErrors();
 
         const now = new Date();
         const meetingStartDateTime = new Date(`${formData.date}T${formData.start_time}`);
@@ -125,23 +134,34 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
             }
             onSave();
         } catch (err) {
-            setError(err.message || 'שגיאה בשמירת המפגש.');
+            const serverResponse = err.response?.data;
+            if (serverResponse && serverResponse.field) {
+                setFieldErrors({ [serverResponse.field]: serverResponse.message });
+            } else {
+                setError(err.message || 'שגיאה בשמירת המפגש.');
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleDelete = async () => {
-        if (window.confirm('האם אתה בטוח שברצונך למחוק את השיעור?')) {
-            setIsLoading(true); setError('');
-            try {
-                await api.delete(`/api/meetings/${meeting.id}`);
-                onSave();
-            } catch (err) {
-                setError(err.message || 'שגיאה במחיקת השיעור');
-            } finally {
-                setIsLoading(false);
-            }
+        if (!isConfirmingDelete) {
+            resetErrors();
+            setIsConfirmingDelete(true);
+            setError('האם אתה בטוח? לחץ שוב למחיקה סופית.');
+            return;
+        }
+
+        setIsLoading(true); 
+        resetErrors();
+        try {
+            await api.delete(`/api/meetings/${meeting.id}`);
+            onSave();
+        } catch (err) {
+            setError(err.message || 'שגיאה במחיקת השיעור');
+        } finally {
+            setIsLoading(false);
         }
     };
     
@@ -153,16 +173,40 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
         );
     }
 
+    if (fetchError) {
+         return (
+             <div className="modal-overlay" onClick={onClose}>
+                <div className="modal-content">
+                    <button className="modal-close-btn" onClick={onClose}>&times;</button>
+                    <h2>שגיאת טעינה</h2>
+                    <p className="error">{fetchError}</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <button className="modal-close-btn" onClick={onClose}>&times;</button>
                 <h2>{isEditMode ? 'עריכת שיעור' : 'שיעור חדש'}</h2>
                 <form onSubmit={handleSave} className="settings-form">
-                    <div className="form-field"><label>שם שיעור</label><input name="name" value={formData.name || ''} onChange={handleChange} required /></div>
-                    <div className="form-field"><label>תאריך</label><input type="date" name="date" value={formData.date || ''} onChange={handleChange} min={today} required /></div>
-                    <div className="form-field"><label>שעת התחלה</label><input type="time" name="start_time" value={formData.start_time || ''} onChange={handleChange} required /></div>
-                    <div className="form-field"><label>שעת סיום</label><input type="time" name="end_time" value={formData.end_time || ''} onChange={handleChange} required /></div>
+                    <div className="form-field">
+                        <label>שם שיעור</label>
+                        <input name="name" value={formData.name || ''} onChange={handleChange} required />
+                    </div>
+                    <div className="form-field">
+                        <label>תאריך</label>
+                        <input type="date" name="date" value={formData.date || ''} onChange={handleChange} min={isEditMode ? undefined : today} required />
+                    </div>
+                    <div className="form-field">
+                        <label>שעת התחלה</label>
+                        <input type="time" name="start_time" value={formData.start_time || ''} onChange={handleChange} required />
+                    </div>
+                    <div className="form-field">
+                        <label>שעת סיום</label>
+                        <input type="time" name="end_time" value={formData.end_time || ''} onChange={handleChange} required />
+                    </div>
                     
                     <div className="form-field">
                         <label>מאמן</label>
@@ -173,6 +217,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                             }
                             {availableTrainers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
                         </select>
+                        {fieldErrors.trainer_id && <p className="error field-error">{fieldErrors.trainer_id}</p>}
                     </div>
 
                     <div className="form-field">
@@ -188,6 +233,7 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                                 </option>
                             ))}
                         </select>
+                        {fieldErrors.room_id && <p className="error field-error">{fieldErrors.room_id}</p>}
                     </div>
 
                     <div className="form-field">
@@ -195,15 +241,19 @@ function MeetingModal({ meeting, onSave, onClose, initialData, operatingHours })
                         <MultiSelect
                             options={allMembers.map(m => ({ value: m.id, label: m.full_name }))}
                             selected={formData.participantIds || []}
-                            onChange={(selectedIds) => setFormData(prev => ({ ...prev, participantIds: selectedIds }))}
+                            onChange={(selectedIds) => {
+                                resetErrors();
+                                setFormData(prev => ({ ...prev, participantIds: selectedIds }));
+                            }}
                             placeholder="בחר משתתפים..."
                         />
+                        {fieldErrors.participantIds && <p className="error field-error">{fieldErrors.participantIds}</p>}
                     </div>
 
-                    {error && <p className="error">{error}</p>}
+                    {error && <p className={`error ${isConfirmingDelete ? 'confirm-message' : ''}`}>{error}</p>}
 
                     <div className="modal-actions">
-                        {isEditMode && <button type="button" className="delete-btn" onClick={handleDelete} disabled={isLoading}>מחק</button>}
+                        {isEditMode && <button type="button" className={`btn ${isConfirmingDelete ? 'btn-danger-confirm' : 'btn-danger'}`} onClick={handleDelete} disabled={isLoading}>{isConfirmingDelete ? 'לחץ לאישור מחיקה' : 'מחק'}</button>}
                         <button type="submit" className="cta-button-pro" disabled={isLoading}>{isLoading ? 'שומר...' : 'שמור שינויים'}</button>
                     </div>
                 </form>

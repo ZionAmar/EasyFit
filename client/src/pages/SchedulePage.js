@@ -13,19 +13,27 @@ function SchedulePage() {
     const [events, setEvents] = useState([]);
     const [selectedEventForBooking, setSelectedEventForBooking] = useState(null);
     const [selectedMeetingIdForTrainer, setSelectedMeetingIdForTrainer] = useState(null);
+    const [fetchError, setFetchError] = useState(null);
     const { user, activeStudio, activeRole } = useAuth(); 
 
     const fetchEvents = useCallback(async () => {
         if (!activeStudio) return;
+        setFetchError(null);
         try {
             let meetingsToDisplay = [];
         
             if (activeRole === 'trainer') {
+                // המאמן מקבל רק את השיעורים שלו
                 meetingsToDisplay = await api.get(`/api/meetings?viewAs=trainer`);
             } else {
+                // מתאמנים/אורחים מקבלים לוח ציבורי + השיעורים האישיים שלהם
+                
+                // 1. קבלת שיעורים ציבוריים (Public)
+                // בדיקה זו מכוסה ב-meeting_C.js (שגיאת studioId נזרקת אם חסר)
                 const publicMeetings = await api.get(`/api/meetings/public?studioId=${activeStudio.studio_id}`);
                 const meetingsMap = new Map(publicMeetings.map(m => [m.id, m]));
             
+                // 2. קבלת שיעורים אישיים (My Meetings) אם המשתמש מחובר
                 if (user) { 
                     const myMeetings = await api.get(`/api/meetings?viewAs=${activeRole}`);
                     myMeetings.forEach(myMeeting => {
@@ -57,14 +65,17 @@ function SchedulePage() {
                             isMyEvent: userStatus === 'active' || userStatus === 'checked_in',
                             trainerName: item.trainerName, 
                             roomName: item.roomName,
-                            status: userStatus 
+                            status: userStatus,
+                            registrationId: item.registrationId
                         }
                     };
                 });
                 setEvents(formattedEvents);
             }
         } catch (error) {
-            console.error("There was a problem fetching the schedule:", error);
+            // לוכד את הודעת השגיאה המפורטת מה-Backend
+            const errorMessage = error.message || "שגיאה כללית בטעינת לוח השיעורים. נסה שוב.";
+            setFetchError(errorMessage);
             setEvents([]); 
         }
     }, [user, activeStudio, activeRole]);
@@ -72,8 +83,15 @@ function SchedulePage() {
     useEffect(() => {
         fetchEvents();
     }, [fetchEvents]);
-     
+    
     const handleEventClick = (clickInfo) => {
+        if (fetchError) return;
+        
+        // מונע לחיצה על אירועי עבר
+        if (new Date(clickInfo.event.startStr) < new Date()) {
+            return;
+        }
+
         if (activeRole === 'trainer') {
             setSelectedMeetingIdForTrainer(clickInfo.event.id);
         } else {
@@ -101,10 +119,32 @@ function SchedulePage() {
         setSelectedMeetingIdForTrainer(null);
     };
 
+    if (fetchError) {
+        return (
+            <div className="error-state-full-page" style={{ padding: '20px', textAlign: 'center' }}>
+                <h2 style={{ color: '#dc3545' }}>❌ שגיאה בטעינת הלוח</h2>
+                <p style={{ marginTop: '15px', fontWeight: 'bold' }}>{fetchError}</p>
+                <button 
+                    style={{ marginTop: '20px' }} 
+                    className="btn btn-secondary" 
+                    onClick={() => window.location.reload()}>
+                        טען מחדש
+                </button>
+            </div>
+        );
+    }
+    
     return (
         <div className="container">
             <div className="schedule-header">
                 <h2>לוח שיעורים</h2>
+                <p>
+                    {activeRole === 'member' 
+                        ? 'לחץ על שיעור כדי להירשם או לבטל הרשמה.' 
+                        : activeRole === 'trainer' 
+                        ? 'לחץ על שיעור כדי לסמן נוכחות מתאמנים.' 
+                        : 'התחבר כדי לנהל את השיעורים האישיים שלך.'}
+                </p>
             </div>
             
             <FullCalendar
@@ -129,6 +169,7 @@ function SchedulePage() {
                 <TrainerViewModal
                     meetingId={selectedMeetingIdForTrainer}
                     onClose={handleCloseModal}
+                    onSave={handleModalSave}
                 />
             )}
         </div>

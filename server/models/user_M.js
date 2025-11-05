@@ -47,7 +47,13 @@ const getAll = ({ role, studioId }) => {
     let query = `
         SELECT 
             u.id, u.full_name, u.email, u.userName, u.phone, u.profile_picture_url,
-            JSON_ARRAYAGG(JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)) as roles
+            IFNULL(
+                CONCAT('[', 
+                    GROUP_CONCAT(
+                        DISTINCT JSON_OBJECT('studio_id', s.id, 'studio_name', s.name, 'role', r.name)
+                    SEPARATOR ','), 
+                ']'), 
+            '[]') as roles
         FROM users u
         JOIN user_roles ur ON u.id = ur.user_id
         JOIN roles r ON ur.role_id = r.id
@@ -68,7 +74,7 @@ const getAll = ({ role, studioId }) => {
             JOIN roles r_sub ON ur_sub.role_id = r_sub.id
             WHERE ur_sub.studio_id = ? AND r_sub.name = ?
         )`);
-        params.push(studioId, role); // הוסף את הפרמטרים לתת-השאילתה
+        params.push(studioId, role); 
     }
 
     if (whereClauses.length > 0) {
@@ -134,7 +140,6 @@ const update = async (id, data) => {
     try {
         await connection.beginTransaction();
 
-        // Dynamically build the update query for the 'users' table
         const userFields = ['full_name', 'email', 'phone', 'status'];
         const fieldsToUpdate = [];
         const values = [];
@@ -152,7 +157,6 @@ const update = async (id, data) => {
             await connection.query(userQuery, values);
         }
 
-        // Handle roles update if provided
         if (data.roles && data.studioId) {
             const { roles, studioId } = data;
             const deleteQuery = 'DELETE FROM user_roles WHERE user_id = ? AND studio_id = ?';

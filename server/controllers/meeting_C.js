@@ -4,7 +4,7 @@ const meetingService = require('../services/meeting_S');
 const getMeetings = async (req, res, next) => {
     try {
         const { date, viewAs } = req.query;
-        const meetings = await meetingService.getMeetingsForDashboard(req.user, date, viewAs); // העברת viewAs
+        const meetings = await meetingService.getMeetingsForDashboard(req.user, date, viewAs);
         res.json(meetings);
     } catch (err) {
         next(err);
@@ -15,7 +15,9 @@ const getPublicSchedule = async (req, res, next) => {
     try {
         const { date, studioId } = req.query;
         if (!studioId) {
-            return res.status(400).json({ message: 'studioId is required' });
+            const error = new Error('מזהה סטודיו (studioId) נדרש');
+            error.status = 400;
+            throw error;
         }
         const meetings = await meetingService.getPublicSchedule(studioId, date);
         res.json(meetings);
@@ -39,9 +41,6 @@ const markTrainerArrival = async (req, res, next) => {
         const result = await meetingService.markTrainerArrival(id, req.user);
         res.status(200).json(result);
     } catch (err) {
-        if (err.message === 'Unauthorized') {
-            return res.status(403).json({ error: 'You are not authorized to perform this action' });
-        }
         next(err);
     }
 };

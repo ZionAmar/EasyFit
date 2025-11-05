@@ -29,8 +29,17 @@ const customFetch = async (url, options = {}) => {
     const response = await fetch(fullUrl, updatedOptions);
 
     if (!response.ok) {
+        // מנסים לקרוא את גוף השגיאה, שאמור להכיל את ה-message, field, errorType וכו'.
         const errorData = await response.json().catch(() => ({ message: `Server error: ${response.statusText}` }));
-        throw new Error(errorData.message || 'An API error occurred');
+        
+        // יצירת אובייקט Error מותאם אישית שכולל את ה-Response המלא
+        const error = new Error(errorData.message || 'An API error occurred');
+        error.response = {
+            data: errorData,
+            status: response.status
+        };
+        
+        throw error; // זורקים את השגיאה המורחבת
     }
     
     if (response.status === 204) return null; 

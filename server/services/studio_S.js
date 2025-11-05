@@ -1,6 +1,6 @@
 const studioModel = require('../models/studio_M');
 const userModel = require('../models/user_M');
-const { encWithSalt } = require('../middlewares/auth_Midd'); // <-- הוספנו את הייבוא החסר
+const { encWithSalt } = require('../middlewares/auth_Midd');
 
 const getManagerDashboardDetails = async (managerId) => {
     const [studioDetails, [[userDetails]]] = await Promise.all([
@@ -9,7 +9,7 @@ const getManagerDashboardDetails = async (managerId) => {
     ]);
 
     if (!studioDetails) {
-        const error = new Error("Forbidden: User is not an admin of any studio or studio not found.");
+        const error = new Error("אינך מנהל של אף סטודיו או שהסטודיו לא נמצא.");
         error.status = 403;
         throw error;
     }
@@ -35,7 +35,7 @@ const getFullSettings = async (studioId) => {
     ]);
 
     if (!details) {
-        const error = new Error("Studio not found.");
+        const error = new Error("הסטודיו לא נמצא.");
         error.status = 404;
         throw error;
     }
@@ -55,22 +55,44 @@ const getAllStudios = async () => {
 const createStudio = async (studioData) => {
     const { createMode, existingAdminId, name, address, phone_number, ...adminData } = studioData;
 
-    if (!name) throw new Error('Studio name is required.');
+    if (!name) {
+        const error = new Error('שם הסטודיו הוא שדה חובה.');
+        error.status = 400;
+        error.field = 'name';
+        throw error;
+    }
 
     const existingStudio = await studioModel.getByName(name);
-    if (existingStudio) throw new Error("סטודיו בשם זה כבר קיים במערכת");
+    if (existingStudio) {
+        const error = new Error("סטודיו בשם זה כבר קיים במערכת");
+        error.status = 409;
+        error.field = 'name';
+        throw error;
+    }
 
     if (createMode === 'newAdmin') {
         const { admin_full_name, admin_email, admin_userName, admin_password } = adminData;
         if (!admin_full_name || !admin_email || !admin_userName || !admin_password) {
-            throw new Error('All fields for a new admin are required.');
+            const error = new Error('כל השדות עבור מנהל חדש הם חובה.');
+            error.status = 400;
+            throw error;
         }
 
         const existingEmail = await userModel.getByEmail(admin_email);
-        if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
+        if (existingEmail) {
+            const error = new Error("כתובת האימייל שהוזנה כבר קיימת במערכת");
+            error.status = 409;
+            error.field = 'admin_email';
+            throw error;
+        }
 
         const existingUserName = await userModel.getByUserName(admin_userName);
-        if (existingUserName) throw new Error("שם המשתמש תפוס, נסה שם אחר.");
+        if (existingUserName) {
+            const error = new Error("שם המשתמש תפוס, נסה שם אחר.");
+            error.status = 409;
+            error.field = 'admin_userName';
+            throw error;
+        }
         
         const password_hash = encWithSalt(admin_password);
 
@@ -79,37 +101,66 @@ const createStudio = async (studioData) => {
             admin_full_name, email: admin_email, password_hash, userName: admin_userName
         });
     } else if (createMode === 'existingUser') {
-        if (!existingAdminId) throw new Error('Please select an existing user to be the admin.');
+        if (!existingAdminId) {
+            const error = new Error('אנא בחר משתמש קיים שישמש כמנהל.');
+            error.status = 400;
+            error.field = 'existingAdminId';
+            throw error;
+        }
         
         return studioModel.createStudioWithExistingAdmin({
             studio_name: name, address, phone_number,
             adminId: existingAdminId
         });
     } else {
-        throw new Error('Invalid studio creation mode.');
+        const error = new Error('אופן יצירת הסטודיו אינו חוקי.');
+        error.status = 400;
+        error.field = 'createMode';
+        throw error;
     }
 };
 
 const updateStudio = async (id, studioData) => {
-    return studioModel.update(id, studioData);
+    const updatedStudio = await studioModel.update(id, studioData);
+    if (!updatedStudio) {
+        const error = new Error('הסטודיו לא נמצא או שלא בוצעו שינויים.');
+        error.status = 404;
+        throw error;
+    }
+    return updatedStudio;
 };
 
 const deleteStudio = async (id) => {
-    return studioModel.remove(id);
+    const result = await studioModel.remove(id);
+    if (result.affectedRows === 0) {
+        const error = new Error('הסטודיו לא נמצא או שלא ניתן למחוק אותו (יתכן שיש נתונים מקושרים).');
+        error.status = 404;
+        throw error;
+    }
+    return { message: 'הסטודיו נמחק בהצלחה.' };
 };
 
 const assignNewAdmin = async ({ studioId, newAdminId }) => {
     if (!studioId || !newAdminId) {
-        throw new Error('Studio ID and New Admin ID are required.');
+        const error = new Error('מזהה סטודיו ומזהה מנהל חדש נדרשים.');
+        error.status = 400;
+        throw error;
     }
-    return studioModel.reassignAdmin(parseInt(studioId), parseInt(newAdminId));
+    
+    const result = await studioModel.reassignAdmin(parseInt(studioId), parseInt(newAdminId));
+    if (result.affectedRows === 0) {
+        const error = new Error('הסטודיו או המשתמש החדש לא נמצאו, או שההרשאה לא השתנתה.');
+        error.status = 404;
+        throw error;
+    }
+    return { message: `מנהל חדש (ID: ${newAdminId}) שויך לסטודיו (ID: ${studioId}) בהצלחה.` };
 };
 
 module.exports = {
     getManagerDashboardDetails,
     getDashboardStats,
     getTodaysSchedule, 
-    getFullSettings,     
+    getFullSettings,     
     updateFullSettings,
     getAllStudios,
     createStudio,

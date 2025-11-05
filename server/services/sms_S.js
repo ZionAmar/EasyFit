@@ -7,17 +7,18 @@ const FROM = process.env.TWILIO_SMS_NUMBER;
 const SERVER_URL = process.env.SERVER_URL || 'http://localhost:4060';
 
 async function sendSmsWithConfirmLink(to, meetingId, registrationId) {
-  try {
-    const [[meeting]] = await meetingModel.getById(meetingId);
-    if (!meeting) {
-        console.error(`Could not find meeting with ID ${meetingId} to send SMS.`);
-        return;
-    }
+    try {
+        const [[meeting]] = await meetingModel.getById(meetingId);
+        if (!meeting) {
+            const error = new Error(`לא ניתן למצוא את השיעור (ID ${meetingId}) לצורך שליחת SMS.`);
+            error.status = 404;
+            throw error;
+        }
 
-    const meetingDate = new Date(meeting.date).toLocaleDateString('he-IL', {day: '2-digit', month: '2-digit', year: 'numeric'});
-    const meetingTime = meeting.start_time.slice(0, 5);
+        const meetingDate = new Date(meeting.date).toLocaleDateString('he-IL', {day: '2-digit', month: '2-digit', year: 'numeric'});
+        const meetingTime = meeting.start_time.slice(0, 5);
 
-    const message = `היי! התפנה מקום בשיעור שרצית:
+        const message = `היי! התפנה מקום בשיעור שרצית:
 ✨ שיעור: ${meeting.name}
 👤 מאמן/ת: ${meeting.trainerName}
 📅 תאריך: ${meetingDate}
@@ -29,25 +30,28 @@ ${SERVER_URL}/api/participants/confirm/${registrationId}
 לוויתור על המקום:
 ${SERVER_URL}/api/participants/decline/${registrationId}`;
 
-    await client.messages.create({
-      from: FROM,
-      to: formatPhoneNumber(to), 
-      body: message,
-    });
-    console.log(`הודעת SMS מפורטת נשלחה אל ${to}`);
-  } catch (err) {
-    console.error('שגיאה בשליחת SMS:', err.message);
-  }
+        await client.messages.create({
+            from: FROM,
+            to: formatPhoneNumber(to), 
+            body: message,
+        });
+        console.log(`הודעת SMS מפורטת נשלחה אל ${to}`);
+    } catch (err) {
+        if (err.status === 404) {
+            throw err;
+        }
+        console.error('שגיאה בשליחת SMS:', err.message);
+    }
 }
 
 function formatPhoneNumber(phone) {
-  if (phone.startsWith('0')) {
-    return '+972' + phone.slice(1);
-  }
-  if (!phone.startsWith('+')) {
-    return '+' + phone;
-  }
-  return phone;
+    if (phone.startsWith('0')) {
+        return '+972' + phone.slice(1);
+    }
+    if (!phone.startsWith('+')) {
+        return '+' + phone;
+    }
+    return phone;
 }
 
 module.exports = { sendSmsWithConfirmLink };

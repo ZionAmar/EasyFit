@@ -14,40 +14,32 @@ const checkLoginRateLimit = async (req, res, next) => {
         await rateLimiter.consume(req.connection.remoteAddress);
         next();
     } catch {
-        res.status(429).json({ message: "Too many login attempts" });
+        res.status(429).json({ message: "נסיון כניסה: בוצעו יותר מדי ניסיונות התחברות, אנא נסה שוב מאוחר יותר." });
     }
 };
 
 const isLoggedIn = async (req, res, next) => {
-    console.log(`--- [isLoggedIn] Middleware started for route: ${req.method} ${req.originalUrl} ---`);
     const token = req.cookies.jwt;
     if (!token) {
-        console.log('[isLoggedIn] Error: No token found in cookies.');
-        return res.status(401).json({ message: "Unauthorized: No token provided" });
+        return res.status(401).json({ message: "גישה אסורה: לא סופק טוקן אימות." });
     }
 
     try {
         const decoded = jwt.verify(token, jwtSecret);
         if (!decoded.id) {
-            console.log('[isLoggedIn] Error: Invalid token payload.');
-            return res.status(401).json({ message: "Unauthorized: Invalid token payload" });
+            return res.status(401).json({ message: "אימות נכשל: תוכן טוקן לא חוקי." });
         }
-        console.log(`[isLoggedIn] Token decoded successfully for user ID: ${decoded.id}`);
 
         const [[user]] = await userModel.getById(decoded.id);
         if (!user) {
-            console.log(`[isLoggedIn] Error: User with ID ${decoded.id} not found in DB.`);
-            return res.status(401).json({ message: "User not found" });
+            return res.status(401).json({ message: "משתמש לא נמצא: המשתמש המשויך לטוקן אינו קיים במערכת." });
         }
-        console.log(`[isLoggedIn] User found in DB: ${user.full_name}`);
 
         const [allUserRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
-        console.log('[isLoggedIn] All roles found for user:', allUserRoles);
 
         const isOwner = allUserRoles.some(roleInfo => roleInfo.role_name === 'owner');
 
         if (isOwner) {
-            console.log('[isLoggedIn] User IS an OWNER. Granting global access.');
             req.user = {
                 id: user.id,
                 full_name: user.full_name,
@@ -58,21 +50,17 @@ const isLoggedIn = async (req, res, next) => {
             return next();
         }
         
-        console.log('[isLoggedIn] User is NOT an owner. Proceeding with studio-specific checks.');
         const studioId = req.headers['x-studio-id'];
         if (!studioId) {
-            console.log('[isLoggedIn] Error: x-studio-id header is missing for non-owner user.');
-            return res.status(400).json({ message: "Bad Request: Studio ID header (x-studio-id) is missing" });
+            return res.status(400).json({ message: "בקשה שגויה: נדרש מזהה סטודיו (x-studio-id) עבור משתמש שאינו בעלים." });
         }
-        console.log(`[isLoggedIn] Studio ID from header: ${studioId}`);
 
         const rolesForStudio = allUserRoles
             .filter(roleInfo => roleInfo.studio_id == studioId)
             .map(roleInfo => roleInfo.role_name);
 
         if (rolesForStudio.length === 0) {
-            console.log(`[isLoggedIn] Error: User ${user.id} does not have any roles in studio ${studioId}. Access denied.`);
-            return res.status(403).json({ message: "Forbidden: User does not belong to this studio" });
+            return res.status(403).json({ message: "גישה נדחתה: המשתמש אינו משויך לסטודיו הנוכחי." });
         }
 
         req.user = {
@@ -82,35 +70,28 @@ const isLoggedIn = async (req, res, next) => {
             studioId: parseInt(studioId, 10),
             roles: rolesForStudio
         };
-        console.log('[isLoggedIn] User context set for regular user:', req.user);
         next();
     } catch (err) {
-        console.error("[isLoggedIn] CRITICAL ERROR (e.g., token expired):", err.message);
         res.clearCookie("jwt");
-        return res.status(401).json({ message: "Unauthorized: Invalid or expired token" });
+        return res.status(401).json({ message: "אימות נכשל: הטוקן אינו חוקי או שפג תוקפו." });
     }
 };
 
 const requireRole = (...requiredRoles) => {
     return (req, res, next) => {
-        console.log(`--- [requireRole] Middleware started. Required: [${requiredRoles.join(', ')}]. User has: [${req.user?.roles?.join(', ')}] ---`);
         if (!req.user || !req.user.roles) {
-            console.log('[requireRole] Error: User object not found on request.');
-            return res.status(403).json({ message: "Access denied" });
+            return res.status(403).json({ message: "גישה נדחתה: פרטי משתמש חסרים בבקשה." });
         }
         
         if (req.user.roles.includes('owner')) {
-            console.log('[requireRole] Access granted: User is an owner.');
             return next();
         }
 
         const hasRole = requiredRoles.some(role => req.user.roles.includes(role));
         if (!hasRole) {
-            console.log('[requireRole] Error: User does not have the required role.');
-            return res.status(403).json({ message: "Insufficient permissions for this action in this studio" });
+            return res.status(403).json({ message: `הרשאות לא מספקות: נדרשת אחת מההרשאות: ${requiredRoles.join(', ')}.` });
         }
         
-        console.log('[requireRole] Access granted: User has the required role.');
         next();
     };
 };

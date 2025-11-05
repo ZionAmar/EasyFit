@@ -95,7 +95,6 @@ const updateSettings = async (studioId, details, hours) => {
         return { success: true };
     } catch (err) {
         await connection.rollback();
-        console.error("Transaction failed in updateSettings:", err);
         throw err; 
     } finally {
         connection.release();
@@ -169,12 +168,15 @@ const findAll = async () => {
     const query = `
         SELECT 
             s.*, 
-            -- יצירת מערך JSON של אובייקטים (מנהלים), או מערך ריק אם אין
-            IFNULL(JSON_ARRAYAGG(
-                JSON_OBJECT('id', u.id, 'full_name', u.full_name)
-            ), '[]') as admins
+            IFNULL(
+                CONCAT('[', 
+                    GROUP_CONCAT(
+                        JSON_OBJECT('id', u.id, 'full_name', u.full_name)
+                    SEPARATOR ','), 
+                ']'), 
+            '[]') as admins
         FROM studios s
-        LEFT JOIN user_roles ur ON s.id = ur.studio_id AND ur.role_id = 3 -- ID 3 for 'admin'
+        LEFT JOIN user_roles ur ON s.id = ur.studio_id AND ur.role_id = 3
         LEFT JOIN users u ON ur.user_id = u.id
         GROUP BY s.id
         ORDER BY s.created_at DESC;
@@ -185,7 +187,6 @@ const findAll = async () => {
 
 const create = async (studioData) => {
     const { name, address, phone_number } = studioData;
-    // You can add more fields here as needed
     const [result] = await db.query(
         'INSERT INTO studios (name, address, phone_number) VALUES (?, ?, ?)',
         [name, address, phone_number]
@@ -214,13 +215,11 @@ const reassignAdmin = async (studioId, newAdminId) => {
     try {
         await connection.beginTransaction();
 
-        // 1. Find the current admin of the studio
         const [currentAdmins] = await connection.query(
-            `SELECT user_id FROM user_roles WHERE studio_id = ? AND role_id = 3`, // Assuming 3 is admin
+            `SELECT user_id FROM user_roles WHERE studio_id = ? AND role_id = 3`, 
             [studioId]
         );
 
-        // 2. Remove the 'admin' role from all current admins for this studio
         if (currentAdmins.length > 0) {
             const currentAdminIds = currentAdmins.map(a => a.user_id);
             await connection.query(
@@ -229,10 +228,6 @@ const reassignAdmin = async (studioId, newAdminId) => {
             );
         }
         
-        // 3. Assign the 'admin' role to the new user for this studio
-        // This query will add the admin role. If the user already has another role (like trainer),
-        // it will now have both. If they have no role, it will be their first.
-        // We use INSERT IGNORE to prevent errors if the user is already an admin (edge case).
         await connection.query(
             `INSERT IGNORE INTO user_roles (user_id, studio_id, role_id) VALUES (?, ?, 3)`,
             [newAdminId, studioId]

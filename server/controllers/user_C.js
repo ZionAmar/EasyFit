@@ -55,52 +55,52 @@ async function ownerRemoveRole(req, res, next) {
 }
 
 async function getUsersForStudio(req, res, next) {
-  try {
-    const { role } = req.query;
-    const { studioId } = req.user;
-    const users = await userService.getAll({ role, studioId });
-    res.json(users);
-  } catch (err) {
-    next(err);
-  }
+    try {
+        const { role } = req.query;
+        const { studioId } = req.user;
+        const users = await userService.getAll({ role, studioId });
+        res.json(users);
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function getUserById(req, res, next) {
-  try {
-    const user = await userService.getById(req.params.id);
-    res.json(user);
-  } catch (err) {
-    next(err);
-  }
+    try {
+        const user = await userService.getById(req.params.id);
+        res.json(user);
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function createUser(req, res, next) {
-  try {
-    const userData = { ...req.body, studioId: req.user.studioId };
-    const user = await userService.create(userData);
-    res.status(201).json(user);
-  } catch (err) {
-    next(err);
-  }
+    try {
+        const userData = { ...req.body, studioId: req.user.studioId };
+        const user = await userService.create(userData);
+        res.status(201).json(user);
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function updateUser(req, res, next) {
-  try {
-    const userData = { ...req.body, studioId: req.user.studioId };
-    const user = await userService.update(req.params.id, userData);
-    res.json(user);
-  } catch (err) {
-    next(err);
-  }
+    try {
+        const userData = { ...req.body, studioId: req.user.studioId };
+        const user = await userService.update(req.params.id, userData);
+        res.json(user);
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function deleteUser(req, res, next) {
-  try {
-    await userService.delete(req.params.id, req.user.studioId);
-    res.status(204).end();
-  } catch (err) {
-    next(err);
-  }
+    try {
+        await userService.delete(req.params.id, req.user.studioId);
+        res.status(204).end();
+    } catch (err) {
+        next(err);
+    }
 }
 
 async function getAvailableTrainers(req, res, next) {
@@ -149,8 +149,6 @@ async function ownerCreateUser(req, res, next) {
 
 async function getAssignableRoles(req, res, next) {
     try {
-        // מנהל יכול להקצות רק תפקידים פחותים ממנו.
-        // ודא שה-id תואם למה שיש לך ב-DB
         const assignableRoles = [
             { id: 2, name: 'trainer' },
             { id: 1, name: 'member' }
@@ -162,19 +160,19 @@ async function getAssignableRoles(req, res, next) {
 }
 
 module.exports = {
-  getAllSystemUsers,
-  ownerUpdateUser,
-  ownerDeleteUser,
-  ownerAssignRole,
-  ownerRemoveRole,
-  getUsersForStudio,
-  getUserById,
-  createUser,
-  updateUser,
-  deleteUser,
-  getAvailableTrainers,
-  updateProfile,
-  getUsersByStudio,
-  ownerCreateUser, 
-  getAssignableRoles,
+    getAllSystemUsers,
+    ownerUpdateUser,
+    ownerDeleteUser,
+    ownerAssignRole,
+    ownerRemoveRole,
+    getUsersForStudio,
+    getUserById,
+    createUser,
+    updateUser,
+    deleteUser,
+    getAvailableTrainers,
+    updateProfile,
+    getUsersByStudio,
+    ownerCreateUser, 
+    getAssignableRoles,
 };

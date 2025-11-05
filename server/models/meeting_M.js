@@ -2,6 +2,13 @@ const db = require('../config/db_config');
 
 const extractRows = (result) => result[0];
 
+const getWaitingListCountQuery = `
+    (SELECT COUNT(*) 
+     FROM meeting_registrations mr 
+     WHERE mr.meeting_id = m.id AND mr.status = 'waiting'
+    ) as waiting_list_count
+`;
+
 const getAllByStudioId = (studioId, date) => {
     let query = `
         SELECT 
@@ -11,7 +18,8 @@ const getAllByStudioId = (studioId, date) => {
             u.full_name as trainerName,
             r.name as roomName,
             r.capacity,
-            m.trainer_arrival_time
+            m.trainer_arrival_time,
+            ${getWaitingListCountQuery}
         FROM meetings m
         JOIN users u ON m.trainer_id = u.id
         JOIN rooms r ON m.room_id = r.id
@@ -34,7 +42,8 @@ const getByTrainerId = (trainerId, studioId, date) => {
             u.full_name as trainerName,
             r.name as roomName,
             r.capacity,
-            m.trainer_arrival_time
+            m.trainer_arrival_time,
+            ${getWaitingListCountQuery}
         FROM meetings m
         JOIN users u ON m.trainer_id = u.id
         JOIN rooms r ON m.room_id = r.id
@@ -59,7 +68,8 @@ const getByMemberId = (memberId, studioId, date) => {
             mr.status, 
             u.full_name as trainerName,
             r.name as roomName,
-            r.capacity
+            r.capacity,
+            ${getWaitingListCountQuery}
         FROM meetings AS m
         JOIN meeting_registrations AS mr ON m.id = mr.meeting_id
         JOIN users u ON m.trainer_id = u.id
@@ -74,8 +84,6 @@ const getByMemberId = (memberId, studioId, date) => {
         query += ' AND m.date = ?';
         params.push(date);
     }
-
-    // query += ' GROUP BY m.id'; // ❌ השורה הבעייתית שהסרנו
     
     return db.query(query, params).then(result => result[0]);
 };
@@ -85,7 +93,8 @@ const getPublicSchedule = (studioId, date) => {
         SELECT 
             m.id, m.name, u.full_name as trainerName, r.name as roomName, r.capacity, m.participant_count,
             CONCAT(m.date, 'T', m.start_time) as start,
-            CONCAT(m.date, 'T', m.end_time) as end
+            CONCAT(m.date, 'T', m.end_time) as end,
+            ${getWaitingListCountQuery}
         FROM meetings m
         JOIN users u ON m.trainer_id = u.id 
         JOIN rooms r ON m.room_id = r.id

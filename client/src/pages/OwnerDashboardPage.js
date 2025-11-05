@@ -4,7 +4,7 @@ import UsersManagement from '../components/UsersManagement';
 import '../styles/OwnerDashboard.css';
 
 function OwnerDashboardPage() {
-    const [activeView, setActiveView] = useState('studios'); // 'studios' or 'users'
+    const [activeView, setActiveView] = useState('studios');
 
     return (
         <div className="pro-dashboard">

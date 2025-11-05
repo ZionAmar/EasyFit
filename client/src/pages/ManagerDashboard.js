@@ -39,6 +39,7 @@ function ManagerDashboard() {
 
     useEffect(() => {
         const fetchAllData = async () => {
+            setError(null);
             try {
                 const [basicDataRes, statsRes] = await Promise.all([
                     api.get('/api/studio/dashboard'),
@@ -47,7 +48,9 @@ function ManagerDashboard() {
                 setBasicData(basicDataRes);
                 setStats(statsRes);
             } catch (err) {
-                setError("שגיאה בטעינת המידע.");
+                // לוכד את הודעת השגיאה המפורטת מה-Backend
+                const errorMessage = err.message || "שגיאה כללית בטעינת מרכז הבקרה. נסה שוב.";
+                setError(errorMessage);
             } finally {
                 setIsLoading(false);
             }
@@ -67,7 +70,10 @@ function ManagerDashboard() {
     };
 
     if (isLoading) return <div className="loading">טוען את מרכז הבקרה...</div>;
-    if (error) return <div className="error-state">{error}</div>;
+    
+    // הצגת שגיאה מפורטת מה-Backend
+    if (error) return <div className="error-state"><h2 style={{ color: '#dc3545' }}>שגיאה בגישה למרכז הבקרה:</h2><p>{error}</p></div>;
+    
     if (!basicData) return <h2>לא נמצא מידע סטודיו.</h2>;
 
     const { studio, user } = basicData;

@@ -11,12 +11,36 @@ async function processWaitingList(meetingId) {
     await smsService.sendSmsWithConfirmLink(nextInLine.phone, meetingId, nextInLine.registration_id);
 }
 
-const addParticipant = async (userId, meetingId) => {
+const addParticipant = async (userId, meetingId, forceWaitlist = false) => {
     const [[meeting]] = await meetingModel.getById(meetingId);
-    if (!meeting) throw new Error('השיעור המבוקש לא נמצא.');
+    if (!meeting) {
+        const error = new Error('השיעור המבוקש לא נמצא.');
+        error.status = 404;
+        throw error;
+    }
     const [[existing]] = await participantModel.findExisting(userId, meetingId);
-    if (existing) throw new Error('אתה כבר רשום לשיעור זה או נמצא ברשימת ההמתנה.');
+    if (existing) {
+        const error = new Error('אתה כבר רשום לשיעור זה או נמצא ברשימת ההמתנה.');
+        error.status = 409;
+        error.errorType = 'ALREADY_REGISTERED';
+        throw error;
+    }
+
     const isFull = meeting.participant_count >= meeting.capacity;
+
+    if (isFull && !forceWaitlist) {
+        const waitingList = await meetingModel.getWaitingParticipants(meetingId);
+        const waitlistCount = waitingList.length;
+
+        const message = `השיעור מלא. ${waitlistCount > 0 ? `כבר יש ${waitlistCount} אנשים ברשימת ההמתנה.` : ''} האם תרצה להצטרף?`;
+        
+        const error = new Error(message);
+        error.status = 409;
+        error.errorType = 'CLASS_FULL';
+        error.waitlistCount = waitlistCount;
+        throw error;
+    }
+
     const status = isFull ? 'waiting' : 'active';
     const [result] = await participantModel.add(userId, meetingId, status);
     if (status === 'active') {
@@ -27,9 +51,15 @@ const addParticipant = async (userId, meetingId) => {
 
 const cancelRegistration = async (registrationId, user) => {
     const [[registration]] = await participantModel.getRegistrationById(registrationId);
-    if (!registration) throw new Error('ההרשמה לא נמצאה.');
+    if (!registration) {
+        const error = new Error('ההרשמה לא נמצאה.');
+        error.status = 404;
+        throw error;
+    }
     if (registration.user_id !== user.id && !user.roles.includes('admin')) {
-        throw new Error('אין לך הרשאה לבטל הרשמה זו.');
+        const error = new Error('אין לך הרשאה לבטל הרשמה זו.');
+        error.status = 403;
+        throw error;
     }
     await participantModel.updateRegistrationStatus(registrationId, 'cancelled');
     await meetingModel.syncParticipantCount(registration.meeting_id);
@@ -39,13 +69,23 @@ const cancelRegistration = async (registrationId, user) => {
 
 const checkInParticipant = async (registrationId, user) => {
     const [[registration]] = await participantModel.getRegistrationById(registrationId);
-    if (!registration) throw new Error('ההרשמה לא נמצאה.');
+    if (!registration) {
+        const error = new Error('ההרשמה לא נמצאה.');
+        error.status = 404;
+        throw error;
+    }
     
     const [[meeting]] = await meetingModel.getById(registration.meeting_id);
-    if (!meeting) throw new Error('השיעור לא נמצא.');
+    if (!meeting) {
+        const error = new Error('השיעור לא נמצא.');
+        error.status = 404;
+        throw error;
+    }
     
     if (user.id !== meeting.trainer_id && !user.roles.includes('admin')) {
-        throw new Error('אין לך הרשאה לבצע צ\'ק-אין לשיעור זה.');
+        const error = new Error('אין לך הרשאה לבצע צ\'ק-אין לשיעור זה.');
+        error.status = 403;
+        throw error;
     }
 
     await participantModel.setCheckInTime(registrationId);
@@ -55,12 +95,22 @@ const checkInParticipant = async (registrationId, user) => {
 
 const confirmSpot = async (registrationId) => {
     const [[registration]] = await participantModel.getRegistrationById(registrationId);
-    if (!registration) throw new Error('ההרשמה לא נמצאה.');
-    if (registration.status !== 'pending') throw new Error('המקום הזה כבר לא זמין.');
+    if (!registration) {
+        const error = new Error('ההרשמה לא נמצאה.');
+        error.status = 404;
+        throw error;
+    }
+    if (registration.status !== 'pending') {
+        const error = new Error('המקום הזה כבר לא זמין.');
+        error.status = 409;
+        throw error;
+    }
     const [[meeting]] = await meetingModel.getById(registration.meeting_id);
     if (meeting.participant_count >= meeting.capacity) {
         await participantModel.updateRegistrationStatus(registrationId, 'waiting');
-        throw new Error('מצטערים, המקום נתפס. הוחזרת לרשימת ההמתנה.');
+        const error = new Error('מצטערים, המקום נתפס. הוחזרת לרשימת ההמתנה.');
+        error.status = 409;
+        throw error;
     }
     await participantModel.updateRegistrationStatus(registrationId, 'active');
     await meetingModel.syncParticipantCount(registration.meeting_id);
@@ -69,7 +119,11 @@ const confirmSpot = async (registrationId) => {
 
 const declineSpot = async (registrationId) => {
     const [[registration]] = await participantModel.getRegistrationById(registrationId);
-    if (!registration) throw new Error('ההרשמה לא נמצאה.');
+    if (!registration) {
+        const error = new Error('ההרשמה לא נמצאה.');
+        error.status = 404;
+        throw error;
+    }
     if (registration.status === 'pending') {
         await participantModel.updateRegistrationStatus(registrationId, 'cancelled');
         await processWaitingList(registration.meeting_id);

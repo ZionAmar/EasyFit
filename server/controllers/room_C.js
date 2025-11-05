@@ -38,7 +38,9 @@ async function updateRoom(req, res, next) {
         const { id } = req.params;
         const [result] = await roomModel.update(id, req.body);
         if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Room not found or no changes made.' });
+            const error = new Error('החדר לא נמצא או שלא בוצעו שינויים.');
+            error.status = 404;
+            throw error;
         }
         res.json({ id, ...req.body });
     } catch (err) {
@@ -51,7 +53,9 @@ async function deleteRoom(req, res, next) {
         const { id } = req.params;
         const [result] = await roomModel.remove(id);
         if (result.affectedRows === 0) {
-            return res.status(404).json({ message: 'Room not found or it has upcoming meetings.' });
+            const error = new Error('החדר לא נמצא או שקיימים בו מפגשים עתידיים.');
+            error.status = 404;
+            throw error;
         }
         res.status(204).send();
     } catch (err) {

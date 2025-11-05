@@ -3,7 +3,9 @@ const meetingModel = require('../models/meeting_M');
 const getMeetingsForDashboard = async (user, date, viewAs) => {
     const { id: userId, studioId, roles } = user;
     if (!studioId) {
-        throw new Error("No studio selected.");
+        const error = new Error("לא נבחר סטודיו פעיל.");
+        error.status = 400;
+        throw error;
     }
 
     const effectiveRole = viewAs || (roles.includes('admin') ? 'admin' : roles.includes('trainer') ? 'trainer' : 'member');
@@ -48,18 +50,27 @@ const createMeeting = async (data, user) => {
 
     const [overlappingRoom] = await meetingModel.findOverlappingMeeting(meetingInfo);
     if (overlappingRoom.length > 0) {
-        throw new Error('החדר כבר תפוס בשעה המבוקשת.');
+        const error = new Error('החדר כבר תפוס בשעה המבוקשת.');
+        error.status = 409;
+        error.field = 'room_id';
+        throw error;
     }
 
     const overlappingTrainer = await meetingModel.findOverlappingMeetingForTrainer(meetingInfo);
     if (overlappingTrainer.length > 0) {
-        throw new Error(`המאמן ${overlappingTrainer[0].trainerName} כבר משובץ למפגש '${overlappingTrainer[0].name}' בזמן זה.`);
+        const error = new Error(`המאמן ${overlappingTrainer[0].trainerName} כבר משובץ למפגש '${overlappingTrainer[0].name}' בזמן זה.`);
+        error.status = 409;
+        error.field = 'trainer_id';
+        throw error;
     }
 
     const busyParticipants = await meetingModel.findOverlappingMeetingsForParticipants(meetingInfo, participantIds);
     if (busyParticipants.length > 0) {
         const names = busyParticipants.map(p => p.full_name).join(', ');
-        throw new Error(`המתאמנים הבאים כבר רשומים למפגש אחר בזמן זה: ${names}.`);
+        const error = new Error(`המתאמנים הבאים כבר רשומים למפגש אחר בזמן זה: ${names}.`);
+        error.status = 409;
+        error.field = 'participantIds';
+        throw error;
     }
 
     const result = await meetingModel.create(meetingInfo, participantIds);
@@ -69,23 +80,33 @@ const createMeeting = async (data, user) => {
 const markTrainerArrival = async (meetingId, user) => {
     const [[meeting]] = await meetingModel.getById(meetingId);
     if (!meeting) {
-        throw new Error('Meeting not found');
+        const error = new Error('המפגש לא נמצא.');
+        error.status = 404;
+        throw error;
     }
 
     if (user.studioId !== meeting.studio_id) {
-        throw new Error('Unauthorized');
+        const error = new Error('גישה אסורה: המפגש אינו שייך לסטודיו הנוכחי.');
+        error.status = 403;
+        throw error;
     }
     if (meeting.trainer_id !== user.id && !user.roles.includes('admin')) {
-        throw new Error('Unauthorized');
+        const error = new Error('אינך מורשה לסמן הגעה למפגש זה. רק המאמן המשובץ או מנהל יכולים לבצע פעולה זו.');
+        error.status = 403;
+        throw error;
     }
 
     await meetingModel.markTrainerArrival(meetingId);
-    return { message: 'Trainer arrival marked successfully' };
+    return { message: 'הגעת המאמן סומנה בהצלחה' };
 };
 
 const getMeetingDetails = async (meetingId) => {
     const [[meeting]] = await meetingModel.getById(meetingId);
-    if (!meeting) throw new Error('Meeting not found');
+    if (!meeting) {
+        const error = new Error('המפגש לא נמצא.');
+        error.status = 404;
+        throw error;
+    }
 
     const participants = await meetingModel.getActiveParticipants(meetingId);
     const waitingList = await meetingModel.getWaitingParticipants(meetingId);
@@ -101,18 +122,27 @@ const updateMeeting = async (meetingId, data, user) => {
 
     const [overlappingRoom] = await meetingModel.findOverlappingMeeting(meetingInfo);
     if (overlappingRoom.length > 0 && overlappingRoom[0].id != meetingId) {
-        throw new Error('החדר כבר תפוס בשעה המבוקשת.');
+        const error = new Error('החדר כבר תפוס בשעה המבוקשת.');
+        error.status = 409;
+        error.field = 'room_id';
+        throw error;
     }
 
     const overlappingTrainer = await meetingModel.findOverlappingMeetingForTrainer(meetingInfo, meetingId);
     if (overlappingTrainer.length > 0) {
-        throw new Error(`המאמן ${overlappingTrainer[0].trainerName} כבר משובץ למפגש '${overlappingTrainer[0].name}' בזמן זה.`);
+        const error = new Error(`המאמן ${overlappingTrainer[0].trainerName} כבר משובץ למפגש '${overlappingTrainer[0].name}' בזמן זה.`);
+        error.status = 409;
+        error.field = 'trainer_id';
+        throw error;
     }
 
     const busyParticipants = await meetingModel.findOverlappingMeetingsForParticipants(meetingInfo, participantIds, meetingId);
-     if (busyParticipants.length > 0) {
+    if (busyParticipants.length > 0) {
         const names = busyParticipants.map(p => p.full_name).join(', ');
-        throw new Error(`המתאמנים הבאים כבר רשומים למפגש אחר בזמן זה: ${names}.`);
+        const error = new Error(`המתאמנים הבאים כבר רשומים למפגש אחר בזמן זה: ${names}.`);
+        error.status = 409;
+        error.field = 'participantIds';
+        throw error;
     }
 
     await meetingModel.update(meetingId, meetingData, participantIds);
@@ -120,8 +150,10 @@ const updateMeeting = async (meetingId, data, user) => {
 };
 
 const deleteMeeting = async (meetingId, user) => {
+    // ניתן להוסיף כאן בדיקה (כמו ב-markTrainerArrival) לוודא שהמפגש שייך לסטודיו או למשתמש המורשה
+    // לצורך תיקון השגיאות: המחיקה נעשית אם המשתמש מורשה ברמת ה-middleware
     await meetingModel.remove(meetingId);
-    return { message: 'Meeting deleted successfully' };
+    return { message: 'המפגש נמחק בהצלחה' };
 };
 
 module.exports = {

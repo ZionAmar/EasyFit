@@ -3,10 +3,9 @@ import api from '../services/api';
 import ManageUserModal from './ManageUserModal';
 import CreateUserModal from './CreateUserModal';
 
-// Pagination Component - NEW AND IMPROVED VERSION
 const Pagination = ({ currentPage, totalPages, onNext, onPrev }) => {
     if (totalPages <= 1) {
-        return null; // Don't show anything if there's only one page
+        return null;
     }
 
     return (
@@ -31,16 +30,17 @@ function UsersManagement() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedUser, setSelectedUser] = useState(null);
+    const [error, setError] = useState('');
     
     const [isManageModalOpen, setIsManageModalOpen] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    // Pagination State
     const [currentPage, setCurrentPage] = useState(1);
     const [usersPerPage] = useState(5);
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
+        setError('');
         try {
             const [usersData, studiosData] = await Promise.all([
                 api.get('/api/users/system/all'),
@@ -48,9 +48,8 @@ function UsersManagement() {
             ]);
             setUsers(usersData || []);
             setAllStudios(studiosData || []);
-        } catch (error) {
-            console.error("Failed to fetch data:", error);
-            alert(`שגיאה בטעינת נתונים: ${error.message}`);
+        } catch (err) {
+            setError(err.message || 'שגיאה בטעינת הנתונים.');
             setUsers([]);
             setAllStudios([]);
         } finally {
@@ -63,14 +62,21 @@ function UsersManagement() {
     }, [fetchData]);
 
     const handleOpenManageModal = (user) => {
+        setError('');
         setSelectedUser(user);
         setIsManageModalOpen(true);
+    };
+    
+    const handleOpenCreateModal = () => {
+        setError('');
+        setIsCreateModalOpen(true);
     };
 
     const handleCloseModals = () => {
         setSelectedUser(null);
         setIsManageModalOpen(false);
         setIsCreateModalOpen(false);
+        setError('');
     };
     
     const filteredUsers = users.filter(user =>
@@ -79,13 +85,11 @@ function UsersManagement() {
         (user.userName && user.userName.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
-    // --- Pagination Logic (Updated) ---
     const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
     const indexOfLastUser = currentPage * usersPerPage;
     const indexOfFirstUser = indexOfLastUser - usersPerPage;
     const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
 
-    // Navigation handlers
     const handleNextPage = () => {
         setCurrentPage(prev => Math.min(prev + 1, totalPages));
     };
@@ -93,7 +97,6 @@ function UsersManagement() {
         setCurrentPage(prev => Math.max(prev - 1, 1));
     };
     
-    // Reset to page 1 when search term changes
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm]);
@@ -102,12 +105,16 @@ function UsersManagement() {
     if (isLoading && !isManageModalOpen && !isCreateModalOpen) {
         return <div className="loading">טוען רשימת משתמשים...</div>;
     }
+    
+    if (error && !isManageModalOpen && !isCreateModalOpen) {
+        return <div className="error-state"><h2 style={{ color: '#dc3545' }}>❌ שגיאה בטעינת הנתונים:</h2><p>{error}</p></div>;
+    }
 
     return (
         <>
             <div className="card-pro">
                 <div className="card-header">
-                     <div className="card-header-title">
+                    <div className="card-header-title">
                         <h2>רשימת משתמשים ({filteredUsers.length})</h2>
                     </div>
                     <div className="header-actions-inline" style={{display: 'flex', gap: '1rem', alignItems: 'center'}}>
@@ -118,9 +125,10 @@ function UsersManagement() {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
-                        <button className="btn btn-primary" onClick={() => setIsCreateModalOpen(true)}>הוסף משתמש</button>
+                        <button className="btn btn-primary" onClick={handleOpenCreateModal}>הוסף משתמש</button>
                     </div>
                 </div>
+
                 <div className="table-responsive">
                     <table className="studios-table">
                         <thead>

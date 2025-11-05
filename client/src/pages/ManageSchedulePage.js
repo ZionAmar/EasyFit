@@ -23,6 +23,8 @@ function ManageSchedulePage() {
     const [businessHours, setBusinessHours] = useState([]);
     const [viewMinTime, setViewMinTime] = useState('00:00:00');
     const [viewMaxTime, setViewMaxTime] = useState('24:00:00');
+    const [isLoading, setIsLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null); 
 
     const fetchEvents = async () => {
         try {
@@ -31,14 +33,19 @@ function ManageSchedulePage() {
                 setEvents(meetingsRes.map(m => ({ ...m, title: m.name })));
             }
         } catch (error) {
-            console.error("Error loading schedule data:", error);
+            setFetchError(error.message || "שגיאה בטעינת השיעורים.");
+            throw error; 
         }
     };
 
     useEffect(() => {
         const loadInitialData = async () => {
-            fetchEvents();
+            setFetchError(null);
+            setIsLoading(true);
             try {
+                // קריאה ל-fetchEvents בפני עצמה תזרק שגיאה
+                await fetchEvents(); 
+
                 const [trainersRes, settingsRes] = await Promise.all([
                     api.get('/api/users/all?role=trainer'),
                     api.get('/api/studio/settings')
@@ -52,11 +59,8 @@ function ManageSchedulePage() {
                     const activeHours = settingsRes.hours.filter(h => h.open_time !== h.close_time);
                     setOperatingHours(activeHours); 
 
-                    // --- ⬇️ התיקון נמצא כאן ⬇️ ---
-                    // הסרנו את ההמרה המיותרת. עכשיו, יום ראשון (0) מהשרת
-                    // יתאים ליום ראשון (0) בלוח השנה.
                     const calendarHours = activeHours.map(h => ({
-                        daysOfWeek: [ h.day_of_week ], // פשוט להשתמש בערך כפי שהוא
+                        daysOfWeek: [ h.day_of_week ], 
                         startTime: h.open_time,
                         endTime: h.close_time
                     }));
@@ -70,13 +74,16 @@ function ManageSchedulePage() {
                     }
                 }
             } catch (error) {
-                console.error("Error loading initial data:", error);
+                setFetchError(error.message || "שגיאה בטעינת נתונים ראשוניים. אנא ודא הרשאות.");
+            } finally {
+                setIsLoading(false);
             }
         };
         loadInitialData();
     }, []);
     
     const handleDateClick = (arg) => {
+        if (fetchError) return;
         if (!calendarRef.current) return;
         const calendarApi = calendarRef.current.getApi();
         const currentView = calendarApi.view.type;
@@ -87,20 +94,17 @@ function ManageSchedulePage() {
         }
         
         const clickedDate = arg.date;
-        const clickedDay = clickedDate.getDay(); // ראשון = 0, שני = 1 וכו'
+        const clickedDay = clickedDate.getDay(); 
         
-        // עכשיו, כשהערכים תואמים, הפונקציה find תצליח
         const hoursForDay = businessHours.find(bh => bh.daysOfWeek.includes(clickedDay));
 
         if (!hoursForDay) {
-            // אם לא נמצאו שעות, הצג הודעה למשתמש והפסק את הפעולה
             alert('הסטודיו סגור ביום זה.');
             return;
         }
 
         const clickedTime = clickedDate.toTimeString().slice(0, 8);
         if (clickedTime < hoursForDay.startTime || clickedTime >= hoursForDay.endTime) {
-            // אל תעשה כלום אם הלחיצה היא מחוץ לשעות הפעילות
             return; 
         }
 
@@ -112,28 +116,27 @@ function ManageSchedulePage() {
     };
     
     const handleDatesSet = (dateInfo) => {
-        if (calendarRef.current) {
-            const calendarApi = calendarRef.current.getApi();
-            if (dateInfo.view.type === 'timeGridDay') {
-                const currentDay = dateInfo.view.currentStart.getDay();
-                const dayHours = businessHours.find(bh => bh.daysOfWeek.includes(currentDay));
-                
-                if (dayHours) {
-                    calendarApi.setOption('slotMinTime', dayHours.startTime);
-                    calendarApi.setOption('slotMaxTime', dayHours.endTime);
-                } else {
-                    // במקרה שהיום סגור, נציג שעות ברירת מחדל כדי שהלוח לא יקרוס
-                    calendarApi.setOption('slotMinTime', '08:00:00');
-                    calendarApi.setOption('slotMaxTime', '20:00:00');
-                }
+        if (!calendarRef.current) return;
+        const calendarApi = calendarRef.current.getApi();
+        if (dateInfo.view.type === 'timeGridDay') {
+            const currentDay = dateInfo.view.currentStart.getDay();
+            const dayHours = businessHours.find(bh => bh.daysOfWeek.includes(currentDay));
+            
+            if (dayHours) {
+                calendarApi.setOption('slotMinTime', dayHours.startTime);
+                calendarApi.setOption('slotMaxTime', dayHours.endTime);
             } else {
-                calendarApi.setOption('slotMinTime', viewMinTime);
-                calendarApi.setOption('slotMaxTime', viewMaxTime);
+                calendarApi.setOption('slotMinTime', '08:00:00');
+                calendarApi.setOption('slotMaxTime', '20:00:00');
             }
+        } else {
+            calendarApi.setOption('slotMinTime', viewMinTime);
+            calendarApi.setOption('slotMaxTime', viewMaxTime);
         }
     };
 
     const handleEventClick = (clickInfo) => {
+        if (fetchError) return;
         setSelectedMeeting({ id: clickInfo.event.id });
     };
     
@@ -151,6 +154,23 @@ function ManageSchedulePage() {
     const filteredEvents = events.filter(event => 
         selectedTrainer === 'all' || event.trainer_id == selectedTrainer
     );
+
+    if (isLoading) return <div className="loading-state">טוען את לוח השנה לניהול...</div>;
+    
+    if (fetchError) {
+        return (
+            <div className="error-state-full-page" style={{ padding: '20px', textAlign: 'center' }}>
+                <h2 style={{ color: '#dc3545' }}>❌ שגיאה בטעינת הלוח</h2>
+                <p style={{ marginTop: '15px', fontWeight: 'bold' }}>{fetchError}</p>
+                <button 
+                    style={{ marginTop: '20px' }} 
+                    className="btn btn-secondary" 
+                    onClick={() => window.location.reload()}>
+                        טען מחדש
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className="container"> 

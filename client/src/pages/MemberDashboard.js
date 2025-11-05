@@ -12,17 +12,28 @@ const StatPill = ({ label, value, icon }) => (
     </div>
 );
 
-const ListItem = ({ title, subtitle, status, statusType }) => (
+const ListItem = ({ title, subtitle, status, statusType, onCancel, registrationId, confirmingCancelId }) => (
     <div className="list-item">
         <div className="item-details">
             <span className="item-title">{title}</span>
             <span className="item-subtitle">{subtitle}</span>
         </div>
-        {status && <span className={`status-badge ${statusType}`}>{status}</span>}
+        <div className="item-actions">
+            {status && <span className={`status-badge ${statusType}`}>{status}</span>}
+            {onCancel && (
+                <button 
+                    className={`btn-cancel-list ${confirmingCancelId === registrationId ? 'btn-danger-confirm' : 'btn-danger'}`}
+                    onClick={() => onCancel(registrationId, title)}
+                    title="בטל הרשמה מרשימת ההמתנה"
+                >
+                    {confirmingCancelId === registrationId ? 'אשר' : 'בטל'}
+                </button>
+            )}
+        </div>
     </div>
 );
 
-const SessionDetailsModal = ({ session, isOpen, onClose, onCancel, showCancelButton }) => {
+const SessionDetailsModal = ({ session, isOpen, onClose, onCancel, showCancelButton, cancelError }) => {
     useEffect(() => {
         const handleEsc = (event) => {
             if (event.keyCode === 27) onClose();
@@ -40,6 +51,7 @@ const SessionDetailsModal = ({ session, isOpen, onClose, onCancel, showCancelBut
                 <button className="modal-close-button" onClick={onClose}>&times;</button>
                 <h2>פרטי השיעור</h2>
                 <h3>{session.name}</h3>
+                {cancelError && <p className="error" style={{ color: '#dc3545', fontWeight: 'bold' }}>שגיאה בביטול: {cancelError}</p>}
                 <div className="modal-details-grid">
                     <p><strong>מאמן/ת:</strong> {session.trainerName}</p>
                     <p><strong>תאריך ושעה:</strong> {formatFullDate(session.start)}</p>
@@ -56,7 +68,7 @@ const SessionDetailsModal = ({ session, isOpen, onClose, onCancel, showCancelBut
     );
 };
 
-function TraineeDashboard() {
+function MemberDashboard() {
     const { user, activeStudio } = useAuth();
     const navigate = useNavigate();
     
@@ -65,10 +77,20 @@ function TraineeDashboard() {
     const [error, setError] = useState(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState(null);
+    const [cancelError, setCancelError] = useState(null);
+    const [arrivalError, setArrivalError] = useState(null);
+    const [listError, setListError] = useState(null);
+    const [confirmingCancelId, setConfirmingCancelId] = useState(null);
+
+    const resetListMessages = () => {
+        setListError(null);
+        setConfirmingCancelId(null);
+    };
 
     const fetchMeetings = async () => {
         setIsLoading(true);
         setError(null);
+        resetListMessages();
         try {
             const data = await api.get('/api/meetings?viewAs=member'); 
             if (Array.isArray(data)) {
@@ -78,12 +100,13 @@ function TraineeDashboard() {
                 setMyMeetings([]);
             }
         } catch (err) {
-            console.error("Error fetching meetings:", err);
-            setError("לא הצלחנו לטעון את המידע. נסה לרענן את העמוד.");
+            const errorMessage = err.message || "לא הצלחנו לטעון את המידע. נסה לרענן את העמוד.";
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
     };
+
     useEffect(() => {
         if (user && activeStudio) {
             fetchMeetings();
@@ -91,23 +114,49 @@ function TraineeDashboard() {
             setIsLoading(false);
         }
     }, [user, activeStudio]);
-    const handleCancel = async (registrationId, sessionName) => {
+    
+    const handleModalCancel = async (registrationId, sessionName) => {
+        setCancelError(null);
         if (window.confirm(`האם לבטל את הרשמתך לשיעור "${sessionName}"?`)) {
             try {
                 await api.delete(`/api/participants/${registrationId}`);
-                alert("ההרשמה בוטלה בהצלחה.");
                 fetchMeetings();
                 closeSessionDetails();
             } catch (err) {
-                alert(`שגיאה בביטול ההרשמה: ${err.message}`);
+                setCancelError(err.message || "שגיאה לא צפויה בביטול ההרשמה.");
             }
         }
     };
+    
+    const handleListCancel = async (registrationId, sessionName) => {
+        setListError(null);
+        if (confirmingCancelId !== registrationId) {
+            setConfirmingCancelId(registrationId);
+            setListError(`לבטל הרשמה ל"${sessionName}"? לחץ שוב לאישור.`);
+            return;
+        }
+
+        setIsLoading(true);
+        resetListMessages();
+        try {
+            await api.delete(`/api/participants/${registrationId}`);
+            fetchMeetings();
+        } catch (err) {
+            setListError(err.message || 'שגיאה בביטול ההרשמה.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     const openSessionDetails = (session) => {
+        resetListMessages();
+        setCancelError(null);
         setSelectedSession(session);
         setIsModalOpen(true);
     };
+    
     const closeSessionDetails = () => setIsModalOpen(false);
+    
     const generateGoogleCalendarLink = (session) => {
         const formatDateForGoogle = (date) => date.toISOString().replace(/-|:|\.\d{3}/g, '');
         const startTime = formatDateForGoogle(session.start);
@@ -121,12 +170,15 @@ function TraineeDashboard() {
         url.searchParams.append('location', `סטודיו ${activeStudio?.studio_name || 'EasyFit'} - ${session.roomName}`);
         return url.toString();
     };
+    
     const handleAddToCalendar = (session) => {
         const link = generateGoogleCalendarLink(session);
         window.open(link, '_blank', 'noopener,noreferrer');
     };
     
     const handleConfirmArrival = async (registrationId) => {
+        resetListMessages();
+        setArrivalError(null);
         setMyMeetings(currentMeetings => 
             currentMeetings.map(m => 
                 m.registrationId === registrationId 
@@ -137,8 +189,8 @@ function TraineeDashboard() {
         try {
             await api.patch(`/api/participants/${registrationId}/check-in`);
         } catch (error) {
-            console.error("Failed to confirm arrival:", error);
-            alert("שגיאה באישור ההגעה. המידע יתעדכן מחדש.");
+            const errorMessage = error.message || "שגיאה באישור ההגעה. המידע יתעדכן מחדש.";
+            setArrivalError(errorMessage);
             fetchMeetings();
         }
     };
@@ -152,13 +204,14 @@ function TraineeDashboard() {
     const currentSession = activeAndUpcomingSessions.find(m => m.start <= now && m.end > now);
     const nextSession = !currentSession && activeAndUpcomingSessions.length > 0 ? activeAndUpcomingSessions[0] : null;
 
-    const waitingList = myMeetings.filter(m => m.status === 'waiting' || m.status === 'pending').sort((a, b) => a.start - b.start);
+    const waitingList = myMeetings.filter(m => m.end > now && (m.status === 'waiting' || m.status === 'pending')).sort((a, b) => a.start - b.start);
     const pastSessions = myMeetings.filter(m => m.end < now && ['active', 'checked_in'].includes(m.status)).sort((a, b) => b.start - b.start);
     const completedThisMonth = pastSessions.filter(m => m.start.getMonth() === now.getMonth() && m.start.getFullYear() === now.getFullYear()).length;
     const totalCompletedSessions = pastSessions.length;
 
     if (isLoading) return <div className="loading">טוען את מרכז הבקרה שלך...</div>;
-    if (error) return <div className="error-state">{error}</div>;
+    
+    if (error) return <div className="error-state"><h2 style={{ color: '#dc3545' }}>❌ שגיאה בטעינת הנתונים:</h2><p>{error}</p></div>;
 
     const formatFullDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit', hour12: false }).format(date);
     const formatDateOnly = (date) => new Intl.DateTimeFormat('he-IL', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date);
@@ -182,6 +235,8 @@ function TraineeDashboard() {
                     </button>
                 </header>
 
+                {arrivalError && <div className="error-state" style={{ margin: '15px 0' }}><p style={{ color: '#dc3545' }}>{arrivalError}</p></div>}
+                
                 <div className="dashboard-grid-pro">
                     <main className="main-panel-pro">
                         <section className="card-pro next-session-card">
@@ -220,7 +275,7 @@ function TraineeDashboard() {
                                     <div className="session-actions">
                                         <button className="btn btn-primary" onClick={() => openSessionDetails(nextSession)}>פרטים</button>
                                         <button className="btn btn-secondary" onClick={() => handleAddToCalendar(nextSession)}>הוסף ליומן</button>
-                                        <button className="btn btn-danger" onClick={() => handleCancel(nextSession.registrationId, nextSession.name)}>בטל הרשמה</button>
+                                        <button className="btn btn-danger" onClick={() => handleModalCancel(nextSession.registrationId, nextSession.name)}>בטל הרשמה</button>
                                     </div>
                                 </div>
                             ) : (
@@ -250,14 +305,18 @@ function TraineeDashboard() {
                                 <span className="card-icon">⏳</span>
                                 <h2>רשימות המתנה ({waitingList.length})</h2>
                             </div>
+                            {listError && <p className={`error ${confirmingCancelId ? 'confirm-message' : ''}`} style={{padding: '0 15px 10px'}}>{listError}</p>}
                             {waitingList.length > 0 ? (
                                 waitingList.map(item => 
                                     <ListItem 
-                                        key={item.id}
+                                        key={item.registrationId}
                                         title={item.name}
                                         subtitle={`עם ${item.trainerName}`}
                                         status={getStatusText(item.status) || formatDateOnly(item.start)}
                                         statusType={item.status}
+                                        registrationId={item.registrationId}
+                                        onCancel={handleListCancel}
+                                        confirmingCancelId={confirmingCancelId}
                                     />
                                 )
                             ) : <p className="empty-state">אתה לא רשום לאף רשימת המתנה.</p>}
@@ -270,7 +329,7 @@ function TraineeDashboard() {
                             </div>
                             {pastSessions.slice(0, 3).map(item => 
                                 <ListItem 
-                                    key={item.id}
+                                    key={item.registrationId}
                                     title={item.name}
                                     subtitle={formatDateOnly(item.start)}
                                 />
@@ -288,11 +347,12 @@ function TraineeDashboard() {
                 isOpen={isModalOpen} 
                 onClose={closeSessionDetails} 
                 session={selectedSession} 
-                onCancel={handleCancel}
+                onCancel={handleModalCancel}
+                cancelError={cancelError}
                 showCancelButton={selectedSession && !currentSession && nextSession?.id === selectedSession.id}
             />
         </>
     );
 }
 
-export default TraineeDashboard;
+export default MemberDashboard;

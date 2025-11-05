@@ -23,14 +23,17 @@ const ScheduleRow = ({ session }) => (
 function DailySchedule() {
     const [schedule, setSchedule] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
 
     useEffect(() => {
         const fetchSchedule = async () => {
+            setFetchError(null);
             try {
                 const data = await api.get('/api/studio/daily-schedule');
                 setSchedule(data);
             } catch (error) {
-                console.error("Failed to fetch daily schedule", error);
+                const errorMessage = error.message || "שגיאה בטעינת הלו\"ז היומי.";
+                setFetchError(errorMessage);
             } finally {
                 setIsLoading(false);
             }
@@ -43,7 +46,11 @@ function DailySchedule() {
     return (
         <div className="daily-schedule-widget card">
             <h3>הלו"ז להיום</h3>
-            {schedule.length === 0 ? (
+            {fetchError ? (
+                <p className="error" style={{ padding: '10px', color: '#dc3545' }}>
+                    {fetchError}
+                </p>
+            ) : schedule.length === 0 ? (
                 <p className="empty-state">אין שיעורים מתוכננים להיום.</p>
             ) : (
                 <>

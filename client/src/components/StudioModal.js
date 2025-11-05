@@ -10,6 +10,7 @@ function StudioModal({ studio, onClose, onSave }) {
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [initializationError, setInitializationError] = useState('');
 
     const [createMode, setCreateMode] = useState('newAdmin');
@@ -18,6 +19,7 @@ function StudioModal({ studio, onClose, onSave }) {
     const [selectedExistingAdminId, setSelectedExistingAdminId] = useState('');
     const [currentAdmin, setCurrentAdmin] = useState(null);
     const [selectedNewAdminId, setSelectedNewAdminId] = useState('');
+    const [isConfirmingAdminAssign, setIsConfirmingAdminAssign] = useState(false);
 
     useEffect(() => {
         const initializeModal = async () => {
@@ -45,8 +47,7 @@ function StudioModal({ studio, onClose, onSave }) {
                     setCurrentAdmin(adminUser);
                 }
             } catch (err) {
-                console.error("Failed to initialize modal:", err);
-                setInitializationError('שגיאה בטעינת הנתונים. אנא סגור ונסה שוב.');
+                setInitializationError(err.message || 'שגיאה בטעינת הנתונים. אנא סגור ונסה שוב.');
             } finally {
                 setIsLoading(false);
             }
@@ -55,14 +56,28 @@ function StudioModal({ studio, onClose, onSave }) {
         initializeModal();
     }, [studio, isEditMode]);
 
+    const resetErrors = () => {
+        setError('');
+        setFieldErrors({});
+        setIsConfirmingAdminAssign(false);
+    };
+
     const handleChange = (e) => {
-        if (error) setError(''); 
+        resetErrors();
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors(prev => ({ ...prev, [e.target.name]: null }));
+        }
         setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleCreateModeChange = (mode) => {
+        resetErrors();
+        setCreateMode(mode);
     };
 
     const validateForm = () => {
         if (!formData.name.trim()) {
-            setError("שם הסטודיו הוא שדה חובה.");
+            setFieldErrors({ name: "שם הסטודיו הוא שדה חובה." });
             return false;
         }
         if (!isEditMode) { 
@@ -72,7 +87,7 @@ function StudioModal({ studio, onClose, onSave }) {
                     return false;
                 }
             } else if (createMode === 'existingUser' && !selectedExistingAdminId) {
-                setError("אנא בחר מנהל קיים מהרשימה.");
+                setFieldErrors({ existingAdminId: "אנא בחר מנהל קיים מהרשימה." });
                 return false;
             }
         }
@@ -81,10 +96,10 @@ function StudioModal({ studio, onClose, onSave }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        resetErrors();
         if (!validateForm()) return;
 
         setIsLoading(true);
-        setError('');
         try {
             if (isEditMode) {
                 const { name, address, phone_number, subscription_status } = formData;
@@ -108,17 +123,29 @@ function StudioModal({ studio, onClose, onSave }) {
             }
             onSave();
         } catch (err) {
-            setError(err.message || 'שגיאה לא צפויה. נסה שוב.');
+            const serverResponse = err.response?.data;
+            if (serverResponse && serverResponse.field) {
+                setFieldErrors({ [serverResponse.field]: serverResponse.message });
+            } else {
+                setError(err.message || 'שגיאה לא צפויה. נסה שוב.');
+            }
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleAssignNewAdmin = async () => {
-        if (!selectedNewAdminId || !window.confirm(`האם להפוך את המשתמש הנבחר למנהל הראשי של ${studio.name}?`)) return;
+        if (!selectedNewAdminId) return;
+
+        if (!isConfirmingAdminAssign) {
+            resetErrors();
+            setIsConfirmingAdminAssign(true);
+            setError(`האם להפוך את המשתמש הנבחר למנהל הראשי של ${studio.name}? לחץ שוב לאישור.`);
+            return;
+        }
 
         setIsLoading(true);
-        setError('');
+        resetErrors();
         try {
             await api.put(`/api/studio/${studio.id}/assign-admin`, { newAdminId: selectedNewAdminId });
             onSave();
@@ -154,7 +181,11 @@ function StudioModal({ studio, onClose, onSave }) {
                 <form onSubmit={handleSubmit} className="settings-form">
                     <fieldset disabled={isLoading}>
                         <legend>פרטי הסטודיו</legend>
-                        <div className="form-field"><label>שם הסטודיו</label><input name="name" value={formData.name} onChange={handleChange} required /></div>
+                        <div className="form-field">
+                            <label>שם הסטודיו</label>
+                            <input name="name" value={formData.name} onChange={handleChange} required />
+                            {fieldErrors.name && <p className="error field-error">{fieldErrors.name}</p>}
+                        </div>
                         <div className="form-field"><label>כתובת</label><input name="address" value={formData.address} onChange={handleChange} /></div>
                         <div className="form-field"><label>מספר טלפון</label><input name="phone_number" value={formData.phone_number} onChange={handleChange} /></div>
                         {isEditMode && (
@@ -173,17 +204,31 @@ function StudioModal({ studio, onClose, onSave }) {
                     {!isEditMode && (
                         <>
                             <div className="create-mode-toggle" style={{ display: 'flex', gap: '10px', margin: '1.5rem 0' }}>
-                                <button type="button" className={`btn ${createMode === 'newAdmin' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCreateMode('newAdmin')} disabled={isLoading}>צור מנהל חדש</button>
-                                <button type="button" className={`btn ${createMode === 'existingUser' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setCreateMode('existingUser')} disabled={isLoading}>בחר משתמש קיים</button>
+                                <button type="button" className={`btn ${createMode === 'newAdmin' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => handleCreateModeChange('newAdmin')} disabled={isLoading}>צור מנהל חדש</button>
+                                <button type="button" className={`btn ${createMode === 'existingUser' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => handleCreateModeChange('existingUser')} disabled={isLoading}>בחר משתמש קיים</button>
                             </div>
 
                             {createMode === 'newAdmin' && (
                                 <fieldset disabled={isLoading}>
                                     <legend>פרטי מנהל חדש</legend>
-                                    <div className="form-field"><label>שם מלא</label><input name="admin_full_name" value={formData.admin_full_name} onChange={handleChange} required /></div>
-                                    <div className="form-field"><label>שם משתמש</label><input name="admin_userName" value={formData.admin_userName} onChange={handleChange} required /></div>
-                                    <div className="form-field"><label>אימייל</label><input name="admin_email" type="email" value={formData.admin_email} onChange={handleChange} required /></div>
-                                    <div className="form-field"><label>סיסמה</label><input name="admin_password" type="password" value={formData.admin_password} onChange={handleChange} required /></div>
+                                    <div className="form-field">
+                                        <label>שם מלא</label>
+                                        <input name="admin_full_name" value={formData.admin_full_name} onChange={handleChange} required />
+                                    </div>
+                                    <div className="form-field">
+                                        <label>שם משתמש</label>
+                                        <input name="admin_userName" value={formData.admin_userName} onChange={handleChange} required />
+                                        {fieldErrors.admin_userName && <p className="error field-error">{fieldErrors.admin_userName}</p>}
+                                    </div>
+                                    <div className="form-field">
+                                        <label>אימייל</label>
+                                        <input name="admin_email" type="email" value={formData.admin_email} onChange={handleChange} required />
+                                        {fieldErrors.admin_email && <p className="error field-error">{fieldErrors.admin_email}</p>}
+                                    </div>
+                                    <div className="form-field">
+                                        <label>סיסמה</label>
+                                        <input name="admin_password" type="password" value={formData.admin_password} onChange={handleChange} required />
+                                    </div>
                                 </fieldset>
                             )}
 
@@ -197,13 +242,14 @@ function StudioModal({ studio, onClose, onSave }) {
                                             <option value="">בחר...</option>
                                             {filteredUsers.map(user => (<option key={user.id} value={user.id}>{user.full_name} ({user.email})</option>))}
                                         </select>
+                                        {fieldErrors.existingAdminId && <p className="error field-error">{fieldErrors.existingAdminId}</p>}
                                     </div>
                                 </fieldset>
                             )}
                         </>
                     )}
                     
-                    {error && <p className="error" style={{ color: 'red', marginTop: '1rem', textAlign: 'center' }}>{error}</p>}
+                    {error && <p className={`error ${isConfirmingAdminAssign ? 'confirm-message' : ''}`} style={{ color: 'red', marginTop: '1rem', textAlign: 'center' }}>{error}</p>}
                     <div className="modal-actions">
                         <button type="submit" className="btn btn-primary" disabled={isLoading}>{isLoading ? 'שומר...' : 'שמור שינויים'}</button>
                     </div>
@@ -217,14 +263,19 @@ function StudioModal({ studio, onClose, onSave }) {
                         <fieldset disabled={isLoading}>
                             <div className="form-field">
                                 <label>החלף מנהל למשתמש קיים:</label>
-                                <select value={selectedNewAdminId} onChange={(e) => setSelectedNewAdminId(e.target.value)}>
+                                <select value={selectedNewAdminId} onChange={(e) => { setSelectedNewAdminId(e.target.value); resetErrors(); }}>
                                     <option value="">בחר משתמש...</option>
                                     {allUsers.filter(u => u.id !== currentAdmin?.id).map(user => (<option key={user.id} value={user.id}>{user.full_name} ({user.email})</option>))}
                                 </select>
                             </div>
                         </fieldset>
                         <div className="modal-actions">
-                            <button className="btn btn-secondary" onClick={handleAssignNewAdmin} disabled={!selectedNewAdminId || isLoading}>{isLoading ? 'מעדכן...' : 'הפוך למנהל'}</button>
+                            <button 
+                                className={`btn ${isConfirmingAdminAssign ? 'btn-danger-confirm' : 'btn-secondary'}`} 
+                                onClick={handleAssignNewAdmin} 
+                                disabled={!selectedNewAdminId || isLoading}>
+                                {isLoading ? 'מעדכן...' : (isConfirmingAdminAssign ? 'לחץ לאישור' : 'הפוך למנהל')}
+                            </button>
                         </div>
                     </div>
                 )}

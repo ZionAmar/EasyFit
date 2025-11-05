@@ -20,14 +20,11 @@ function LoginPage() {
         setIsLoading(true);
 
         try {
-            // The 'login' function from context now handles navigation.
             await login(userName, pass);
         } catch (err) {
-            setError(err.message || 'שם משתמש או סיסמה שגויים');
-            setIsLoading(false); // Stop loading only on error
+            setError(err.message || 'שגיאה כללית בהתחברות. נסה שנית.');
+            setIsLoading(false);
         }
-        // On success, the component will unmount due to navigation,
-        // so no need to set loading to false here.
     };
 
     return (

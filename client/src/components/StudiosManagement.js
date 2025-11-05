@@ -31,14 +31,23 @@ function StudiosManagement() {
     const [currentPage, setCurrentPage] = useState(1);
     const [studiosPerPage] = useState(10);
     const [openDropdownId, setOpenDropdownId] = useState(null);
+    const [error, setError] = useState('');
+    const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
+    const [confirmingImpersonateId, setConfirmingImpersonateId] = useState(null);
+
+    const resetMessages = () => {
+        setError('');
+        setConfirmingDeleteId(null);
+        setConfirmingImpersonateId(null);
+    };
 
     const fetchStudios = useCallback(async () => {
         setIsLoading(true);
+        resetMessages();
         try {
             const studiosData = await api.get('/api/studio/all');
             const parsedStudios = studiosData.map(studio => {
                 let adminsArray = [];
-                // Defensive parsing to handle both stringified JSON and actual arrays
                 if (typeof studio.admins === 'string') {
                     try {
                         adminsArray = JSON.parse(studio.admins);
@@ -48,12 +57,11 @@ function StudiosManagement() {
                 } else if (Array.isArray(studio.admins)) {
                     adminsArray = studio.admins;
                 }
-                // Filter out any potential null entries that might come from the LEFT JOIN
                 return { ...studio, admins: adminsArray.filter(admin => admin && admin.id != null) };
             });
             setStudios(parsedStudios || []);
-        } catch (error) {
-            console.error("Failed to fetch studios:", error);
+        } catch (err) {
+            setError(err.message || "שגיאה בטעינת רשימת הסטודיואים.");
         } finally {
             setIsLoading(false);
         }
@@ -65,9 +73,11 @@ function StudiosManagement() {
 
     useEffect(() => {
         setCurrentPage(1);
+        resetMessages();
     }, [searchTerm]);
 
     const handleOpenModal = (studio = null) => {
+        resetMessages();
         setSelectedStudio(studio);
         setIsModalOpen(true);
     };
@@ -75,6 +85,7 @@ function StudiosManagement() {
     const handleCloseModal = () => {
         setSelectedStudio(null);
         setIsModalOpen(false);
+        resetMessages();
     };
 
     const handleSave = () => {
@@ -82,28 +93,41 @@ function StudiosManagement() {
         fetchStudios();
     };
 
-    const handleDelete = async (studioId) => {
-        if (window.confirm('האם אתה בטוח? פעולה זו תמחק את הסטודיו וכל המידע הקשור אליו.')) {
-            try {
-                await api.delete(`/api/studio/${studioId}`);
-                fetchStudios();
-            } catch (error) {
-                alert(`שגיאה במחיקת הסטודיו: ${error.message}`);
-            }
+    const handleDelete = async (studioId, studioName) => {
+        if (confirmingDeleteId !== studioId) {
+            resetMessages();
+            setConfirmingDeleteId(studioId);
+            setError(`האם למחוק את ${studioName}? לחץ שוב לאישור.`);
+            return;
+        }
+
+        setIsLoading(true);
+        resetMessages();
+        try {
+            await api.delete(`/api/studio/${studioId}`);
+            fetchStudios();
+        } catch (err) {
+            setError(err.message || 'שגיאה במחיקת הסטודיו.');
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleImpersonate = async (studioId, adminId, adminName) => {
-        if (window.confirm(`האם להתחבר למערכת בתור ${adminName}?`)) {
-            try {
-                await api.post(`/api/auth/impersonate/${adminId}`);
-                // Set the target studio ID in localStorage before reloading
-                localStorage.setItem('activeStudioId', studioId);
-                // Force a full reload to ensure the app re-initializes with the new identity
-                window.location.href = '/dashboard';
-            } catch (error) {
-                alert(`שגיאה בהתחזות: ${error.message}`);
-            }
+        if (confirmingImpersonateId !== adminId) {
+            resetMessages();
+            setConfirmingImpersonateId(adminId);
+            setError(`האם להתחבר למערכת בתור ${adminName}? לחץ שוב לאישור.`);
+            return;
+        }
+        
+        resetMessages();
+        try {
+            await api.post(`/api/auth/impersonate/${adminId}`);
+            localStorage.setItem('activeStudioId', studioId);
+            window.location.href = '/dashboard';
+        } catch (err) {
+            setError(err.message || 'שגיאה בהתחברות.');
         }
     };
 
@@ -121,7 +145,7 @@ function StudiosManagement() {
     const handleNextPage = () => setCurrentPage(prev => Math.min(prev + 1, totalPages));
     const handlePrevPage = () => setCurrentPage(prev => Math.max(prev - 1, 1));
 
-    if (isLoading) {
+    if (isLoading && studios.length === 0) {
         return <div className="loading">טוען רשימת סטודיואים...</div>;
     }
 
@@ -143,6 +167,9 @@ function StudiosManagement() {
                         <button className="btn btn-primary" onClick={() => handleOpenModal()}>הוסף סטודיו חדש</button>
                     </div>
                 </div>
+
+                {error && <p className={`error ${confirmingDeleteId || confirmingImpersonateId ? 'confirm-message' : ''}`} style={{ padding: '0 20px' }}>{error}</p>}
+                
                 <div className="table-responsive">
                     <table className="studios-table">
                         <thead>
@@ -172,23 +199,32 @@ function StudiosManagement() {
                                         <td><span className={`status-badge ${studio.subscription_status}`}>{studio.subscription_status}</span></td>
                                         <td className="actions-cell">
                                             <button className="btn btn-secondary" onClick={() => handleOpenModal(studio)}>ערוך</button>
-                                            <button className="btn btn-danger" onClick={() => handleDelete(studio.id)}>מחק</button>
+                                            <button 
+                                                className={`btn ${confirmingDeleteId === studio.id ? 'btn-danger-confirm' : 'btn-danger'}`} 
+                                                onClick={() => handleDelete(studio.id, studio.name)}>
+                                                {confirmingDeleteId === studio.id ? 'אשר מחיקה' : 'מחק'}
+                                            </button>
                                             
                                             {studio.admins && studio.admins.length === 1 && (
-                                                <button className="btn" onClick={() => handleImpersonate(studio.id, studio.admins[0].id, studio.admins[0].full_name)}>
-                                                    התחבר כמנהל
+                                                <button 
+                                                    className={`btn ${confirmingImpersonateId === studio.admins[0].id ? 'btn-danger-confirm' : ''}`} 
+                                                    onClick={() => handleImpersonate(studio.id, studio.admins[0].id, studio.admins[0].full_name)}>
+                                                    {confirmingImpersonateId === studio.admins[0].id ? 'אשר התחברות' : 'התחבר כמנהל'}
                                                 </button>
                                             )}
                                             {studio.admins && studio.admins.length > 1 && (
                                                 <div className="dropdown">
-                                                    <button className="btn" onClick={() => setOpenDropdownId(openDropdownId === studio.id ? null : studio.id)}>
+                                                    <button className="btn" onClick={() => { setOpenDropdownId(openDropdownId === studio.id ? null : studio.id); resetMessages(); }}>
                                                         התחבר בתור...
                                                     </button>
                                                     {openDropdownId === studio.id && (
                                                         <div className="dropdown-menu">
                                                             {studio.admins.map(admin => (
-                                                                <div key={admin.id} className="dropdown-item" onClick={() => handleImpersonate(studio.id, admin.id, admin.full_name)}>
-                                                                    {admin.full_name}
+                                                                <div 
+                                                                    key={admin.id} 
+                                                                    className={`dropdown-item ${confirmingImpersonateId === admin.id ? 'confirm-impersonate' : ''}`} 
+                                                                    onClick={() => handleImpersonate(studio.id, admin.id, admin.full_name)}>
+                                                                    {confirmingImpersonateId === admin.id ? 'לחץ לאישור' : admin.full_name}
                                                                 </div>
                                                             ))}
                                                         </div>

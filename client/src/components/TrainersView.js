@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import TrainerModal from '../components/TrainerModal';
+import UserModal from '../components/UserModal';
 import '../styles/TrainersView.css';
 
 function TrainersView() {
     const [trainers, setTrainers] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
-    const [editingTrainer, setEditingTrainer] = useState(null);
+    const [editingUser, setEditingUser] = useState(null);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    
     const [searchTerm, setSearchTerm] = useState('');
+    const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
     const fetchTrainers = async () => {
         setIsLoading(true);
+        setError('');
         try {
             const data = await api.get('/api/users/all?role=trainer');
             setTrainers(data);
         } catch (err) {
-            setError('שגיאה בטעינת המאמנים');
+            setError(err.message || 'שגיאה בטעינת המאמנים');
         } finally {
             setIsLoading(false);
         }
@@ -29,20 +30,56 @@ function TrainersView() {
     }, []);
     
     const handleSave = () => {
-        setEditingTrainer(null);
+        setEditingUser(null);
         setIsAddModalOpen(false);
         fetchTrainers();
     };
 
-    const handleDelete = async (trainerId, trainerName) => {
-        if (window.confirm(`האם אתה בטוח שברצונך למחוק את ${trainerName}?`)) {
-            try {
-                await api.delete(`/api/users/${trainerId}`);
-                fetchTrainers();
-            } catch (err) {
-                setError(err.message || 'שגיאה במחיקת המאמן.');
-            }
+    const handleDelete = async (userId, userName) => {
+        if (confirmingDeleteId !== userId) {
+            setConfirmingDeleteId(userId);
+            setError(`האם למחוק את ${userName}? לחץ שוב לאישור.`);
+            return;
         }
+        
+        setError('');
+        setIsLoading(true);
+        try {
+            await api.delete(`/api/users/${userId}`);
+            fetchTrainers();
+            setConfirmingDeleteId(null);
+        } catch (err) {
+            setError(err.message || 'שגיאה במחיקת המאמן.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
+        setConfirmingDeleteId(null);
+        setError('');
+    };
+
+    const openAddModal = () => {
+        setEditingUser(null);
+        setIsAddModalOpen(true);
+        setConfirmingDeleteId(null);
+        setError('');
+    };
+
+    const openEditModal = (trainer) => {
+        setIsAddModalOpen(false);
+        setEditingUser(trainer);
+        setConfirmingDeleteId(null);
+        setError('');
+    };
+
+    const closeModal = () => {
+        setEditingUser(null);
+        setIsAddModalOpen(false);
+        setConfirmingDeleteId(null);
+        setError('');
     };
 
     const filteredTrainers = trainers.filter(trainer => 
@@ -50,24 +87,25 @@ function TrainersView() {
         trainer.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    if (isLoading) return <div className="loading">טוען מאמנים...</div>;
-    if (error) return <div className="error">{error}</div>;
+    if (isLoading && trainers.length === 0) return <div className="loading">טוען מאמנים...</div>;
 
     return (
         <div className="trainers-view-container">
             <div className="view-header">
-                <h3>צוות המאמנים</h3>
+                <h3>צוות המאמנים ({trainers.length})</h3>
                 <input 
                     type="text"
                     placeholder="חפש לפי שם או אימייל..."
                     className="search-input"
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                 />
-                <button className="btn btn-primary" onClick={() => setIsAddModalOpen(true)}>
+                <button className="btn btn-primary" onClick={openAddModal}>
                     + הוסף מאמן
                 </button>
             </div>
+            
+            {error && <p className={`error ${confirmingDeleteId ? 'confirm-message' : ''}`}>{error}</p>}
             
             <div className="trainers-grid">
                 {filteredTrainers.map(trainer => (
@@ -76,26 +114,31 @@ function TrainersView() {
                         <p>{trainer.email}</p>
                         <p>{trainer.phone}</p>
                         <div className="card-actions">
-                            <button className="btn btn-secondary" onClick={() => setEditingTrainer(trainer)}>
+                            <button className="btn btn-secondary" onClick={() => openEditModal(trainer)}>
                                 ערוך
                             </button>
-                            <button className="btn btn-danger" onClick={() => handleDelete(trainer.id, trainer.full_name)}>
-                                מחק
+                            <button 
+                                className={`btn ${confirmingDeleteId === trainer.id ? 'btn-danger-confirm' : 'btn-danger'}`} 
+                                onClick={() => handleDelete(trainer.id, trainer.full_name)}
+                                disabled={isLoading && confirmingDeleteId === trainer.id}
+                            >
+                                {confirmingDeleteId === trainer.id ? 'לחץ לאישור' : 'מחק'}
                             </button>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {(isAddModalOpen || editingTrainer) && (
-                <TrainerModal 
-                    trainer={editingTrainer}
-                    onClose={() => { setEditingTrainer(null); setIsAddModalOpen(false); }}
+            {(isAddModalOpen || editingUser) && (
+                <UserModal 
+                    user={editingUser}
+                    defaultRole="trainer"
+                    onClose={closeModal}
                     onSave={handleSave}
                 />
             )}
 
-            <button className="fab" onClick={() => setIsAddModalOpen(true)}>+</button>
+            <button className="fab" onClick={openAddModal}>+</button>
         </div>
     );
 }

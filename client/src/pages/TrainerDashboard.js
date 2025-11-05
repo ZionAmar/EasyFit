@@ -4,7 +4,23 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import '../styles/Dashboard.css';
 
-const ParticipantRow = ({ participant, onCheckIn, isCheckInActive, checkingInId }) => {
+const StatPill = ({ label, value, icon }) => (
+    <div className="stat-pill">
+        <span className="stat-icon">{icon}</span>
+        <span className="stat-value">{value}</span>
+        <span className="stat-label">{label}</span>
+    </div>
+);
+
+const AgendaItem = ({ session }) => (
+    <div className="agenda-item">
+        <span className="agenda-time">{new Date(session.start).toTimeString().slice(0, 5)}</span>
+        <span className="agenda-title">{session.name}</span>
+        <span className="agenda-occupancy">{session.participant_count || 0}/{session.capacity}</span>
+    </div>
+);
+
+const ParticipantRow = ({ participant, onCheckIn, isCheckInActive, checkingInId, checkInError }) => {
     
     const renderCheckInButton = () => {
         if (checkingInId === participant.registrationId) {
@@ -45,20 +61,12 @@ const ParticipantRow = ({ participant, onCheckIn, isCheckInActive, checkingInId 
                 <span>{participant.full_name}</span>
             </div>
             {renderCheckInButton()}
+            
         </div>
     );
 };
 
-
-const AgendaItem = ({ session }) => (
-    <div className="agenda-item">
-        <span className="agenda-time">{new Date(session.start).toTimeString().slice(0, 5)}</span>
-        <span className="agenda-title">{session.name}</span>
-        <span className="agenda-occupancy">{session.participant_count || 0}/{session.capacity}</span>
-    </div>
-);
-
-const SessionDetailsModal = ({ session, onClose }) => {
+const SessionDetailsModal = ({ session, isOpen, onClose }) => {
     if (!session) return null;
     const formatTime = (date) => new Intl.DateTimeFormat('he-IL', { hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(date));
     const formatDate = (date) => new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(date));
@@ -89,8 +97,11 @@ function TrainerDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
     const [checkingInId, setCheckingInId] = useState(null);
+    const [fetchError, setFetchError] = useState(null);
+    const [actionError, setActionError] = useState(null); // לניהול שגיאות של צ'ק-אין/הגעה
 
     const fetchSchedule = async () => {
+        setFetchError(null);
         try {
             const data = await api.get('/api/meetings?viewAs=trainer'); 
             if (Array.isArray(data)) {
@@ -102,7 +113,9 @@ function TrainerDashboard() {
                 setMySchedule(processed);
             }
         } catch (error) {
-            console.error("Error fetching trainer schedule:", error);
+            // טיפול בשגיאת טעינה כללית (כגון 403, 401)
+            const errorMessage = error.message || "לא הצלחנו לטעון את לוח הזמנים. ודא שיש לך הרשאה."
+            setFetchError(errorMessage);
             setMySchedule([]);
         } finally {
             setIsLoading(false);
@@ -119,10 +132,12 @@ function TrainerDashboard() {
     }, [user, activeStudio]);
     
     const handleCheckIn = async (registrationId) => {
+        setActionError(null);
         setCheckingInId(registrationId);
         try {
             await api.patch(`/api/participants/${registrationId}/check-in`, {});
             
+            // עדכון מקומי מהיר של הסטטוס
             setMySchedule(currentSchedule => 
                 currentSchedule.map(session => ({
                     ...session,
@@ -135,24 +150,25 @@ function TrainerDashboard() {
             );
 
         } catch (error) {
-            console.error('Check-in failed:', error);
-            const errorMessage = error.response?.data?.message || error.message;
-            alert(`שגיאה בעדכון סטטוס המתאמן: ${errorMessage}`);
-            fetchSchedule();
+            const errorMessage = error.message || "שגיאה לא צפויה בביצוע צ'ק-אין.";
+            setActionError(errorMessage);
+            // רענון הלו"ז במקרה של שגיאה כדי לסנכרן
+            fetchSchedule(); 
         } finally {
             setCheckingInId(null);
         }
     };
     
     const handleTrainerArrival = async (sessionId) => {
+        setActionError(null);
         try {
             await api.patch(`/api/meetings/${sessionId}/arrive`, {});
             alert('הגעתך אושרה. שיהיה שיעור מוצלח!');
             await fetchSchedule();
         } catch (error) {
-            console.error('Error confirming arrival:', error.response || error);
-            const errorMessage = error.response?.data?.message || error.message;
-            alert(`שגיאה באישור הגעה: ${errorMessage}`);
+            // לוכד את הודעת השגיאה המפורטת (כגון 403 או שגיאת תזמון)
+            const errorMessage = error.message || "שגיאה באישור הגעה. נסה שוב."
+            setActionError(errorMessage);
         }
     };
 
@@ -190,6 +206,11 @@ function TrainerDashboard() {
     if (isLoading) {
         return <div className="loading">טוען את לוח הזמנים שלך...</div>;
     }
+    
+    // הצגת שגיאת טעינה כללית
+    if (fetchError) {
+        return <div className="error-state"><h2 style={{ color: '#dc3545' }}>❌ שגיאה בטעינת הלו"ז:</h2><p>{fetchError}</p></div>;
+    }
 
     return (
         <div className="pro-dashboard trainer-view">
@@ -202,6 +223,9 @@ function TrainerDashboard() {
                     לוח זמנים מלא
                 </button>
             </header>
+            
+            {actionError && <div className="error-state" style={{ margin: '15px 0' }}><p style={{ color: '#dc3545' }}>{actionError}</p></div>}
+
             <div className="dashboard-grid-pro">
                 <main className="main-panel-pro">
                     <section className="card-pro next-session-card">

@@ -107,7 +107,7 @@ export function AuthProvider({ children }) {
         }
         return data;
     };
- 
+
     const logout = async () => {
         try {
             await authService.logout();
@@ -137,15 +137,13 @@ export function AuthProvider({ children }) {
             localStorage.setItem('activeStudioId', newActiveStudio.studio_id);
             const preferredRole = ['admin', 'trainer', 'member'].find(r => newActiveStudio.roles.includes(r));
             localStorage.setItem('activeRole', preferredRole);
-            window.location.reload(); // רענון מלא כדי להבטיח שכל הקומפוננטות יקבלו את המידע החדש
+            window.location.reload(); 
         }
     };
     
-    // --- ⬇️ פונקציית switchRole המשודרגת ⬇️ ---
     const switchRole = (newRole) => {
         if (!studios || !activeStudio) return;
 
-        // בדיקה 1: האם התפקיד החדש קיים בסטודיו הנוכחי? (המקרה הפשוט)
         const currentStudioHasRole = activeStudio.roles.includes(newRole);
 
         if (currentStudioHasRole) {
@@ -153,27 +151,23 @@ export function AuthProvider({ children }) {
             localStorage.setItem('activeRole', newRole);
             navigate(getDashboardPathForRole(newRole));
         } else {
-            // בדיקה 2: אם לא, נחפש סטודיו אחר שיש בו את התפקיד (המקרה החכם)
             const targetStudio = studios.find(studio => studio.roles.includes(newRole));
 
             if (targetStudio) {
-                // בצע החלפה מלאה: גם סטודיו וגם תפקיד
                 setActiveStudio(targetStudio);
                 setActiveRole(newRole);
-                api.setStudioId(targetStudio.studio_id); // עדכון קריטי לשירות ה-API
+                api.setStudioId(targetStudio.studio_id); 
                 
-                // שמור את הבחירה החדשה באחסון המקומי
                 localStorage.setItem('activeStudioId', targetStudio.studio_id);
                 localStorage.setItem('activeRole', newRole);
                 
-                // נווט את המשתמש לדשבורד הבטוח כדי למנוע בלבול
                 navigate(getDashboardPathForRole(newRole));
             } else {
                 console.error(`Attempted to switch to role '${newRole}', but no studio was found for this role.`);
             }
         }
     };
- 
+
     const value = { user, isLoading, studios, activeStudio, activeRole, switchStudio, switchRole, login, logout, setupSession, refreshUser };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

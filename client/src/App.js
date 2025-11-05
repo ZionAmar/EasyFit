@@ -12,7 +12,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import SchedulePage from './pages/SchedulePage'; 
-import HistoryPage from './pages/HistoryPage';
+import MemberHistoryPage from './pages/MemberHistoryPage';
 import TrainerHistoryPage from './pages/TrainerHistoryPage';
 import ManageSchedulePage from './pages/ManageSchedulePage'; 
 import BookingConfirmedPage from './pages/BookingConfirmedPage';
@@ -48,7 +48,7 @@ const AppRoutes = () => {
                 <Route element={<ProtectedRoute allowedRoles={['admin', 'trainer', 'member']} />}>
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/schedule" element={<SchedulePage />} />
-                    <Route path="/history" element={<HistoryPage />} />
+                    <Route path="/history" element={<MemberHistoryPage />} />
                     <Route path="/trainer-history" element={<TrainerHistoryPage />} />
                 </Route>
                 <Route element={<ProtectedRoute allowedRoles={['admin']} />}>

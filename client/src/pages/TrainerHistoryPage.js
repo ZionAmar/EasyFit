@@ -63,10 +63,12 @@ function TrainerHistoryPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState(null);
+    const [fetchError, setFetchError] = useState(null); 
 
     useEffect(() => {
         const fetchHistory = async () => {
             setIsLoading(true);
+            setFetchError(null);
             try {
                 const data = await api.get('/api/meetings'); 
                 
@@ -84,7 +86,9 @@ function TrainerHistoryPage() {
                     setMonths(uniqueMonths);
                 }
             } catch (error) {
-                console.error("Error fetching trainer history:", error);
+                // לוכד את הודעת השגיאה המפורטת
+                const errorMessage = error.message || "שגיאה בטעינת היסטוריית השיעורים. ודא שיש לך הרשאה."
+                setFetchError(errorMessage);
             } finally {
                 setIsLoading(false);
             }
@@ -125,6 +129,22 @@ function TrainerHistoryPage() {
 
     if (isLoading) {
         return <div className="loading">טוען את היסטוריית השיעורים...</div>;
+    }
+    
+    // הצגת שגיאה כללית
+    if (fetchError) {
+        return (
+            <div className="error-state-full-page" style={{ padding: '20px', textAlign: 'center' }}>
+                <h2 style={{ color: '#dc3545' }}>❌ שגיאה בטעינת הנתונים:</h2>
+                <p style={{ marginTop: '15px', fontWeight: 'bold' }}>{fetchError}</p>
+                <button 
+                    style={{ marginTop: '20px' }} 
+                    className="btn btn-secondary" 
+                    onClick={() => window.location.reload()}>
+                        טען מחדש
+                </button>
+            </div>
+        );
     }
 
     return (

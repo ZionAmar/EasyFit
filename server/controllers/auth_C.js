@@ -45,13 +45,10 @@ const impersonate = async (req, res, next) => {
         const ownerId = req.user.id;
         const targetUserId = req.params.userId;
 
-        // קוראים לשירות שיטפל בלוגיקה ויחזיר טוקן חדש
         const { token, userDetails, studios } = await authService.impersonate(ownerId, targetUserId);
 
-        // שותלים את הטוקן החדש והזמני בקוקי
         res.cookie("jwt", token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict' });
         
-        // מחזירים את פרטי המשתמש החדש לפרונטאנד
         res.json({ userDetails, studios });
     } catch (err) {
         next(err);

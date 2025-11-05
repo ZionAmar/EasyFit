@@ -8,6 +8,7 @@ function RoomModal({ room, onSave, onClose }) {
         name: '', capacity: 10, is_available: true, has_equipment: false
     });
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
@@ -21,8 +22,17 @@ function RoomModal({ room, onSave, onClose }) {
         }
     }, [room, isEditMode]);
 
+    const resetErrors = () => {
+        setError('');
+        setFieldErrors({});
+    };
+
     const handleChange = (e) => {
+        resetErrors();
         const { name, value, type, checked } = e.target;
+        if (fieldErrors[name]) {
+            setFieldErrors(prev => ({ ...prev, [name]: null }));
+        }
         setFormData(prev => ({
             ...prev,
             [name]: type === 'checkbox' ? checked : value
@@ -32,7 +42,7 @@ function RoomModal({ room, onSave, onClose }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setError('');
+        resetErrors();
         try {
             const payload = {
                 ...formData,
@@ -45,7 +55,12 @@ function RoomModal({ room, onSave, onClose }) {
             }
             onSave();
         } catch (err) {
-            setError(err.message || 'An error occurred');
+            const serverResponse = err.response?.data;
+            if (serverResponse && serverResponse.field) {
+                setFieldErrors({ [serverResponse.field]: serverResponse.message });
+            } else {
+                setError(err.message || 'An error occurred');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -60,23 +75,27 @@ function RoomModal({ room, onSave, onClose }) {
                 </div>
                 
                 <form id="room-form" onSubmit={handleSubmit} className="user-form">
-                    <div className="form-field">
-                        <label>שם החדר</label>
-                        <input name="name" value={formData.name} onChange={handleChange} required />
-                    </div>
-                    <div className="form-field">
-                        <label>קיבולת מתאמנים</label>
-                        <input type="number" name="capacity" value={formData.capacity} onChange={handleChange} required min="1" />
-                    </div>
-                    <div className="form-field checkbox-row">
-                        <input type="checkbox" id="is_available" name="is_available" checked={formData.is_available} onChange={handleChange} />
-                        <label htmlFor="is_available">החדר זמין לשימוש</label>
-                    </div>
-                    <div className="form-field checkbox-row">
-                        <input type="checkbox" id="has_equipment" name="has_equipment" checked={formData.has_equipment} onChange={handleChange} />
-                        <label htmlFor="has_equipment">מכיל ציוד</label>
-                    </div>
-                    {error && <p className="error">{error}</p>}
+                    <fieldset disabled={isLoading}>
+                        <div className="form-field">
+                            <label>שם החדר</label>
+                            <input name="name" value={formData.name} onChange={handleChange} required />
+                            {fieldErrors.name && <p className="error field-error">{fieldErrors.name}</p>}
+                        </div>
+                        <div className="form-field">
+                            <label>קיבולת מתאמנים</label>
+                            <input type="number" name="capacity" value={formData.capacity} onChange={handleChange} required min="1" />
+                            {fieldErrors.capacity && <p className="error field-error">{fieldErrors.capacity}</p>}
+                        </div>
+                        <div className="form-field checkbox-row">
+                            <input type="checkbox" id="is_available" name="is_available" checked={formData.is_available} onChange={handleChange} />
+                            <label htmlFor="is_available">החדר זמין לשימוש</label>
+                        </div>
+                        <div className="form-field checkbox-row">
+                            <input type="checkbox" id="has_equipment" name="has_equipment" checked={formData.has_equipment} onChange={handleChange} />
+                            <label htmlFor="has_equipment">מכיל ציוד</label>
+                        </div>
+                        {error && !Object.values(fieldErrors).some(e => e) && <p className="error">{error}</p>}
+                    </fieldset>
                 </form>
 
                 <div className="modal-actions">

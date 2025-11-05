@@ -62,12 +62,14 @@ function HistoryPage() {
     const [months, setMonths] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState('all');
     const [isLoading, setIsLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
     
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedSession, setSelectedSession] = useState(null);
 
     useEffect(() => {
         const fetchHistory = async () => {
+            setFetchError(null);
             try {
                 const data = await api.get('/api/meetings?viewAs=member');
                 if (Array.isArray(data)) {
@@ -86,7 +88,8 @@ function HistoryPage() {
                     setMonths(uniqueMonths);
                 }
             } catch (error) {
-                console.error("Error fetching history:", error);
+                const errorMessage = error.message || 'שגיאה כללית בטעינת היסטוריית השיעורים.';
+                setFetchError(errorMessage);
             } finally {
                 setIsLoading(false);
             }
@@ -133,13 +136,19 @@ function HistoryPage() {
             <header className="history-header">
                 <div className="header-content">
                     <h1>היסטוריית שיעורים</h1>
-                    <p>
-                        {pastSessions.length === 1
-                            ? 'סה"כ הושלם אימון אחד.'
-                            : `סה"כ הושלמו ${pastSessions.length} אימונים.`
-                        }
-                        {pastSessions.length > 1 && ' כל הכבוד על ההתמדה!'}
-                    </p>
+                    {fetchError ? (
+                        <p className="error" style={{ color: '#dc3545', fontWeight: 'bold' }}>
+                            {fetchError}
+                        </p>
+                    ) : (
+                        <p>
+                            {pastSessions.length === 1
+                                ? 'סה"כ הושלם אימון אחד.'
+                                : `סה"כ הושלמו ${pastSessions.length} אימונים.`
+                            }
+                            {pastSessions.length > 1 && ' כל הכבוד על ההתמדה!'}
+                        </p>
+                    )}
                 </div>
                 <div className="filter-container">
                     <label htmlFor="month-filter">סנן לפי חודש:</label>
@@ -155,7 +164,13 @@ function HistoryPage() {
             </header>
 
             <main className="history-list">
-                {filteredSessions.length > 0 ? (
+                {fetchError ? (
+                    <div className="empty-state-history">
+                        <h3>לא ניתן היה לטעון את הנתונים.</h3>
+                        <p>אנא ודא שיש לך הרשאת גישה לסטודיו זה.</p>
+                        <button className="btn btn-primary" onClick={() => window.location.reload()}>טען מחדש</button>
+                    </div>
+                ) : filteredSessions.length > 0 ? (
                     filteredSessions.map(session => 
                         <HistoryCard 
                             key={session.id} 

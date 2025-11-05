@@ -11,12 +11,12 @@ function TrainerViewModal({ meetingId, onClose }) {
         const fetchMeetingDetails = async () => {
             if (!meetingId) return;
             setIsLoading(true);
+            setError('');
             try {
                 const details = await api.get(`/api/meetings/${meetingId}`);
                 setMeetingDetails(details);
             } catch (err) {
-                setError('שגיאה בטעינת פרטי המפגש.');
-                console.error(err);
+                setError(err.message || 'שגיאה בטעינת פרטי המפגש.');
             } finally {
                 setIsLoading(false);
             }
@@ -29,8 +29,8 @@ function TrainerViewModal({ meetingId, onClose }) {
         <div className="modal-overlay" onClick={onClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
                 <button className="modal-close-btn" onClick={onClose}>&times;</button>
-                {isLoading && <p>טוען פרטים...</p>}
-                {error && <p className="error">{error}</p>}
+                {isLoading && <div className="loading">טוען פרטים...</div>}
+                {error && <p className="error" style={{textAlign: 'center', padding: '20px'}}>{error}</p>}
                 {meetingDetails && (
                     <>
                         <h2>פרטי מפגש: {meetingDetails.name}</h2>

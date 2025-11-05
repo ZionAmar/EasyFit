@@ -1,15 +1,26 @@
 const { encWithSalt } = require('../middlewares/auth_Midd');
 const userModel = require('../models/user_M');
 const studioModel = require('../models/studio_M');
-const jwt = require('jsonwebtoken'); // <-- 1. הוספנו את הייבוא החסר
-const jwtSecret = process.env.jwtSecret; // <-- 2. הוספנו את המפתח הסודי
+const jwt = require('jsonwebtoken'); 
+const jwtSecret = process.env.jwtSecret; 
 
 const login = async ({ userName, pass }) => {
     const user = await userModel.getByUserName(userName);
-    if (!user || user.password_hash !== encWithSalt(pass)) {
-        throw new Error("שם משתמש או סיסמה שגויים");
+    
+    if (!user) {
+        const error = new Error("שם משתמש לא קיים במערכת");
+        error.status = 401; 
+        error.errorType = 'USER_NOT_FOUND'; 
+        throw error;
     }
-
+    
+    if (user.password_hash !== encWithSalt(pass)) {
+        const error = new Error("הסיסמה שהוזנה שגויה");
+        error.status = 401; 
+        error.errorType = 'INCORRECT_PASSWORD';
+        throw error;
+    }
+    
     const [studiosAndRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
     const { password_hash, ...userDetails } = user;
     
@@ -19,7 +30,9 @@ const login = async ({ userName, pass }) => {
 const verifyUserFromId = async (userId) => {
     const [[user]] = await userModel.getById(userId);
     if (!user) {
-        throw new Error("User not found for verification");
+        const error = new Error("User not found for verification");
+        error.status = 401;
+        throw error;
     }
 
     const [studiosAndRoles] = await userModel.findStudiosAndRolesByUserId(user.id);
@@ -32,22 +45,33 @@ const register = async (userData) => {
     const { studio_name, admin_full_name, email, password, userName } = userData;
 
     if (!studio_name || !admin_full_name || !email || !password || !userName) {
-        throw new Error("All fields are required for studio registration.");
+        const error = new Error("שם סטודיו, שם מלא, אימייל, שם משתמש וסיסמה הם שדות חובה.");
+        error.status = 400; 
+        throw error;
     }
     
     const existingEmail = await userModel.getByEmail(email);
     if (existingEmail) {
-        throw new Error("האימייל שהוזן כבר קיים במערכת");
+        const error = new Error("כתובת האימייל הזו כבר רשומה במערכת");
+        error.status = 409; 
+        error.field = 'email'; 
+        throw error;
     }
 
     const existingUserName = await userModel.getByUserName(userName);
     if (existingUserName) {
-        throw new Error("שם המשתמש תפוס, נסה שם אחר.");
+        const error = new Error("שם המשתמש שבחרת תפוס, נסה שם אחר.");
+        error.status = 409; 
+        error.field = 'userName'; 
+        throw error;
     }
 
     const existingStudio = await studioModel.getByName(studio_name);
     if (existingStudio) {
-        throw new Error("סטודיו בשם זה כבר קיים במערכת");
+        const error = new Error("סטודיו בשם זה כבר קיים במערכת");
+        error.status = 409; 
+        error.field = 'studio_name'; 
+        throw error;
     }
 
     const password_hash = encWithSalt(password);
@@ -62,21 +86,29 @@ const register = async (userData) => {
 };
 
 const impersonate = async (ownerId, targetUserId) => {
-    // 1. ודא שהמשתמש שביקש את הפעולה הוא אכן Owner
     const [ownerRoles] = await userModel.findStudiosAndRolesByUserId(ownerId);
     const isOwner = ownerRoles.some(roleInfo => roleInfo.role_name === 'owner');
     if (!isOwner) {
-        throw new Error("Only an owner can perform this action.");
+        const error = new Error("Only an owner can perform this action.");
+        error.status = 403;
+        throw error;
     }
 
-    // 2. שאר הלוגיקה נשארת זהה
     if (ownerId === targetUserId) {
-        throw new Error("Cannot impersonate yourself.");
+        const error = new Error("Cannot impersonate yourself.");
+        error.status = 400;
+        throw error;
     }
-    const { userDetails, studios } = await verifyUserFromId(targetUserId);
-    if (!userDetails) {
-        throw new Error("Target user not found.");
-    }
+    
+    const { userDetails, studios } = await verifyUserFromId(targetUserId).catch(err => {
+        if (err.status === 401) {
+            const error = new Error("Target user not found.");
+            error.status = 400;
+            throw error;
+        }
+        throw err;
+    });
+
     const tokenPayload = { id: userDetails.id, isImpersonating: true };
     const token = jwt.sign(tokenPayload, jwtSecret, { expiresIn: '1h' });
     return { token, userDetails, studios };

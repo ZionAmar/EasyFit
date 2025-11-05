@@ -86,23 +86,23 @@ function HomePage() {
 
         <section id="pricing" className="pricing-section fade-in">
             <div className="container">
-                <h2 className="section-title">מסלול אחד. פשוט ושקוף.</h2>
-                <div className="pricing-card-wrapper">
-                    <div className="pricing-card">
-                        <h3 className="pricing-title">FiTime Pro</h3>
-                        <div className="price">₪99<span className="price-term">/ לחודש</span></div>
-                        <p className="pricing-subtitle">לאחר 14 יום ניסיון חינם. ללא התחייבות.</p>
-                        <ul className="pricing-features">
-                            <li>✅ כל הפיצ'רים כלולים</li>
-                            <li>✅ ללא הגבלת מתאמנים</li>
-                            <li>✅ ללא הגבלת שיעורים</li>
-                            <li>✅ תמיכה טכנית בווטסאפ</li>
-                        </ul>
-                        <button className="btn btn-primary" style={{width: '100%'}} onClick={() => navigate('/register')}>
-                          התחילו את תקופת הניסיון
-                        </button>
-                    </div>
+              <h2 className="section-title">מסלול אחד. פשוט ושקוף.</h2>
+              <div className="pricing-card-wrapper">
+                <div className="pricing-card">
+                  <h3 className="pricing-title">FiTime Pro</h3>
+                  <div className="price">₪299<span className="price-term">/ לחודש</span></div>
+                  <p className="pricing-subtitle">לאחר 14 יום ניסיון חינם. ללא התחייבות.</p>
+                  <ul className="pricing-features">
+                    <li>✅ כל הפיצ'רים כלולים</li>
+                    <li>✅ ללא הגבלת מתאמנים</li>
+                    <li>✅ ללא הגבלת שיעורים</li>
+                    <li>✅ תמיכה טכנית בווטסאפ</li>
+                  </ul>
+                  <button className="btn btn-primary" style={{width: '100%'}} onClick={() => navigate('/register')}>
+                    התחילו את תקופת הניסיון
+                  </button>
                 </div>
+              </div>
             </div>
         </section>
 

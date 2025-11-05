@@ -3,8 +3,8 @@ const participantService = require('../services/participant_S');
 async function add(req, res, next) {
     try {
         const userId = req.user.id;
-        const { meetingId } = req.body;
-        const newParticipant = await participantService.addParticipant(userId, meetingId);
+        const { meetingId, forceWaitlist } = req.body;
+        const newParticipant = await participantService.addParticipant(userId, meetingId, forceWaitlist);
         res.status(201).json(newParticipant);
     } catch (err) {
         next(err); 

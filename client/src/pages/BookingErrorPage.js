@@ -7,9 +7,11 @@ function BookingErrorPage() {
 
     return (
         <div className="page-center">
-            <div style={{fontSize: '3rem'}}>⚠️</div>
-            <h1>אופס, משהו השתבש</h1>
-            <p>{message || 'אירעה שגיאה לא צפויה.'}</p>
+            <div style={{fontSize: '3rem', color: '#dc3545'}}>❌</div>
+            <h1>שגיאה בהרשמה</h1>
+            <p>
+                {message || 'אירעה שגיאה בלתי צפויה. אנא נסה שוב או פנה לסטודיו.'}
+            </p>
         </div>
     );
 }

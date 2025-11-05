@@ -106,7 +106,7 @@ module.exports = {
     getDashboard,
     getStats,
     getTodaysSchedule, 
-    getStudioSettings,   
+    getStudioSettings,   
     updateStudioSettings,
     registerStudio,
     getAllStudios,

@@ -22,12 +22,22 @@ async function getAllSystemUsers() {
 
 async function ownerUpdate(id, data) {
     const { full_name, email, phone, status } = data;
-    await getById(id); 
+    const user = await getById(id); 
+    if (!user) {
+        const error = new Error('User not found.');
+        error.status = 404;
+        throw error;
+    }
     return userModel.update(id, { full_name, email, phone, status });
 }
 
 async function ownerDelete(id) {
-    await getById(id); 
+    const user = await getById(id); 
+    if (!user) {
+        const error = new Error('User not found.');
+        error.status = 404;
+        throw error;
+    }
     return userModel.remove(id); 
 }
 
@@ -42,30 +52,44 @@ async function removeRole({ userId, studioId, roleName }) {
 
 
 async function getAll(filters) {
-  const [rows] = await userModel.getAll(filters);
-  return rows;
+    const [rows] = await userModel.getAll(filters);
+    return rows;
 }
 
 async function getById(id) {
-  const [[user]] = await userModel.getById(id);
-  if (!user) {
-      const error = new Error('User not found');
-      error.status = 404;
-      throw error;
-  }
-  return user;
+    const [[user]] = await userModel.getById(id);
+    if (!user) {
+        const error = new Error('המשתמש לא נמצא.');
+        error.status = 404;
+        throw error;
+    }
+    return user;
 }
 
 async function create(data) {
     const { pass, userName, email, ...userData } = data;
 
     const existingUser = await userModel.getByUserName(userName);
-    if (existingUser) throw new Error("שם משתמש כבר קיים במערכת");
+    if (existingUser) {
+        const error = new Error("שם משתמש כבר קיים במערכת");
+        error.status = 409; 
+        error.field = 'userName';
+        throw error;
+    }
     
     const existingEmail = await userModel.getByEmail(email);
-    if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
+    if (existingEmail) {
+        const error = new Error("האימייל שהוזן כבר קיים במערכת");
+        error.status = 409; 
+        error.field = 'email';
+        throw error;
+    }
 
-    if (!pass) throw new Error("Password is required for a new user.");
+    if (!pass) {
+        const error = new Error("Password is required for a new user.");
+        error.status = 400;
+        throw error;
+    }
 
     const password_hash = encWithSalt(pass);
     const finalUserData = { ...userData, userName, email, password_hash };
@@ -74,17 +98,32 @@ async function create(data) {
 }
 
 async function update(id, data) {
-  await getById(id); 
-  return userModel.update(id, data);
+    const user = await getById(id); 
+    if (!user) {
+        const error = new Error('User not found for update.');
+        error.status = 404;
+        throw error;
+    }
+    return userModel.update(id, data);
 }
 
 async function remove(userId, studioId) {
-  await getById(userId);
-  return userModel.removeUserFromStudio(userId, studioId);
+    const user = await getById(userId);
+    if (!user) {
+        const error = new Error('User not found for removal.');
+        error.status = 404;
+        throw error;
+    }
+    return userModel.removeUserFromStudio(userId, studioId);
 }
 
 async function updateProfile(id, data) {
     const currentUser = await getById(id);
+    if (!currentUser) {
+        const error = new Error('User not found to update profile.');
+        error.status = 404;
+        throw error;
+    }
     
     const shouldDeleteImage = data.delete_image === 'true';
 
@@ -126,31 +165,43 @@ async function ownerCreate(data) {
     const { pass, userName, email, full_name, phone } = data;
 
     if (!pass || !userName || !email || !full_name) {
-        throw new Error("שם מלא, אימייל, שם משתמש וסיסמה הם שדות חובה.");
+        const error = new Error("שם מלא, אימייל, שם משתמש וסיסמה הם שדות חובה.");
+        error.status = 400;
+        throw error;
     }
 
     const existingUser = await userModel.getByUserName(userName);
-    if (existingUser) throw new Error("שם משתמש כבר קיים במערכת");
+    if (existingUser) {
+        const error = new Error("שם משתמש כבר קיים במערכת");
+        error.status = 409;
+        error.field = 'userName';
+        throw error;
+    }
     
     const existingEmail = await userModel.getByEmail(email);
-    if (existingEmail) throw new Error("האימייל שהוזן כבר קיים במערכת");
+    if (existingEmail) {
+        const error = new Error("האימייל שהוזן כבר קיים במערכת");
+        error.status = 409;
+        error.field = 'email';
+        throw error;
+    }
 
     const password_hash = encWithSalt(pass);
     return userModel.create({ full_name, email, userName, password_hash, phone });
 }
 
 module.exports = {
-  getAllSystemUsers,
-  ownerUpdate,
-  ownerDelete,
-  assignRole,
-  removeRole,
-  getAll,
-  getById,
-  create,
-  update,
-  delete: remove,
-  updateProfile,
-  getAvailableTrainers,
-  ownerCreate,
+    getAllSystemUsers,
+    ownerUpdate,
+    ownerDelete,
+    assignRole,
+    removeRole,
+    getAll,
+    getById,
+    create,
+    update,
+    delete: remove,
+    updateProfile,
+    getAvailableTrainers,
+    ownerCreate,
 };

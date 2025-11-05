@@ -10,6 +10,7 @@ function ProfileModal({ isOpen, onClose }) {
     const [preview, setPreview] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [fieldErrors, setFieldErrors] = useState({});
     const fileInputRef = useRef();
     const [isImageDeleted, setIsImageDeleted] = useState(false);
 
@@ -22,6 +23,8 @@ function ProfileModal({ isOpen, onClose }) {
             setPreview(user.profile_picture_url || null);
             setSelectedFile(null);
             setIsImageDeleted(false);
+            setError('');
+            setFieldErrors({});
         }
     }, [user, isOpen]);
 
@@ -31,7 +34,11 @@ function ProfileModal({ isOpen, onClose }) {
             return;
         }
         if (!selectedFile) {
-            setPreview(user?.profile_picture_url || null);
+            if (!isImageDeleted && user?.profile_picture_url) {
+                setPreview(user.profile_picture_url);
+            } else {
+                setPreview(null);
+            }
             return;
         }
         const objectUrl = URL.createObjectURL(selectedFile);
@@ -41,7 +48,13 @@ function ProfileModal({ isOpen, onClose }) {
 
     if (!isOpen) return null;
 
+    const resetErrors = () => {
+        setError('');
+        setFieldErrors({});
+    };
+
     const handleFileChange = (e) => {
+        resetErrors();
         if (e.target.files && e.target.files.length > 0) {
             setSelectedFile(e.target.files[0]);
             setIsImageDeleted(false);
@@ -49,10 +62,15 @@ function ProfileModal({ isOpen, onClose }) {
     };
 
     const handleChange = (e) => {
+        resetErrors();
+        if (fieldErrors[e.target.name]) {
+            setFieldErrors(prev => ({ ...prev, [e.target.name]: null }));
+        }
         setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
 
     const handleRemoveImage = () => {
+        resetErrors();
         setSelectedFile(null);
         setIsImageDeleted(true);
     };
@@ -60,7 +78,7 @@ function ProfileModal({ isOpen, onClose }) {
     const handleSave = async (e) => {
         e.preventDefault();
         setIsLoading(true);
-        setError('');
+        resetErrors();
 
         const data = new FormData();
         data.append('full_name', formData.full_name);
@@ -75,7 +93,12 @@ function ProfileModal({ isOpen, onClose }) {
             await refreshUser();
             onClose();
         } catch (err) {
-            setError(err.message || 'שגיאה בעדכון הפרופיל.');
+            const serverResponse = err.response?.data;
+            if (serverResponse && serverResponse.field) {
+                setFieldErrors({ [serverResponse.field]: serverResponse.message });
+            } else {
+                setError(err.message || 'שגיאה בעדכון הפרופיל.');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -96,7 +119,6 @@ function ProfileModal({ isOpen, onClose }) {
                                 <div className="placeholder-avatar">{user?.full_name?.charAt(0)}</div>
                             )}
                             
-                            {/* --- ⬇️ כפתור המחיקה גלוי תמיד כשיש תמונה ⬇️ --- */}
                             {preview && !isLoading && (
                                 <button
                                     type="button"
@@ -111,7 +133,6 @@ function ProfileModal({ isOpen, onClose }) {
                                 </button>
                             )}
 
-                             {/* --- ⬇️ כפתור העריכה גלוי תמיד ⬇️ --- */}
                             <button
                                 type="button"
                                 className="edit-image-btn"
@@ -130,10 +151,12 @@ function ProfileModal({ isOpen, onClose }) {
                     <div className="form-field">
                         <label>שם מלא</label>
                         <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} required />
+                        {fieldErrors.full_name && <p className="error field-error">{fieldErrors.full_name}</p>}
                     </div>
                     <div className="form-field">
                         <label>טלפון</label>
                         <input type="tel" name="phone" value={formData.phone} onChange={handleChange} />
+                        {fieldErrors.phone && <p className="error field-error">{fieldErrors.phone}</p>}
                     </div>
                     
                     {error && <p className="error">{error}</p>}
