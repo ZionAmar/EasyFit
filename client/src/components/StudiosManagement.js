@@ -29,7 +29,7 @@ function StudiosManagement() {
     const [selectedStudio, setSelectedStudio] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [studiosPerPage] = useState(10);
+    const [studiosPerPage] = useState(5);
     const [openDropdownId, setOpenDropdownId] = useState(null);
     const [error, setError] = useState('');
     const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);

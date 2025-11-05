@@ -18,16 +18,16 @@ function HomePage() {
         <header className="hero-section-v6">
           <div className="hero-overlay"></div>
           <div className="hero-content animate-on-load">
-            <h1 className="hero-title">הסטודיו שלך, בשיא הזרימה</h1>
+            <h1 className="hero-title">ניהול חכם לסטודיו שלך</h1>
             <p className="hero-subtitle">
-              FiTime היא מערכת הניהול האינטואיטיבית שמחזירה לך את השקט הנפשי, מעצימה את המותג שלך ומפנה לך זמן להתמקד במה שאתה עושה הכי טוב: לאמן.
+              FiTime היא מערכת הניהול האינטואיטיבית שמחזירה לך את השקט הנפשי, מעצימה את המותג שלך ומפנה לך זמן יקר.
             </p>
             <TypeAnimation
               sequence={[
                 'יומן שיעורים חכם', 2000,
                 'ניהול לקוחות פשוט', 2000,
                 'סליקה אוטומטית', 2000,
-                'העסק שלך. בפשטות אלגנטית.', 3000,
+                'רשימת המתנה חכמה', 3000,
               ]}
               wrapper="div"
               cursor={true}
