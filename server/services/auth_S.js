@@ -1,8 +1,10 @@
 const { encWithSalt } = require('../middlewares/auth_Midd');
 const userModel = require('../models/user_M');
 const studioModel = require('../models/studio_M');
+const sendEmail = require('../utils/sendEmail'); 
 const jwt = require('jsonwebtoken'); 
 const jwtSecret = process.env.jwtSecret; 
+const jwtResetSecret = process.env.JWT_RESET_SECRET; 
 
 const login = async ({ userName, pass }) => {
     const user = await userModel.getByUserName(userName);
@@ -114,9 +116,80 @@ const impersonate = async (ownerId, targetUserId) => {
     return { token, userDetails, studios };
 };
 
+const requestPasswordReset = async (email) => {
+  const user = await userModel.getByEmail(email);
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    const resetToken = jwt.sign(
+      { id: user.id, email: user.email },
+      jwtResetSecret, 
+      { expiresIn: '15m' } 
+    );
+
+    const clientUrl = process.env.BASE_URL || 'http://localhost:3000'; 
+    const resetLink = `${clientUrl}/reset-password/${resetToken}`;
+
+    const subject = 'FiTime - בקשה לאיפוס סיסמה';
+    const html = `
+      <h1>שלום ${user.full_name || 'משתמש'},</h1>
+      <p>קיבלנו בקשה לאיפוס הסיסמה בחשבונך באתר FiTime.</p>
+      <p>כדי לאפס את הסיסמה, אנא לחץ על הקישור הבא (הקישור תקף ל-15 דקות):</p>
+      <a href="${resetLink}" style="padding: 10px 15px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
+        אפס סיסמה
+      </a>
+      <p>אם לא ביקשת איפוס, אנא התעלם מהודעה זו.</p>
+    `;
+
+    await sendEmail(user.email, subject, html);
+
+    return;
+
+  } catch (err) {
+    console.error('Error in requestPasswordReset service:', err);
+    throw new Error('Failed to send reset email.');
+  }
+};
+
+const resetPassword = async (token, newPassword) => {
+  try {
+    const decoded = jwt.verify(token, jwtResetSecret);
+
+    if (!decoded.id) {
+      const error = new Error("Invalid token payload.");
+      error.status = 400;
+      throw error;
+    }
+
+    const hashedPassword = encWithSalt(newPassword);
+
+    await userModel.updatePassword(decoded.id, hashedPassword);
+
+    return;
+
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      const error = new Error("הקישור פג תוקף. אנא בקש איפוס סיסמה חדש.");
+      error.status = 401;
+      throw error;
+    }
+    if (err.name === 'JsonWebTokenError') {
+      const error = new Error("הקישור אינו תקין.");
+      error.status = 401;
+      throw error;
+    }
+    throw err;
+  }
+};
+
 module.exports = {
     login,
     register,
     verifyUserFromId,
-    impersonate
+    impersonate,
+    requestPasswordReset,
+    resetPassword
 };

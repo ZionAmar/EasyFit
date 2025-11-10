@@ -56,6 +56,9 @@ function LoginPage() {
                                 {isLoading ? 'מתחבר...' : 'כניסה למערכת'}
                             </button>
                         </form>
+                        <div>
+                          <Link to="/forgot-password">שכחתי סיסמה</Link>
+                        </div>
                         <p className="auth-switch">
                             עדיין אין לך חשבון? <Link to="/register">הירשם</Link>
                         </p>

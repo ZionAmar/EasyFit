@@ -1,6 +1,6 @@
 const meetingModel = require('../models/meeting_M');
 const participantModel = require('../models/participant_M');
-const smsService = require('./sms_S'); 
+const smsService = require('../utils/sms_S'); 
 
 async function processWaitingList(meetingId) {
     const [[meeting]] = await meetingModel.getById(meetingId);

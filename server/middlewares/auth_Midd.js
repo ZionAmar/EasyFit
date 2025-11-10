@@ -18,6 +18,19 @@ const checkLoginRateLimit = async (req, res, next) => {
     }
 };
 
+const resetRateLimiter = new RateLimiterMemory({
+  points: 3,
+  duration: 10 * 60 
+});
+const checkResetRateLimit = async (req, res, next) => {
+  try {
+    await resetRateLimiter.consume(req.connection.remoteAddress);
+    next();
+  } catch {
+    res.status(429).json({ message: "איפוס סיסמה: בוצעו יותר מדי נסיונות, אנא נסה שוב מאוחר יותר." });
+  }
+};
+
 const isLoggedIn = async (req, res, next) => {
     const token = req.cookies.jwt;
     if (!token) {
@@ -98,6 +111,7 @@ const requireRole = (...requiredRoles) => {
 
 module.exports = {
     checkLoginRateLimit,
+    checkResetRateLimit,
     isLoggedIn,
     requireRole,
     encWithSalt, 

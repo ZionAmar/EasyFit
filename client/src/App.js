@@ -18,20 +18,18 @@ import ManageSchedulePage from './pages/ManageSchedulePage';
 import BookingConfirmedPage from './pages/BookingConfirmedPage';
 import BookingErrorPage from './pages/BookingErrorPage';
 import OwnerDashboardPage from './pages/OwnerDashboardPage';
-
+import ForgotPassword from './pages/ForgotPassword'; 
+import ResetPassword from './pages/ResetPassword'; 
 import './App.css';
 import 'react-datepicker/dist/react-datepicker.css';
 
-// --- ⬇️ זה הרכיב החדש והחשוב ⬇️ ---
-// רכיב זה עוטף את כל הראוטים ובודק אם המערכת עדיין טוענת את פרטי המשתמש
 const AppRoutes = () => {
     const { isLoading } = useAuth();
 
     if (isLoading) {
-        return <div className="loading">טוען...</div>; // מציג מסך טעינה גלובלי
+        return <div className="loading">טוען...</div>;
     }
 
-    // רק אחרי שהטעינה הסתיימה, הוא מציג את הראוטים
     return (
         <Routes>
             <Route path="/" element={<HomePage />} />
@@ -40,7 +38,8 @@ const AppRoutes = () => {
             <Route path="/booking-confirmed" element={<BookingConfirmedPage status="confirmed" />} />
             <Route path="/booking-declined" element={<BookingConfirmedPage status="declined" />} />
             <Route path="/booking-error" element={<BookingErrorPage />} />
-
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route element={<MainLayout />}>
                 <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
                     <Route path="/owner-dashboard" element={<OwnerDashboardPage />} />
@@ -67,7 +66,6 @@ const AppRoutes = () => {
     );
 };
 
-// רכיב הפריסה (Layout) שמכיל את החלקים המשותפים
 const MainLayout = () => {
     return (
         <div className="layout-wrapper"> 
@@ -85,7 +83,7 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <AppRoutes /> {/* קוראים לרכיב החדש שעוטף את כל הלוגיקה */}
+        <AppRoutes /> 
       </AuthProvider>
     </Router>
   );

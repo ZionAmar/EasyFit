@@ -222,6 +222,11 @@ const updateProfile = (id, data) => {
     return db.query(query, values);
 };
 
+const updatePassword = (id, password_hash) => {
+  const query = `UPDATE users SET password_hash = ? WHERE id = ?`;
+  return db.query(query, [password_hash, id]);
+};
+
 module.exports = {
     findAllWithRoles,
     addRole,
@@ -236,5 +241,6 @@ module.exports = {
     remove,
     removeUserFromStudio,
     findAvailableTrainers,
-    updateProfile
+    updateProfile,
+    updatePassword
 };

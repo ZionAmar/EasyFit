@@ -55,10 +55,37 @@ const impersonate = async (req, res, next) => {
     }
 };
 
+const requestPasswordReset = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    await authService.requestPasswordReset(email);
+    res.status(200).json({ message: "Request processed." });
+  } catch (err) {
+    next(err); 
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: "Token and new password are required." });
+    }
+
+    await authService.resetPassword(token, newPassword);
+
+    res.status(200).json({ message: "Password updated successfully." });
+  } catch (err) {
+    next(err); 
+  }
+};
+
 module.exports = {
     login,
     register,
     logout,
     verify,
-    impersonate
+    impersonate,
+    requestPasswordReset,
+    resetPassword
 };
