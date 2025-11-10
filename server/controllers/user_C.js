@@ -128,6 +128,19 @@ async function updateProfile(req, res, next) {
     }
 }
 
+async function changePassword(req, res, next) {
+    try {
+        const userId = req.user.id; 
+        const { currentPassword, newPassword } = req.body;
+        
+        await userService.changePassword(userId, currentPassword, newPassword);
+        
+        res.status(200).json({ message: "Password updated successfully." });
+    } catch (err) {
+        next(err);
+    }
+}
+
 const getUsersByStudio = async (req, res, next) => {
     try {
         const { studioId } = req.params;
@@ -169,6 +182,7 @@ module.exports = {
     getUserById,
     createUser,
     updateUser,
+    changePassword,
     deleteUser,
     getAvailableTrainers,
     updateProfile,

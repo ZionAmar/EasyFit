@@ -1,8 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-
-// ייבוא כל הרכיבים והדפים שלך
 import ProtectedRoute from './components/ProtectedRoute'; 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';

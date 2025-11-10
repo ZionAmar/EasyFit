@@ -190,6 +190,23 @@ async function ownerCreate(data) {
     return userModel.create({ full_name, email, userName, password_hash, phone });
 }
 
+async function changePassword(userId, currentPassword, newPassword) {
+    const user = await getById(userId); 
+
+    const currentPasswordHash = encWithSalt(currentPassword);
+    if (user.password_hash !== currentPasswordHash) {
+        const error = new Error('הסיסמה הנוכחית שגויה.');
+        error.status = 400; 
+        throw error;
+    }
+
+    const newPasswordHash = encWithSalt(newPassword);
+
+    await userModel.updatePassword(userId, newPasswordHash);
+    
+    return { message: "Password updated." };
+}
+
 module.exports = {
     getAllSystemUsers,
     ownerUpdate,
@@ -204,4 +221,5 @@ module.exports = {
     updateProfile,
     getAvailableTrainers,
     ownerCreate,
+    changePassword
 };

@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { NavLink, useNavigate } from 'react-router-dom';
 import RoleSwitcher from './RoleSwitcher';
 import ProfileModal from './ProfileModal'; 
-import '../styles/Navbar.css';
+import ChangePasswordModal from './ChangePasswordModal';
+import '../styles/Navbar.css'; 
 
 const DesktopProfile = ({ user, onClick }) => (
     <div className="desktop-profile" onClick={onClick} title="עריכת פרופיל">
@@ -21,7 +22,9 @@ function Navbar() {
     const { user, logout, isLoading, activeRole } = useAuth();
     const navigate = useNavigate();
     const [menuOpen, setMenuOpen] = useState(false);
+    
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
 
     const menuRef = useRef(null);
     const hamburgerRef = useRef(null);
@@ -44,6 +47,12 @@ function Navbar() {
         setIsProfileModalOpen(true);
     };
     const closeProfileModal = () => setIsProfileModalOpen(false);
+
+    const openChangePasswordModal = () => {
+        setIsProfileModalOpen(false); 
+        setIsChangePasswordModalOpen(true); 
+    };
+    const closeChangePasswordModal = () => setIsChangePasswordModalOpen(false);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -130,9 +139,9 @@ function Navbar() {
                     <span className="hamburger-bar"></span>
                 </div>
                 <div className="navbar-mobile-brand">
-                     <div className="navbar-brand" onClick={handleBrandClick}>
+                    <div className="navbar-brand" onClick={handleBrandClick}>
                         <img src="/images/logo.png" alt="FiTime Logo" />
-                     </div>
+                    </div>
                 </div>
                 
                 <div ref={menuRef} className={`nav-links-mobile ${menuOpen ? 'open' : ''}`}>
@@ -173,10 +182,17 @@ function Navbar() {
             <div className={`nav-links-mobile-overlay ${menuOpen ? 'open' : ''}`} onClick={closeMenu} />
 
             {user && (
-                <ProfileModal 
-                    isOpen={isProfileModalOpen} 
-                    onClose={closeProfileModal} 
-                />
+                <>
+                    <ProfileModal 
+                        isOpen={isProfileModalOpen} 
+                        onClose={closeProfileModal}
+                        onOpenChangePassword={openChangePasswordModal} // פונקציה לפתיחת המודל השני
+                    />
+                    <ChangePasswordModal
+                        isOpen={isChangePasswordModalOpen}
+                        onClose={closeChangePasswordModal}
+                    />
+                </>
             )}
         </>
     );

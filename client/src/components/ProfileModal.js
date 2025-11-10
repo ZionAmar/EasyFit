@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import '../styles/UserModal.css';
+import '../styles/UserModal.css'; 
 
-function ProfileModal({ isOpen, onClose }) {
+function ProfileModal({ isOpen, onClose, onOpenChangePassword }) { 
     const { user, refreshUser } = useAuth();
     const [formData, setFormData] = useState({ full_name: '', phone: '' });
     const [selectedFile, setSelectedFile] = useState(null);
@@ -90,8 +90,8 @@ function ProfileModal({ isOpen, onClose }) {
 
         try {
             await api.put('/api/users/profile', data);
-            await refreshUser();
-            onClose();
+            await refreshUser(); 
+            onClose(); 
         } catch (err) {
             const serverResponse = err.response?.data;
             if (serverResponse && serverResponse.field) {
@@ -110,6 +110,7 @@ function ProfileModal({ isOpen, onClose }) {
                 <button className="modal-close-btn" onClick={onClose}>&times;</button>
                 <h2>עריכת פרופיל</h2>
                 <form onSubmit={handleSave} className="settings-form">
+                    
                     <div className="form-field profile-picture-field">
                         <label>תמונת פרופיל</label>
                         <div className="profile-picture-preview">
@@ -149,6 +150,11 @@ function ProfileModal({ isOpen, onClose }) {
                     </div>
 
                     <div className="form-field">
+                        <label>אימייל</label>
+                        <input type="email" name="email" value={user?.email || ''} disabled />
+                    </div>
+
+                    <div className="form-field">
                         <label>שם מלא</label>
                         <input type="text" name="full_name" value={formData.full_name} onChange={handleChange} required />
                         {fieldErrors.full_name && <p className="error field-error">{fieldErrors.full_name}</p>}
@@ -159,12 +165,17 @@ function ProfileModal({ isOpen, onClose }) {
                         {fieldErrors.phone && <p className="error field-error">{fieldErrors.phone}</p>}
                     </div>
                     
-                    {error && <p className="error">{error}</p>}
-                    <div className="modal-actions">
+                    {error && <p className="error general-error">{error}</p>}
+
+                    <div className="modal-actions-profile">
                         <button type="submit" className="btn register-btn" disabled={isLoading}>
                             {isLoading ? 'שומר...' : 'שמור שינויים'}
                         </button>
+                        <button type="button" className="btn register-btn" onClick={onOpenChangePassword} disabled={isLoading}>
+                            שנה סיסמה
+                        </button>
                     </div>
+
                 </form>
             </div>
         </div>

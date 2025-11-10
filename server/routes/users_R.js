@@ -14,6 +14,7 @@ router.delete('/system/roles/:userId/:studioId/:roleName', isLoggedIn, requireRo
 
 // --- Admin & General User Routes ---
 router.put('/profile', isLoggedIn, upload.single('profile_picture'), controller.updateProfile);
+router.put('/profile/change-password', isLoggedIn, controller.changePassword);
 router.get('/assignable-roles', isLoggedIn, requireRole('admin'), controller.getAssignableRoles);
 
 router.get('/all', isLoggedIn, requireRole('admin'), controller.getUsersForStudio); 
