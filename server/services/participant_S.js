@@ -1,141 +1,270 @@
 const meetingModel = require('../models/meeting_M');
 const participantModel = require('../models/participant_M');
+const userModel = require('../models/user_M'); 
 const smsService = require('../utils/sms_S'); 
+const db = require('../config/db_config'); 
 
 async function processWaitingList(meetingId) {
-    const [[meeting]] = await meetingModel.getById(meetingId);
-    if (!meeting || meeting.participant_count >= meeting.capacity) { return; }
-    const [[nextInLine]] = await participantModel.getNextInWaitingList(meetingId);
-    if (!nextInLine) { return; }
-    await participantModel.updateRegistrationStatus(nextInLine.registration_id, 'pending');
-    await smsService.sendSmsWithConfirmLink(nextInLine.phone, meetingId, nextInLine.registration_id);
+    const [[meeting]] = await meetingModel.getById(meetingId);
+    if (!meeting || meeting.participant_count >= meeting.capacity) { return; }
+    const [[nextInLine]] = await participantModel.getNextInWaitingList(meetingId);
+    if (!nextInLine) { return; }
+    await participantModel.updateRegistrationStatus(nextInLine.registration_id, 'pending');
+    await smsService.sendSmsWithConfirmLink(nextInLine.phone, meetingId, nextInLine.registration_id);
 }
 
-const addParticipant = async (userId, meetingId, forceWaitlist = false) => {
-    const [[meeting]] = await meetingModel.getById(meetingId);
-    if (!meeting) {
-        const error = new Error('השיעור המבוקש לא נמצא.');
-        error.status = 404;
-        throw error;
-    }
-    const [[existing]] = await participantModel.findExisting(userId, meetingId);
-    if (existing) {
-        const error = new Error('אתה כבר רשום לשיעור זה או נמצא ברשימת ההמתנה.');
-        error.status = 409;
-        error.errorType = 'ALREADY_REGISTERED';
-        throw error;
-    }
+const addParticipant = async (user, meetingId, forceWaitlist = false) => {
+    const { id: userId, studioId, roles } = user;
 
-    const isFull = meeting.participant_count >= meeting.capacity;
+    const [[meeting]] = await meetingModel.getById(meetingId);
+    if (!meeting) {
+        const error = new Error('השיעור המבוקש לא נמצא.');
+        error.status = 404;
+        throw error;
+    }
+    const [[existing]] = await participantModel.findExisting(userId, meetingId);
+    if (existing) {
+        const error = new Error('אתה כבר רשום לשיעור זה או נמצא ברשימת ההמתנה.');
+        error.status = 409;
+        error.errorType = 'ALREADY_REGISTERED';
+        throw error;
+    }
 
-    if (isFull && !forceWaitlist) {
-        const waitingList = await meetingModel.getWaitingParticipants(meetingId);
-        const waitlistCount = waitingList.length;
+    let validMembership = null;
+    
+    const isPrivilegedUser = roles.includes('admin') || roles.includes('owner');
 
-        const message = `השיעור מלא. ${waitlistCount > 0 ? `כבר יש ${waitlistCount} אנשים ברשימת ההמתנה.` : ''} האם תרצה להצטרף?`;
-        
-        const error = new Error(message);
-        error.status = 409;
-        error.errorType = 'CLASS_FULL';
-        error.waitlistCount = waitlistCount;
-        throw error;
-    }
+    if (!isPrivilegedUser) {
+        validMembership = await participantModel.findValidMembership(userId, studioId);
+        
+        if (!validMembership) {
+            const error = new Error('אין לך מנוי פעיל או שנגמרו לך הניקובים. אנא פנה למנהל הסטודיו.');
+            error.status = 402; 
+            error.errorType = 'NO_MEMBERSHIP';
+            throw error;
+        }
+    }
 
-    const status = isFull ? 'waiting' : 'active';
-    const [result] = await participantModel.add(userId, meetingId, status);
-    if (status === 'active') {
-        await meetingModel.syncParticipantCount(meetingId);
-    }
-    return { id: result.insertId, userId, meetingId, status };
+    const isFull = meeting.participant_count >= meeting.capacity;
+    let status = 'active';
+
+    if (isFull) {
+        if (!forceWaitlist) {
+            const waitingList = await meetingModel.getWaitingParticipants(meetingId);
+            const waitlistCount = waitingList.length;
+            const message = `השיעור מלא. ${waitlistCount > 0 ? `כבר יש ${waitlistCount} אנשים ברשימת ההמתנה.` : ''} האם תרצה להצטרף?`;
+            const error = new Error(message);
+            error.status = 409;
+            error.errorType = 'CLASS_FULL';
+            error.waitlistCount = waitlistCount;
+            throw error;
+        }
+        status = 'waiting'; 
+    }
+
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    try {
+        const [result] = await participantModel.add(
+            userId, 
+            meetingId, 
+            status, 
+            validMembership ? validMembership.id : null, 
+            connection
+        );
+        if (status === 'active') {
+            await participantModel.incrementMeetingCount(meetingId, connection); 
+            if (validMembership && validMembership.visits_remaining !== null) {
+                await participantModel.decrementVisit(validMembership.id, connection);
+                if (validMembership.visits_remaining - 1 === 0) {
+                    await participantModel.updateMembershipStatus(validMembership.id, 'depleted', connection);
+                }
+            }
+        }
+        await connection.commit();
+        connection.release();
+        return { id: result.insertId, userId, meetingId, status };
+    } catch (err) {
+        await connection.rollback();
+        connection.release();
+        console.error("Error in addParticipant transaction:", err); 
+        throw new Error('שגיאה פנימית בעת נסיון הרישום.'); 
+    }
 };
 
 const cancelRegistration = async (registrationId, user) => {
-    const [[registration]] = await participantModel.getRegistrationById(registrationId);
-    if (!registration) {
-        const error = new Error('ההרשמה לא נמצאה.');
-        error.status = 404;
-        throw error;
-    }
-    if (registration.user_id !== user.id && !user.roles.includes('admin')) {
-        const error = new Error('אין לך הרשאה לבטל הרשמה זו.');
-        error.status = 403;
-        throw error;
-    }
-    await participantModel.updateRegistrationStatus(registrationId, 'cancelled');
-    await meetingModel.syncParticipantCount(registration.meeting_id);
-    await processWaitingList(registration.meeting_id);
-    return { message: 'ההרשמה בוטלה בהצלחה.' };
+    const [[registration]] = await participantModel.getRegistrationById(registrationId);
+    if (!registration) {
+        const error = new Error('ההרשמה לא נמצאה.');
+        error.status = 404;
+        throw error;
+    }
+    if (registration.user_id !== user.id && !user.roles.includes('admin')) {
+        const error = new Error('אין לך הרשאה לבטל הרשמה זו.');
+        error.status = 403;
+        throw error;
+    }
+
+    const [[meeting]] = await meetingModel.getById(registration.meeting_id);
+    if (!meeting) {
+        const error = new Error('השיעור המשויך להרשמה זו לא נמצא.');
+        error.status = 404;
+        throw error;
+    }
+
+    const meetingStartTime = new Date(`${meeting.date}T${meeting.start_time}`);
+    const now = new Date();
+    const diffMs = meetingStartTime.getTime() - now.getTime();
+    const diffHours = diffMs / (1000 * 60 * 60);
+    const isLateCancel = diffHours < 24;
+
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+    try {
+        await participantModel.updateRegistrationStatus(registrationId, 'cancelled');
+        
+        if (registration.status === 'active') {
+            await participantModel.decrementMeetingCount(registration.meeting_id, connection);
+        }
+
+        if (registration.user_membership_id) {
+            if (!isLateCancel) {
+                const [[membership]] = await participantModel.getMembershipById(registration.user_membership_id, connection);
+                
+                if (membership && membership.visits_remaining !== null) {
+                    await participantModel.incrementVisit(membership.id, connection);
+                    
+                    if (membership.status === 'depleted') {
+                        await participantModel.updateMembershipStatus(membership.id, 'active', connection);
+                    }
+                }
+            } else {
+                console.log(`Late cancellation by user ${user.id} for registration ${registrationId}. No refund given.`);
+            }
+        }
+
+        await processWaitingList(registration.meeting_id); 
+        
+        await connection.commit();
+        connection.release();
+        return { message: 'ההרשמה בוטלה בהצלחה.' };
+    } catch (err) {
+        await connection.rollback();
+        connection.release();
+        console.error("Error in cancelRegistration transaction:", err);
+        throw new Error('שגיאה פנימית בעת ביטול הרישום.');
+    }
 };
 
 const checkInParticipant = async (registrationId, user) => {
-    const [[registration]] = await participantModel.getRegistrationById(registrationId);
-    if (!registration) {
-        const error = new Error('ההרשמה לא נמצאה.');
-        error.status = 404;
-        throw error;
-    }
-    
-    const [[meeting]] = await meetingModel.getById(registration.meeting_id);
-    if (!meeting) {
-        const error = new Error('השיעור לא נמצא.');
-        error.status = 404;
-        throw error;
-    }
-    
-    if (user.id !== meeting.trainer_id && !user.roles.includes('admin')) {
-        const error = new Error('אין לך הרשאה לבצע צ\'ק-אין לשיעור זה.');
-        error.status = 403;
-        throw error;
-    }
+    const [[registration]] = await participantModel.getRegistrationById(registrationId);
+    if (!registration) {
+        const error = new Error('ההרשמה לא נמצאה.');
+        error.status = 404;
+        throw error;
+    }
+    
+    const [[meeting]] = await meetingModel.getById(registration.meeting_id);
+    if (!meeting) {
+        const error = new Error('השיעור לא נמצא.');
+        error.status = 404;
+        throw error;
+    }
+    
+    if (user.id !== meeting.trainer_id && !user.roles.includes('admin')) {
+        const error = new Error('אין לך הרשאה לבצע צ\'ק-אין לשיעור זה.');
+        error.status = 403;
+        throw error;
+    }
 
-    await participantModel.setCheckInTime(registrationId);
-    
-    return { message: 'המתאמן עודכן בהצלחה.' };
+    await participantModel.setCheckInTime(registrationId);
+    
+    return { message: 'המתאמן עודכן בהצלחה.' };
 };
 
 const confirmSpot = async (registrationId) => {
-    const [[registration]] = await participantModel.getRegistrationById(registrationId);
-    if (!registration) {
-        const error = new Error('ההרשמה לא נמצאה.');
-        error.status = 404;
-        throw error;
-    }
-    if (registration.status !== 'pending') {
-        const error = new Error('המקום הזה כבר לא זמין.');
-        error.status = 409;
-        throw error;
-    }
-    const [[meeting]] = await meetingModel.getById(registration.meeting_id);
-    if (meeting.participant_count >= meeting.capacity) {
-        await participantModel.updateRegistrationStatus(registrationId, 'waiting');
-        const error = new Error('מצטערים, המקום נתפס. הוחזרת לרשימת ההמתנה.');
-        error.status = 409;
-        throw error;
-    }
-    await participantModel.updateRegistrationStatus(registrationId, 'active');
-    await meetingModel.syncParticipantCount(registration.meeting_id);
-    return { message: 'המקום אושר בהצלחה.' };
+    const [[registration]] = await participantModel.getRegistrationById(registrationId);
+    if (!registration) {
+        throw new Error('ההרשמה לא נמצאה.');
+    }
+    if (registration.status !== 'pending') {
+        throw new Error('המקום הזה כבר לא זמין.');
+    }
+    const [[meeting]] = await meetingModel.getById(registration.meeting_id);
+    if (meeting.participant_count >= meeting.capacity) {
+        await participantModel.updateRegistrationStatus(registrationId, 'waiting');
+        throw new Error('מצטערים, המקום נתפס. הוחזרת לרשימת ההמתנה.');
+    }
+
+    const [[user]] = await userModel.getById(registration.user_id); 
+    const studioId = meeting.studio_id;
+    const [rolesData] = await userModel.findStudiosAndRolesByUserId(user.id);
+    const roles = rolesData.map(r => r.role_name);
+
+    let validMembership = null;
+    
+    const isPrivilegedUser = roles.includes('admin') || roles.includes('owner');
+
+    if (!isPrivilegedUser) {
+        validMembership = await participantModel.findValidMembership(user.id, studioId);
+        if (!validMembership) {
+            await participantModel.updateRegistrationStatus(registrationId, 'cancelled');
+            await processWaitingList(meeting.id); 
+            throw new Error('אין לך מנוי פעיל ולכן לא ניתן לאשר את המקום.');
+        }
+    }
+
+    const connection = await db.getConnection();
+    await connection.beginTransaction();
+    try {
+        await participantModel.updateRegistrationStatusAndMembership(
+            registrationId, 
+            'active', 
+            validMembership ? validMembership.id : null,
+            connection
+        );
+
+        await participantModel.incrementMeetingCount(registration.meeting_id, connection);
+
+        if (validMembership && validMembership.visits_remaining !== null) {
+            await participantModel.decrementVisit(validMembership.id, connection);
+            if (validMembership.visits_remaining - 1 === 0) {
+                await participantModel.updateMembershipStatus(validMembership.id, 'depleted', connection);
+            }
+        }
+
+        await connection.commit();
+        connection.release();
+        return { message: 'המקום אושר בהצלחה.' };
+
+    } catch (err) {
+        await connection.rollback();
+        connection.release();
+        console.error("Error in confirmSpot transaction:", err);
+        throw new Error('שגיאה פנימית בעת אישור המקום.');
+    }
 };
 
 const declineSpot = async (registrationId) => {
-    const [[registration]] = await participantModel.getRegistrationById(registrationId);
-    if (!registration) {
-        const error = new Error('ההרשמה לא נמצאה.');
-        error.status = 404;
-        throw error;
-    }
-    if (registration.status === 'pending') {
-        await participantModel.updateRegistrationStatus(registrationId, 'cancelled');
-        await processWaitingList(registration.meeting_id);
-    }
-    return { message: 'המקום נדחה.' };
+    const [[registration]] = await participantModel.getRegistrationById(registrationId);
+    if (!registration) {
+        const error = new Error('ההרשמה לא נמצאה.');
+        error.status = 404;
+        throw error;
+    }
+    if (registration.status === 'pending') {
+        await participantModel.updateRegistrationStatus(registrationId, 'cancelled');
+        await processWaitingList(registration.meeting_id);
+    }
+    return { message: 'המקום נדחה.' };
 };
 
 module.exports = {
-    addParticipant,
-    cancelRegistration,
-    processWaitingList,
-    checkInParticipant,
-    confirmSpot,
-    declineSpot
+    addParticipant,
+    cancelRegistration,
+    processWaitingList,
+    checkInParticipant,
+    confirmSpot,
+    declineSpot
 };

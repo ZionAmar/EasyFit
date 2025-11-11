@@ -8,6 +8,7 @@ import TrainersView from '../components/TrainersView';
 import MembersView from '../components/MembersView'; 
 import '../styles/ManagerDashboard.css';
 import RoomsView from '../components/RoomsView';
+import AdminProducts from '../components/AdminProducts'; // <-- 1. הוסף את השורה הזו
 
 const OverviewView = ({ stats }) => (
     <div className="dashboard-grid-pro">
@@ -48,7 +49,6 @@ function ManagerDashboard() {
                 setBasicData(basicDataRes);
                 setStats(statsRes);
             } catch (err) {
-                // לוכד את הודעת השגיאה המפורטת מה-Backend
                 const errorMessage = err.message || "שגיאה כללית בטעינת מרכז הבקרה. נסה שוב.";
                 setError(errorMessage);
             } finally {
@@ -64,6 +64,7 @@ function ManagerDashboard() {
             case 'trainers': return <TrainersView />;
             case 'members': return <MembersView />; 
             case 'rooms': return <RoomsView />; 
+            case 'products': return <AdminProducts />;
             case 'settings': return <StudioSettingsView initialDetails={basicData.studio} />;
             case 'overview': default: return <OverviewView stats={stats} />;
         }
@@ -71,7 +72,6 @@ function ManagerDashboard() {
 
     if (isLoading) return <div className="loading">טוען את מרכז הבקרה...</div>;
     
-    // הצגת שגיאה מפורטת מה-Backend
     if (error) return <div className="error-state"><h2 style={{ color: '#dc3545' }}>שגיאה בגישה למרכז הבקרה:</h2><p>{error}</p></div>;
     
     if (!basicData) return <h2>לא נמצא מידע סטודיו.</h2>;
@@ -96,6 +96,7 @@ function ManagerDashboard() {
                 <button onClick={() => setCurrentView('trainers')} className={currentView === 'trainers' ? 'active' : ''}>מאמנים</button>
                 <button onClick={() => setCurrentView('members')} className={currentView === 'members' ? 'active' : ''}>מתאמנים</button>
                 <button onClick={() => setCurrentView('rooms')} className={currentView === 'rooms' ? 'active' : ''}>חדרים</button>
+                <button onClick={() => setCurrentView('products')} className={currentView === 'products' ? 'active' : ''}>מנויים וכרטיסיות</button>
                 <button onClick={() => setCurrentView('settings')} className={currentView === 'settings' ? 'active' : ''}>הגדרות</button>
             </div>
             
